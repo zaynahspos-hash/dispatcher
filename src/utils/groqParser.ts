@@ -1,0 +1,344 @@
+import axios from 'axios'
+import { CITY_LIST } from './cityList'
+
+export interface Parcel {
+  id: string
+  name: string
+  phone: string
+  city: string
+  address: string
+  total: number
+  items: number
+  weight: number
+  orderType: string
+  airwayBillCopy: number
+  detail: string
+  note: string
+}
+
+export interface Settings {
+  groq_api_key: string
+  groq_model?: string
+  postex_token: string
+  postex_pickup: string
+  postex_return: string
+  default_weight: string
+  default_items: string
+  default_product: string
+  default_note: string
+  postex_type?: string
+  postex_handling?: string
+  postex_product_check?: string
+  postex_sku_check?: string
+  postex_weight_check?: string
+  postex_pieces_check?: string
+  postex_cod_check?: string
+  postex_notes_check?: string
+  postex_return_city?: string
+  postex_pickup_address?: string
+  postex_return_address?: string
+  ai_provider?: string
+  openai_api_key?: string
+  openai_model?: string
+  openrouter_api_key?: string
+  openrouter_model?: string
+  gemini_api_key?: string
+  gemini_model?: string
+  anthropic_api_key?: string
+  anthropic_model?: string
+  deepseek_api_key?: string
+  deepseek_model?: string
+  kimi_api_key?: string
+  kimi_model?: string
+  mistral_api_key?: string
+  mistral_model?: string
+  whatsapp_template?: string
+  whatsapp_note?: string
+}
+
+export interface ParseResult {
+  parcels: Parcel[]
+  tokensUsed: number
+}
+
+export async function parseParcelText(rawText: string, settings: Settings): Promise<ParseResult> {
+  const selectedProvider = settings.ai_provider || 'groq'
+  const providersOrder = ['groq', 'openai', 'openrouter', 'gemini', 'anthropic', 'deepseek', 'kimi', 'mistral']
+  // Reorder so that the user's selectedProvider is tried first
+  const orderedProviders = [
+    selectedProvider,
+    ...providersOrder.filter(p => p !== selectedProvider)
+  ]
+
+  let lastError: any = null
+  let attemptedAny = false
+
+  for (const provider of orderedProviders) {
+    let apiKeyString = ''
+    let model = ''
+
+    if (provider === 'groq') {
+      apiKeyString = settings.groq_api_key || ''
+      model = settings.groq_model || 'llama-3.1-8b-instant'
+      if (model === 'custom') model = 'llama-3.1-8b-instant'
+    } else if (provider === 'openrouter') {
+      apiKeyString = settings.openrouter_api_key || ''
+      model = settings.openrouter_model || 'meta-llama/llama-3.1-8b-instruct:free'
+      if (model === 'custom') model = 'meta-llama/llama-3.1-8b-instruct:free'
+    } else if (provider === 'gemini') {
+      apiKeyString = settings.gemini_api_key || ''
+      model = settings.gemini_model || 'gemini-2.0-flash-lite'
+      if (model === 'custom') model = 'gemini-2.0-flash-lite'
+    } else if (provider === 'openai') {
+      apiKeyString = settings.openai_api_key || ''
+      model = settings.openai_model || 'gpt-4o-mini'
+      if (model === 'custom') model = 'gpt-4o-mini'
+    } else if (provider === 'anthropic') {
+      apiKeyString = settings.anthropic_api_key || ''
+      model = settings.anthropic_model || 'claude-3-haiku-20240307'
+      if (model === 'custom') model = 'claude-3-haiku-20240307'
+    } else if (provider === 'deepseek') {
+      apiKeyString = settings.deepseek_api_key || ''
+      model = settings.deepseek_model || 'deepseek-chat'
+      if (model === 'custom') model = 'deepseek-chat'
+    } else if (provider === 'kimi') {
+      apiKeyString = settings.kimi_api_key || ''
+      model = settings.kimi_model || 'moonshot-v1-8k'
+      if (model === 'custom') model = 'moonshot-v1-8k'
+    } else if (provider === 'mistral') {
+      apiKeyString = settings.mistral_api_key || ''
+      model = settings.mistral_model || 'ministral-3b-2512'
+      if (model === 'custom') model = 'ministral-3b-2512'
+    }
+
+    const keys = apiKeyString
+      .split(/[\n,]+/)
+      .map(k => k.trim())
+      .filter(k => k.length > 0)
+
+    if (keys.length === 0) {
+      continue // Skip if this provider doesn't have keys configured
+    }
+
+    attemptedAny = true
+
+    // Get index for this provider's keys
+    const storageKey = `${provider}_api_key_index`
+    const storedIndexStr = localStorage.getItem(storageKey)
+    let startIndex = parseInt(storedIndexStr || '0', 10)
+    if (isNaN(startIndex) || startIndex >= keys.length) {
+      startIndex = 0
+    }
+
+    const systemPrompt = `
+You are a Pakistani courier parcel data extractor.
+Extract ALL parcels from the WhatsApp text below and return a JSON array.
+
+RULES:
+- Name: Properly capitalized. This is the customer's full name. If the text starts with a name or mentions a contact name, extract it. Do NOT return "Customer Name" as a placeholder; extract the actual name from the text.
+- Phone: Always 03XXXXXXXXX format (fix +92 303 → 03035..., remove spaces/dashes)
+- If multiple phones: first in phone field, rest as "(Alternate: 03XXXXXXXXX)" at end of address
+- City: Match EXACTLY from this list (fix spelling): ${CITY_LIST.join(', ')}
+- If city not in list but recognizable Pakistan city, use closest match
+- Address: Convert Urdu to Roman Urdu. Use English: near/opposite/beside/behind/in front of. City name at end.
+- Total: number only (no Rs.). If missing or Non-COD/Advance Paid → 0
+- Items: number. If missing → use default_items setting
+- OrderType: "Normal" or "Replacement" (if keywords: Return/Exchange/Replacement/Changing/Wrong Item)
+- AirwayBillCopy: 1 (default)
+- Note: customer note if given, else use default_note setting
+- Detail: default_product setting
+- Weight: default_weight setting
+
+DEFAULT SETTINGS:
+- default_items: ${settings.default_items || 1}
+- default_product: ${settings.default_product || 'Kids Clothes'}
+- default_note: ${settings.default_note || 'Call before delivery'}
+- default_weight: ${settings.default_weight || 0.5}
+
+Return ONLY a valid JSON array. No markdown, no explanation.
+Format:
+[
+  {
+    "id": "tv1234",
+    "name": "Muhammad Ali",
+    "phone": "03XXXXXXXXX",
+    "city": "Lahore",
+    "address": "Full address, City",
+    "total": 2500,
+    "items": 2,
+    "weight": 0.5,
+    "orderType": "Normal",
+    "airwayBillCopy": 1,
+    "detail": "Kids Clothes",
+    "note": "Call before delivery"
+  }
+]
+`
+
+    let attempt = 0
+    let currentKeyIndex = startIndex
+    let success = false
+    let resultPayload: any = null
+
+    // Helper: wait ms
+    const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+    while (attempt < keys.length * 3 && !success) {
+      const apiKey = keys[currentKeyIndex]
+      console.log(`Trying ${provider.toUpperCase()} API (key ${currentKeyIndex + 1}/${keys.length})`)
+
+      try {
+        let content = ''
+        let tokensUsed = 0
+
+        if (provider === 'gemini') {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+          const res = await axios.post(url, {
+            contents: [{
+              parts: [{ text: `${systemPrompt}\n\nUser Content:\n${rawText}` }]
+            }],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
+          if (res.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            content = res.data.candidates[0].content.parts[0].text
+            if (res.data?.usageMetadata?.totalTokenCount) {
+              tokensUsed = res.data.usageMetadata.totalTokenCount
+            }
+          } else {
+            throw new Error(JSON.stringify(res.data))
+          }
+        } 
+        else if (provider === 'anthropic') {
+          const url = 'https://api.anthropic.com/v1/messages'
+          const res = await axios.post(url, {
+            model: model,
+            max_tokens: 4000,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: rawText }]
+          }, {
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json',
+              'dangerouslyAllowBrowser': 'true'
+            }
+          })
+          if (res.data?.content?.[0]?.text) {
+            content = res.data.content[0].text
+            if (res.data?.usage) {
+              tokensUsed = (res.data.usage.input_tokens || 0) + (res.data.usage.output_tokens || 0)
+            }
+          } else {
+            throw new Error(JSON.stringify(res.data))
+          }
+        }
+        else {
+          let url = ''
+          const headers: any = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          }
+
+          if (provider === 'groq') {
+            url = 'https://api.groq.com/openai/v1/chat/completions'
+          } else if (provider === 'openrouter') {
+            url = 'https://openrouter.ai/api/v1/chat/completions'
+            headers['HTTP-Referer'] = window.location.origin
+            headers['X-Title'] = 'WhatsApp Parcel Booker'
+          } else if (provider === 'openai') {
+            url = 'https://api.openai.com/v1/chat/completions'
+          } else if (provider === 'deepseek') {
+            url = 'https://api.deepseek.com/chat/completions'
+          } else if (provider === 'kimi') {
+            url = 'https://api.moonshot.cn/v1/chat/completions'
+          } else if (provider === 'mistral') {
+            url = 'https://api.mistral.ai/v1/chat/completions'
+          }
+
+          const res = await axios.post(url, {
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: rawText }
+            ],
+            temperature: 0.1,
+            max_tokens: 4000,
+            ...(provider === 'deepseek' ? { enable_thinking: false } : {})
+          }, { headers })
+
+          if (res.data?.choices?.[0]?.message?.content) {
+            content = res.data.choices[0].message.content
+            if (res.data?.usage?.total_tokens) {
+              tokensUsed = res.data.usage.total_tokens
+            }
+          } else {
+            throw new Error(JSON.stringify(res.data))
+          }
+        }
+
+        // Robust JSON extraction:
+        // 1. Strip <think>...</think> reasoning blocks (DeepSeek, QwQ, etc)
+        // 2. Strip markdown code fences
+        // 3. Slice from first '[' to last ']'
+        let cleaned = content
+          .replace(/<think>[\s\S]*?<\/think>/gi, '')
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim()
+        const startIdx = cleaned.indexOf('[')
+        const endIdx = cleaned.lastIndexOf(']')
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          cleaned = cleaned.substring(startIdx, endIdx + 1)
+        }
+        const parsed = JSON.parse(cleaned)
+        
+        resultPayload = {
+          parcels: Array.isArray(parsed) ? parsed : [parsed],
+          tokensUsed
+        }
+        success = true
+
+        // Keep this key active since it worked!
+        localStorage.setItem(storageKey, String(currentKeyIndex))
+
+      } catch (err: any) {
+        const status = err?.response?.status
+        const errorMsgDetail = err?.response?.data?.error?.message || err?.response?.data?.message || err?.message || err
+        console.warn(`[Rate/Error] ${provider.toUpperCase()} key ${currentKeyIndex} HTTP ${status}:`, errorMsgDetail)
+        lastError = err
+
+        if (status === 429) {
+          // Rate limit — wait with exponential backoff only if 1 key OR tried all keys once
+          if (keys.length === 1 || attempt >= keys.length) {
+            const retryAfter = parseInt(err?.response?.headers?.['retry-after'] || '0', 10)
+            const waitMs = retryAfter > 0 ? retryAfter * 1000 : Math.min(5000 * Math.pow(2, Math.floor(attempt / keys.length)), 30000)
+            console.log(`[Rate Limit] ${provider.toUpperCase()} — waiting ${waitMs / 1000}s before retry...`)
+            await wait(waitMs)
+          }
+          // Rotate to next key to utilize other keys
+          currentKeyIndex = (currentKeyIndex + 1) % keys.length
+          localStorage.setItem(storageKey, String(currentKeyIndex))
+          attempt++
+        } else {
+          // Hard error — rotate to next key
+          currentKeyIndex = (currentKeyIndex + 1) % keys.length
+          localStorage.setItem(storageKey, String(currentKeyIndex))
+          attempt += keys.length
+        }
+      }
+    }
+
+    if (success && resultPayload) {
+      return resultPayload
+    }
+  }
+
+  if (!attemptedAny) {
+    throw new Error(`No API keys configured for ${selectedProvider.toUpperCase()} or fallback providers. Please check Settings.`)
+  }
+
+  const errorMsg = lastError?.response?.data?.error?.message || lastError?.response?.data?.message || lastError?.message || 'All APIs failed'
+  throw new Error(`All configured AI APIs failed. Last error: ${errorMsg}`)
+}

@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Table input focus states */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+}
+
+:root {
+  --color-gray-150: #f1f5f9;
+  --color-gray-250: #e2e8f0;
+  --color-gray-550: #64748b;
+  --color-gray-750: #334155;
+  --color-gray-850: #1e293b;
+
+  /* Status badge light theme colors */
+  --status-success-bg: #ecfdf5;
+  --status-success-border: #a7f3d0;
+  --status-success-text: #047857;
+
+  --status-danger-bg: #fff1f2;
+  --status-danger-border: #fecdd3;
+  --status-danger-text: #e11d48;
+
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+  --status-warning-text: #b45309;
+
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+  --status-info-text: #1d4ed8;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* PWA Scrollbar hide utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe areas helper classes */
+.safe-top-padding {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom-padding {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.header-safe-top {
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 640px) {
+  .header-safe-top {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+}
+
+
+
