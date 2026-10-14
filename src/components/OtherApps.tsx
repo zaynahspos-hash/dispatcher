@@ -49,7 +49,7 @@ export default function OtherApps() {
       description: 'Customer chats ko automatic order bookings main convert karne wala super-fast software. AI and courier integration ek hi platform par.',
       url: 'https://dispatcher.zaynahspos.com/',
       badge: 'Active System',
-      logo: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/zaynahs%20dispatcher%20logo.webp',
+      logo: '/apple-touch-icon.png?v=20261014',
       image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/app-preview.webp',
       article: {
         title: 'Zaynah Courier Dispatcher Kaise Kaam Karta Hai?',

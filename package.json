@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "db:setup": "node scripts/deploySchema.js"
+    "db:setup": "node scripts/deploySchema.js",
+    "auth:emails": "node scripts/updateEmailTemplates.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
