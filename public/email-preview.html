@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zaynahs Dispatcher — Email Templates Preview</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0b0f19; color: #f1f5f9; margin: 0; padding: 20px; }
+    .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+    .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #3b82f6; }
+    .preview-card { max-width: 600px; margin: 0 auto; background: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+    .view-frame { width: 100%; border: none; min-height: 680px; }
+  </style>
+</head>
+<body>
+  <div style="text-align: center; margin-bottom: 24px;">
+    <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: #ffffff;">Zaynahs Courier Dispatcher — Email Suite</h1>
+    <p style="font-size: 14px; color: #94a3b8; margin: 0;">Modern, Mobile-Native HTML Email Templates with High-Res Branding</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTemplate('confirm')">1. Email Confirmation</button>
+    <button class="tab-btn" onclick="switchTemplate('reset')">2. Password Reset</button>
+    <button class="tab-btn" onclick="switchTemplate('magic')">3. Magic Link</button>
+    <button class="tab-btn" onclick="switchTemplate('invite')">4. Team Invite</button>
+  </div>
+
+  <div class="preview-card">
+    <iframe id="previewFrame" class="view-frame" srcdoc=""></iframe>
+  </div>
+
+  <script>
+    const LOGO = 'https://dispatcher.zaynahspos.com/apple-touch-icon.png';
+    const templates = {
+      confirm: `
+        <div style="background:#0b0f19; padding: 20px 10px; font-family: -apple-system, sans-serif; color: #fff;">
+          <div style="max-width: 520px; margin: 0 auto; background: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #2563eb, #38bdf8, #10b981); height: 4px;"></div>
+            <div style="padding: 24px; text-align: center; border-bottom: 1px solid #1f2937;">
+              <img src="${LOGO}" width="56" height="56" style="border-radius: 14px; display: block; margin: 0 auto;" />
+              <h1 style="font-size: 18px; margin: 12px 0 2px 0;">Zaynahs Courier Dispatcher</h1>
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; margin: 0; font-weight: 600;">WhatsApp AI &bull; PostEx Logistics</p>
+            </div>
+            <div style="padding: 24px;">
+              <span style="background: rgba(37,99,235,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">ACCOUNT VERIFICATION</span>
+              <h2 style="font-size: 22px; margin: 14px 0 8px 0; color: #fff;">Confirm Your Email Address</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">Welcome to Zaynahs Courier Dispatcher — Your intelligent logistics booking engine.</p>
+              <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; text-align: center; margin: 18px 0;">
+                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 600; display: block; margin-bottom: 4px;">One-Time Verification Code</span>
+                <div style="font-family: monospace; font-size: 26px; font-weight: 700; letter-spacing: 6px; color: #38bdf8;">849201</div>
+              </div>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="#" style="background: #2563eb; color: #fff; padding: 14px 32px; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block; box-shadow: 0 4px 14px rgba(37,99,235,0.4);">Confirm Email Address &rarr;</a>
+              </div>
+              <p style="font-size: 12px; color: #64748b; text-align: center; margin: 16px 0 0 0;">This secure link expires in 1 hour.</p>
+            </div>
+            <div style="background: #0d131f; border-top: 1px solid #1f2937; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b;">
+              &copy; 2026 Zaynahs Courier Dispatcher &bull; dispatcher.zaynahspos.com
+            </div>
+          </div>
+        </div>
+      `,
+      reset: `
+        <div style="background:#0b0f19; padding: 20px 10px; font-family: -apple-system, sans-serif; color: #fff;">
+          <div style="max-width: 520px; margin: 0 auto; background: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #ef4444, #f59e0b); height: 4px;"></div>
+            <div style="padding: 24px; text-align: center; border-bottom: 1px solid #1f2937;">
+              <img src="${LOGO}" width="56" height="56" style="border-radius: 14px; display: block; margin: 0 auto;" />
+              <h1 style="font-size: 18px; margin: 12px 0 2px 0;">Zaynahs Courier Dispatcher</h1>
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #f59e0b; margin: 0; font-weight: 600;">Security Notification</p>
+            </div>
+            <div style="padding: 24px;">
+              <span style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">SECURITY ALERT</span>
+              <h2 style="font-size: 22px; margin: 14px 0 8px 0; color: #fff;">Reset Your Account Password</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">A password reset was requested for your account. Tap below to choose a new password.</p>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="#" style="background: #2563eb; color: #fff; padding: 14px 32px; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Reset Password &rarr;</a>
+              </div>
+              <p style="font-size: 12px; color: #64748b; text-align: center; margin: 16px 0 0 0;">If you did not request this, please secure your account immediately.</p>
+            </div>
+            <div style="background: #0d131f; border-top: 1px solid #1f2937; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b;">
+              &copy; 2026 Zaynahs Courier Dispatcher &bull; dispatcher.zaynahspos.com
+            </div>
+          </div>
+        </div>
+      `,
+      magic: `
+        <div style="background:#0b0f19; padding: 20px 10px; font-family: -apple-system, sans-serif; color: #fff;">
+          <div style="max-width: 520px; margin: 0 auto; background: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #10b981, #06b6d4); height: 4px;"></div>
+            <div style="padding: 24px; text-align: center; border-bottom: 1px solid #1f2937;">
+              <img src="${LOGO}" width="56" height="56" style="border-radius: 14px; display: block; margin: 0 auto;" />
+              <h1 style="font-size: 18px; margin: 12px 0 2px 0;">Zaynahs Courier Dispatcher</h1>
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; margin: 0; font-weight: 600;">Fast 1-Click Sign In</p>
+            </div>
+            <div style="padding: 24px;">
+              <span style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">PASSWORDLESS ACCESS</span>
+              <h2 style="font-size: 22px; margin: 14px 0 8px 0; color: #fff;">Sign In to Dispatcher</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">Tap the button below to instantly sign into your dashboard without typing a password.</p>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="#" style="background: #10b981; color: #fff; padding: 14px 32px; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Instant Dashboard Login &rarr;</a>
+              </div>
+            </div>
+            <div style="background: #0d131f; border-top: 1px solid #1f2937; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b;">
+              &copy; 2026 Zaynahs Courier Dispatcher &bull; dispatcher.zaynahspos.com
+            </div>
+          </div>
+        </div>
+      `,
+      invite: `
+        <div style="background:#0b0f19; padding: 20px 10px; font-family: -apple-system, sans-serif; color: #fff;">
+          <div style="max-width: 520px; margin: 0 auto; background: #111827; border-radius: 16px; border: 1px solid #1f2937; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #8b5cf6, #ec4899); height: 4px;"></div>
+            <div style="padding: 24px; text-align: center; border-bottom: 1px solid #1f2937;">
+              <img src="${LOGO}" width="56" height="56" style="border-radius: 14px; display: block; margin: 0 auto;" />
+              <h1 style="font-size: 18px; margin: 12px 0 2px 0;">Zaynahs Courier Dispatcher</h1>
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #c084fc; margin: 0; font-weight: 600;">Team Collaboration</p>
+            </div>
+            <div style="padding: 24px;">
+              <span style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); color: #c084fc; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">TEAM INVITATION</span>
+              <h2 style="font-size: 22px; margin: 14px 0 8px 0; color: #fff;">You've Been Invited to Join</h2>
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 16px 0;">You have been invited to collaborate on Zaynahs Courier Dispatcher.</p>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="#" style="background: #8b5cf6; color: #fff; padding: 14px 32px; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Accept Invitation &rarr;</a>
+              </div>
+            </div>
+            <div style="background: #0d131f; border-top: 1px solid #1f2937; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b;">
+              &copy; 2026 Zaynahs Courier Dispatcher &bull; dispatcher.zaynahspos.com
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    function switchTemplate(key) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('previewFrame').srcdoc = templates[key];
+    }
+
+    // Set initial
+    document.getElementById('previewFrame').srcdoc = templates.confirm;
+  </script>
+</body>
+</html>
