@@ -48,8 +48,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const operationsTabs = tabs.filter(t => operationsTabIds.includes(t.id))
   const systemTabs = tabs.filter(t => !operationsTabIds.includes(t.id))
 
-  // Mobile Bottom Bar (strict 5 tabs to prevent squishing on handheld screens)
-  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'settings']
+  // Mobile Bottom Bar (All primary workflow tabs + apps + settings)
+  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'apps', 'settings']
   const mobileBottomTabs = tabs.filter(t => mobileBottomTabIds.includes(t.id))
 
   // Find active tab label for header breadcrumb
@@ -434,7 +434,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-1/5 flex-1 min-w-0 flex flex-col items-center justify-center py-1 gap-0.5 relative transition-all active:scale-95 cursor-pointer ${
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 gap-0.5 relative transition-all active:scale-95 cursor-pointer ${
                 isActive
                   ? 'text-emerald-600 dark:text-emerald-400 font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
@@ -442,7 +442,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             >
               {/* Active Pill Bar */}
               {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
               )}
               
               <tab.Icon

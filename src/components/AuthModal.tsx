@@ -9,7 +9,13 @@ interface AuthModalProps {
 type AuthMode = 'signin' | 'signup' | 'forgot'
 
 export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<AuthMode>('signin')
+  const [mode, setMode] = useState<AuthMode>(() => {
+    if (typeof window !== 'undefined') {
+      const hasLoggedIn = localStorage.getItem('has_logged_in')
+      if (!hasLoggedIn) return 'signup'
+    }
+    return 'signin'
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -120,24 +126,47 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
+        let registerSuccess = false
+        try {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password })
+          })
+          const regJson = await res.json()
+          if (res.ok && regJson.success) {
+            registerSuccess = true
+          }
+        } catch {
+          // Fallback
+        }
+
+        if (!registerSuccess) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+          })
+          if (signUpError && signUpError.status !== 429) {
+            throw signUpError
+          }
+        }
+
+        // Instantly sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         })
 
-        if (error) throw error
+        if (signInError) throw signInError
 
-        if (data.user) {
-          await ensureUserProfile(data.user)
-          if (data.session) {
-            setSuccessMsg('Account created successfully! Syncing...')
-            setTimeout(() => {
-              onSuccess()
-              onClose()
-            }, 800)
-          } else {
-            setSuccessMsg('Registration successful! Check your email to confirm.')
-          }
+        if (signInData?.user) {
+          await ensureUserProfile(signInData.user)
+          localStorage.setItem('has_logged_in', 'true')
+          setSuccessMsg('Account created successfully! Logging you in...')
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 800)
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -149,6 +178,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
         if (data.user) {
           await ensureUserProfile(data.user)
+          localStorage.setItem('has_logged_in', 'true')
           setSuccessMsg('Welcome back! Logging in...')
           setTimeout(() => {
             onSuccess()

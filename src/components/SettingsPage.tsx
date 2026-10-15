@@ -489,9 +489,11 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
                 <button
                   type="button"
                   onClick={() => setShowPostexToken(!showPostexToken)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer transition"
+                  title={showPostexToken ? 'Hide PostEx Token' : 'Show PostEx Token'}
                 >
-                  {showPostexToken ? 'Hide' : 'Show'}
+                  {showPostexToken ? <EyeOffIcon size={13} /> : <EyeIcon size={13} className="text-emerald-500" />}
+                  <span>{showPostexToken ? 'Hide' : 'Show'}</span>
                 </button>
               </div>
               
@@ -756,9 +758,20 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                    title={showApiKey ? 'Hide API Keys' : 'Show API Keys'}
                   >
-                    {showApiKey ? 'Hide Keys' : 'Show Keys'}
+                    {showApiKey ? (
+                      <>
+                        <EyeOffIcon size={13} className="text-slate-500" />
+                        <span>Hide Keys</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeIcon size={13} className="text-emerald-500" />
+                        <span>Show Keys</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -768,7 +781,11 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
                 value={String(settings[activeKeyField] || '')}
                 onChange={e => updateSetting(activeKeyField, e.target.value)}
                 placeholder={`Paste your ${activeProvider.toUpperCase()} key here...\nEnter multiple keys (one per line) for auto-failover rotation.`}
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+                style={{
+                  WebkitTextSecurity: showApiKey ? 'none' : 'disc',
+                  fontFamily: 'monospace'
+                }}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none transition-all"
               />
               <p className="text-[11px] text-slate-400 mt-1">
                 Keys are securely encrypted and cached in your browser. Multi-key pool auto-switches on rate limits.

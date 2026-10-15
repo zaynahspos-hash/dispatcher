@@ -22,6 +22,17 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       ) {
         return 'reset'
       }
+      if (h.includes('signin') || s.includes('signin')) {
+        return 'signin'
+      }
+      if (h.includes('signup') || s.includes('signup')) {
+        return 'signup'
+      }
+      // First time visitors should default to 'signup' (Create Account)
+      const hasLoggedIn = localStorage.getItem('has_logged_in')
+      if (!hasLoggedIn) {
+        return 'signup'
+      }
     }
     return 'signin'
   })
@@ -256,20 +267,46 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
 
     try {
       if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
+        let registerSuccess = false
+        try {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password })
+          })
+          const regJson = await res.json()
+          if (res.ok && regJson.success) {
+            registerSuccess = true
+          }
+        } catch {
+          // Fallback to Supabase client if serverless endpoint is offline
+        }
+
+        if (!registerSuccess) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+          })
+          if (signUpError && signUpError.status !== 429) {
+            throw signUpError
+          }
+        }
+
+        // Instantly sign in with credentials
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         })
-        if (error) throw error
 
-        if (data.user) {
-          await ensureUserProfile(data.user)
-          setSuccessMsg('Account created successfully! You are now logged in.')
+        if (signInError) throw signInError
+
+        if (signInData?.user) {
+          await ensureUserProfile(signInData.user)
+          localStorage.setItem('has_logged_in', 'true')
+          setSuccessMsg('Account created successfully! Logging you in...')
           setTimeout(() => {
             onSuccess()
           }, 800)
-        } else {
-          setSuccessMsg('Registration submitted! If confirmation is required, please check your inbox.')
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -280,6 +317,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
 
         if (data.user) {
           await ensureUserProfile(data.user)
+          localStorage.setItem('has_logged_in', 'true')
           onSuccess()
         }
       }
