@@ -43,82 +43,182 @@ function renderEmailHtml(code, actionUrl) {
   const appUrl = 'https://dispatcher.zaynahspos.com';
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <title>Reset Your Password</title>
   <style>
-    body { margin: 0; padding: 20px 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f1f5f9; }
-    @media screen and (max-width: 600px) {
-      .container { width: 100% !important; padding: 12px !important; }
-      .cell { padding: 20px 16px !important; }
-      .otp { font-size: 26px !important; letter-spacing: 4px !important; }
+    body, table, td, p, a, li, blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      min-width: 100% !important;
+      background-color: #070b14;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f1f5f9;
+    }
+    @media only screen and (max-width: 600px) {
+      .email-wrapper {
+        padding: 16px 10px !important;
+      }
+      .email-card {
+        width: 100% !important;
+        border-radius: 14px !important;
+      }
+      .card-body {
+        padding: 22px 16px !important;
+      }
+      .otp-code {
+        font-size: 26px !important;
+        letter-spacing: 4px !important;
+      }
+      .cta-btn {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 14px 16px !important;
+      }
     }
   </style>
 </head>
-<body style="background-color: #0b0f19; margin: 0; padding: 20px 0;">
-  <center>
-    <table role="presentation" width="100%" style="max-width: 520px; margin: 0 auto;" class="container">
+<body style="margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; background-color: #070b14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
+  <center style="width: 100%; background-color: #070b14;">
+    <!-- Outer Wrapper Table -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-wrapper" style="background-color: #070b14; margin: 0; padding: 32px 14px; width: 100% !important;">
       <tr>
-        <td style="background: linear-gradient(90deg, #10b981, #06b6d4, #3b82f6); height: 4px; border-radius: 16px 16px 0 0;"></td>
-      </tr>
-      <tr>
-        <td style="background-color: #111827; border: 1px solid #1f2937; border-top: 0; border-radius: 0 0 16px 16px; padding: 32px 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.5);" class="cell">
+        <td align="center">
           
-          <table role="presentation" width="100%" style="text-align: center; margin-bottom: 24px;">
+          <!-- Inner Card Table (Max 540px, Fluid 100%) -->
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="max-width: 540px; width: 100%; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 36px rgba(0,0,0,0.55);">
+            
+            <!-- Top Emerald Gradient Accent Bar -->
             <tr>
-              <td align="center">
-                <a href="${appUrl}" target="_blank">
-                  <img src="${logoUrl}" alt="Zaynahs Dispatcher" width="56" height="56" style="border-radius: 14px; border: 1px solid rgba(255,255,255,0.15); display: block;" />
+              <td style="background: #10b981; background: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%); height: 4px; line-height: 4px; font-size: 4px; border-radius: 16px 16px 0 0;">&nbsp;</td>
+            </tr>
+
+            <!-- Header Section (Brand, Logo, Badge) -->
+            <tr>
+              <td align="center" style="padding: 28px 24px 20px 24px; text-align: center;">
+                <a href="${appUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                  <img src="${logoUrl}" alt="Zaynahs Dispatcher" width="52" height="52" style="width: 52px; height: 52px; border-radius: 13px; border: 1.5px solid rgba(16, 185, 129, 0.4); display: block; margin: 0 auto; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);" />
                 </a>
-                <h1 style="margin: 14px 0 2px 0; font-size: 18px; font-weight: 700; color: #ffffff;">
+                <h1 style="margin: 14px 0 6px 0; font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.3px;">
                   Zaynahs Courier Dispatcher
                 </h1>
-                <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; font-weight: 600;">
-                  Account Security
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background-color: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 700; color: #10b981; letter-spacing: 1.5px; text-transform: uppercase;">
+                      ACCOUNT SECURITY
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Subtle Divider -->
+            <tr>
+              <td style="padding: 0 24px;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td style="border-top: 1px solid #1e293b; line-height: 1px; font-size: 1px;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Card Content Body -->
+            <tr>
+              <td class="card-body" style="padding: 24px 28px 20px 28px; text-align: left;">
+                <h2 style="font-size: 20px; font-weight: 700; color: #ffffff; margin: 0 0 10px 0; line-height: 1.35;">
+                  Reset Your Account Password
+                </h2>
+                <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px 0;">
+                  A password reset was requested for your merchant account. Tap the button below to choose a new password or enter the 6-digit verification code in your browser:
+                </p>
+
+                <!-- OTP Code Box -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #070b14; border: 1px solid #1e293b; border-radius: 12px; margin: 20px 0;">
+                  <tr>
+                    <td align="center" style="padding: 18px 12px; text-align: center;">
+                      <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 700; display: block; margin-bottom: 6px;">
+                        One-Time Security Code
+                      </span>
+                      <div class="otp-code" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 30px; font-weight: 800; letter-spacing: 6px; color: #10b981; line-height: 1.2; text-shadow: 0 0 14px rgba(16, 185, 129, 0.35);">
+                        ${code}
+                      </div>
+                      <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">
+                        Expires in 60 minutes &bull; Single-use only
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Action Button -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0 16px 0;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto; width: 100%; max-width: 280px;">
+                        <tr>
+                          <td align="center" style="border-radius: 12px; background-color: #10b981; background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);">
+                            <a href="${actionUrl}" target="_blank" class="cta-btn" style="display: block; width: 100%; padding: 14px 24px; font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 12px; text-align: center; box-sizing: border-box; border: 1px solid rgba(52, 211, 153, 0.3);">
+                              Reset Password Directly &rarr;
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Fallback URL -->
+                <p style="margin: 16px 0 0 0; font-size: 11px; color: #475569; line-height: 1.5; text-align: center; word-break: break-all;">
+                  Button not working? Copy and paste this URL into your browser:<br/>
+                  <a href="${actionUrl}" target="_blank" style="color: #10b981; text-decoration: underline;">
+                    ${actionUrl}
+                  </a>
+                </p>
+
+                <!-- Security Advisory -->
+                <p style="margin: 20px 0 0 0; font-size: 12px; color: #64748b; line-height: 1.5; text-align: center;">
+                  If you did not request this password reset, no action is needed. Your account remains completely secure.
                 </p>
               </td>
             </tr>
-          </table>
 
-          <div style="border-top: 1px solid #1f2937; padding-top: 20px; text-align: left;">
-            <h2 style="font-size: 20px; font-weight: 700; color: #ffffff; margin: 0 0 10px 0;">
-              Reset Your Account Password
-            </h2>
-            <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px 0;">
-              A password reset was requested for your merchant account. Tap the button below or enter the 6-digit verification code in your browser:
-            </p>
-
-            <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; text-align: center; margin: 20px 0;">
-              <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 600; display: block; margin-bottom: 6px;">
-                One-Time Security Code
-              </span>
-              <div class="otp" style="font-family: monospace; font-size: 30px; font-weight: 700; letter-spacing: 6px; color: #10b981;">
-                ${code}
-              </div>
-            </div>
-
-            <table role="presentation" width="100%" style="margin: 24px 0 12px 0;">
-              <tr>
-                <td align="center">
-                  <a href="${actionUrl}" target="_blank" style="display: inline-block; background-color: #10b981; color: #ffffff; padding: 14px 32px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
-                    Reset Password Directly &rarr;
+            <!-- Footer Section -->
+            <tr>
+              <td style="padding: 18px 24px; background-color: #070b14; border-top: 1px solid #1e293b; text-align: center; border-radius: 0 0 16px 16px;">
+                <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b; line-height: 1.5;">
+                  &copy; 2026 <strong>Zaynahs Courier Dispatcher</strong> &bull; Intelligent Logistics Engine
+                </p>
+                <p style="margin: 0; font-size: 11px; color: #475569;">
+                  <a href="${appUrl}" target="_blank" style="color: #10b981; text-decoration: none;">
+                    dispatcher.zaynahspos.com
                   </a>
-                </td>
-              </tr>
-            </table>
+                </p>
+              </td>
+            </tr>
 
-            <p style="margin: 20px 0 0 0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: center;">
-              This code and link will expire in 1 hour. If you did not request this, you can safely ignore this email.
-            </p>
-          </div>
-
-          <div style="margin-top: 24px; border-top: 1px solid #1f2937; padding-top: 16px; text-align: center;">
-            <p style="margin: 0; font-size: 11px; color: #475569;">
-              &copy; 2026 Zaynahs Courier Dispatcher &bull; <a href="${appUrl}" target="_blank" style="color: #64748b; text-decoration: none;">dispatcher.zaynahspos.com</a>
-            </p>
-          </div>
+          </table>
 
         </td>
       </tr>
