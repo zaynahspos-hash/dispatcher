@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabaseClient'
+import { UserAvatar } from './common/UserAvatar'
 
 interface UserProfile {
   id: string
@@ -388,11 +389,14 @@ export default function AdminPanel() {
                         isSelected ? 'bg-emerald-50/70 dark:bg-emerald-900/30 border-l-4 border-emerald-500 dark:border-emerald-400 pl-2.5' : 'hover:bg-slate-50 dark:hover:bg-gray-800'
                       }`}
                     >
-                      <div className="min-w-0 pr-2">
-                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{u.email}</p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                          Joined: {new Date(u.created_at).toLocaleDateString()}
-                        </p>
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <UserAvatar email={u.email} size="sm" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{u.email}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                            Joined: {new Date(u.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {u.role === 'admin' && (
@@ -416,10 +420,13 @@ export default function AdminPanel() {
                 {/* Credentials & Settings Details */}
               <div className="bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 rounded-2xl shadow-xs overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-sm">Merchant Configuration</h3>
-                      <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{selectedUser.email}</p>
-                    </div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <UserAvatar email={selectedUser.email} size="md" />
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm">Merchant Configuration</h3>
+                          <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{selectedUser.email}</p>
+                        </div>
+                      </div>
                     <button
                       onClick={() => setSelectedUser(null)}
                       className="p-1.5 text-slate-400 dark:text-gray-500 hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition"

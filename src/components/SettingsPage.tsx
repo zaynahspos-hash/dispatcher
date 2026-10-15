@@ -18,6 +18,7 @@ import {
 import { SearchableDropdown } from './SearchableDropdown'
 import { supabase } from '../utils/supabaseClient'
 import { useToast } from './common/Toast'
+import { UserAvatar } from './common/UserAvatar'
 
 interface MerchantAddress {
   addressCode: string
@@ -846,10 +847,35 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
           TAB 4: ACCOUNT SECURITY & PASSWORD
           ======================================================== */}
       {activeTab === 'security' && (
-        <div className="max-w-xl bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-4">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
-            Change Account Password
-          </h3>
+        <div className="max-w-xl space-y-4">
+          {/* User Account Profile Card with Avatar */}
+          {user && (
+            <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-4 sm:p-5 shadow-sm flex items-center gap-3.5">
+              <UserAvatar email={user.email} size="lg" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                    {user.email?.split('@')[0]}
+                  </h3>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase tracking-wider">
+                    Merchant Account
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                  {user.email}
+                </p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                  Avatar synced with Gmail / Gravatar
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-4">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+              Change Account Password
+            </h3>
           
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             {pwError && (
@@ -914,7 +940,8 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
             </button>
           </form>
         </div>
-      )}
+      </div>
+    )}
 
     </div>
   )

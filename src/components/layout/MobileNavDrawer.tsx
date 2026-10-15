@@ -1,6 +1,7 @@
 import React from 'react'
 import { TabItem } from './BottomTabBar'
 import { CloseIcon, SunIcon, MoonIcon, DownloadIcon, SmartphoneIcon } from '../Icons'
+import { UserAvatar } from '../common/UserAvatar'
 
 interface MobileNavDrawerProps {
   isOpen: boolean
@@ -119,10 +120,13 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
           <div className="border-b border-gray-200 dark:border-gray-800 pb-3 mb-1">
             {user ? (
-              <div className="space-y-1.5">
-                <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                  Logged in as: <br />
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">{user.email}</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-100/80 dark:bg-gray-800/80 border border-slate-200/60 dark:border-gray-700/60">
+                  <UserAvatar email={user.email} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none mb-0.5">Signed in</p>
+                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{user.email}</p>
+                  </div>
                 </div>
                 {/* AI Token Usage */}
                 <div className="sm:hidden flex items-center gap-2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-2.5 py-2 rounded-xl overflow-hidden">

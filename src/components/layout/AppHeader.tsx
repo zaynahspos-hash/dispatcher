@@ -1,5 +1,5 @@
-import React from 'react'
 import { MenuIcon, AlertIcon, RefreshIcon, SunIcon, MoonIcon, SettingsIcon, DownloadIcon, SmartphoneIcon } from '../Icons'
+import { UserAvatar } from '../common/UserAvatar'
 
 interface AppHeaderProps {
   onOpenSidebar: () => void
@@ -116,9 +116,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* User Profile / Auth */}
           {user ? (
             <div className="hidden md:flex items-center gap-2">
-              <span className="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-3 py-1.5 rounded-lg font-semibold max-w-[150px] truncate transition-colors duration-200" title={user.email}>
-                {user.email.split('@')[0]}
-              </span>
+              <div 
+                className="flex items-center gap-2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 pl-1.5 pr-3 py-1 rounded-xl transition-colors duration-200" 
+                title={user.email}
+              >
+                <UserAvatar email={user.email} size="xs" />
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[130px] truncate">
+                  {user.email.split('@')[0]}
+                </span>
+              </div>
               <button
                 onClick={onLogout}
                 className="text-xs bg-slate-200 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-300 font-bold px-3 py-1.5 rounded-xl border border-slate-200/40 dark:border-gray-700/40 transition cursor-pointer"

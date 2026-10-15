@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { TabItem } from './BottomTabBar'
 import { SunIcon, MoonIcon, AlertTriangleIcon, SmartphoneIcon, RefreshIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
+import { UserAvatar } from '../common/UserAvatar'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -229,9 +230,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {user && (
             <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/80 shadow-xs">
               <div className="flex items-center gap-2 min-w-0 pr-1">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs flex items-center justify-center shrink-0">
-                  {user.email ? user.email[0].toUpperCase() : 'M'}
-                </div>
+                <UserAvatar email={user.email} size="sm" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                     {user.email?.split('@')[0]}
