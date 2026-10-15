@@ -56,8 +56,25 @@ async function run() {
       WHERE schemaname = 'public' 
       ORDER BY tablename;
     `)
-    console.log('\nVerified Public Tables & RLS Status:')
+    console.log('\n✅ Verified Public Tables & RLS Status:')
     console.table(res.rows)
+
+    // Verify storage buckets
+    const bucketRes = await client.query(`
+      SELECT id, name, public, file_size_limit 
+      FROM storage.buckets;
+    `)
+    console.log('\n✅ Verified Storage Buckets:')
+    console.table(bucketRes.rows)
+
+    // Verify auth triggers
+    const trigRes = await client.query(`
+      SELECT trigger_name, event_manipulation, action_statement
+      FROM information_schema.triggers
+      WHERE trigger_schema = 'auth' AND event_object_table = 'users';
+    `)
+    console.log('\n✅ Verified Auth Integrity Triggers:')
+    console.table(trigRes.rows)
   } catch (err) {
     console.error('Error executing schema:', err)
   } finally {

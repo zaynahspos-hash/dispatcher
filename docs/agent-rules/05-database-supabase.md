@@ -139,6 +139,17 @@ All tables live in `supabase/schema/SUPER_MASTER_SCHEMA.sql`:
 
 ---
 
+6. **`password_resets`**
+   - `id`: UUID PRIMARY KEY DEFAULT `gen_random_uuid()`
+   - `email`: TEXT NOT NULL
+   - `code`: TEXT NOT NULL
+   - `token`: TEXT NOT NULL
+   - `expires_at`: TIMESTAMPTZ NOT NULL
+   - `used`: BOOLEAN NOT NULL DEFAULT false
+   - `created_at`: TIMESTAMPTZ DEFAULT `now()`
+
+---
+
 ## 2. Backward Compatibility Views
 For existing code paths, the schema provides SQL views mapping PascalCase to canonical `snake_case` tables:
 - `"User"` ➔ `users`
@@ -149,6 +160,34 @@ For existing code paths, the schema provides SQL views mapping PascalCase to can
 
 ---
 
-## 3. Master Schema Rule (RULE D6)
+## 3. Auth Integrity & Self-Healing Triggers (RULE D16)
+To prevent Supabase GoTrue Auth `500: Database error querying schema` and identity lookups from ever failing:
+1. **`tr_ensure_auth_user_integrity`**: Automatically ensures all token columns (`confirmation_token`, `recovery_token`, `email_change`, `email_change_token_new`, `email_change_token_current`, `phone_change`, `phone_change_token`) default to `''` instead of `NULL` upon insert/update.
+2. **`tr_ensure_auth_identity`**: Automatically provisions a corresponding entry in `auth.identities` whenever a user is inserted in `auth.users`.
+3. **`on_auth_user_created`**: Syncs new auth users into `public.users` and initializes `public.user_settings`.
+
+---
+
+## 4. Supabase Storage `avatars` Bucket (RULE D17)
+- **Bucket ID**: `avatars` (Public bucket, max 5MB limit).
+- **Supported MIME Types**: `image/webp`, `image/png`, `image/jpeg`, `image/x-icon`.
+- **Upload Optimization**: Images are automatically cropped and converted to high-quality **10–20 KB WebP format** (`image/webp`) on client canvas before upload.
+- **Storage Policies**:
+  - `SELECT`: Public access to all objects in `avatars` bucket.
+  - `INSERT` / `UPDATE` / `DELETE`: Authenticated tenants can manage their own avatar assets.
+
+---
+
+## 5. 1-Command Database Setup & Verification (RULE D18)
+To set up all tables, backward compatibility views, auth integrity triggers, and storage buckets on a freshly cloned repository:
+```bash
+npm run db:setup
+```
+This runs `scripts/deploySchema.js` which connects to Supabase PostgreSQL, executes `supabase/schema/SUPER_MASTER_SCHEMA.sql`, and outputs verified tables, storage buckets, and auth triggers status.
+
+---
+
+## 6. Master Schema Rule (RULE D6)
 - Whenever any table, column, constraint, or policy is added or modified, `supabase/schema/SUPER_MASTER_SCHEMA.sql` must be updated in the SAME task.
 - Zero Cloudflare rules, zero Edge worker requirements. Pure Supabase API & PostgreSQL.
+

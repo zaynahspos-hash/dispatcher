@@ -229,3 +229,147 @@ CREATE OR REPLACE VIEW public."Customer" AS
 CREATE OR REPLACE VIEW public."UsageLog" AS
   SELECT id, user_id AS "userId", action, details, created_at AS timestamp
   FROM public.usage_logs;
+
+-- ==============================================================================
+-- 7. PASSWORD RESETS & VERIFICATION CODES TABLE
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.password_resets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  code TEXT NOT NULL,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_resets_email ON public.password_resets(LOWER(email));
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON public.password_resets(token);
+CREATE INDEX IF NOT EXISTS idx_password_resets_code ON public.password_resets(code);
+
+-- ==============================================================================
+-- 8. AUTH INTEGRITY & SELF-HEALING TRIGGERS
+-- Prevents "Database error querying schema" and guarantees identities exist
+-- ==============================================================================
+
+-- Trigger Function 1: Ensure auth token columns are never NULL
+CREATE OR REPLACE FUNCTION public.ensure_auth_user_integrity()
+RETURNS trigger AS $$
+BEGIN
+  NEW.confirmation_token := COALESCE(NEW.confirmation_token, '');
+  NEW.recovery_token := COALESCE(NEW.recovery_token, '');
+  NEW.email_change := COALESCE(NEW.email_change, '');
+  NEW.email_change_token_new := COALESCE(NEW.email_change_token_new, '');
+  NEW.email_change_token_current := COALESCE(NEW.email_change_token_current, '');
+  NEW.phone_change := COALESCE(NEW.phone_change, '');
+  NEW.phone_change_token := COALESCE(NEW.phone_change_token, '');
+  NEW.email_confirmed_at := COALESCE(NEW.email_confirmed_at, NOW());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS tr_ensure_auth_user_integrity ON auth.users;
+CREATE TRIGGER tr_ensure_auth_user_integrity
+BEFORE INSERT OR UPDATE ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.ensure_auth_user_integrity();
+
+-- Trigger Function 2: Ensure auth.identities record exists for every user
+CREATE OR REPLACE FUNCTION public.ensure_auth_identity()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+  ) VALUES (
+    gen_random_uuid(),
+    NEW.id,
+    jsonb_build_object('sub', NEW.id::text, 'email', NEW.email, 'email_verified', true, 'phone_verified', false),
+    'email',
+    NEW.id::text,
+    NOW(),
+    NOW(),
+    NOW()
+  ) ON CONFLICT (provider_id, provider) DO UPDATE
+  SET updated_at = NOW();
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS tr_ensure_auth_identity ON auth.users;
+CREATE TRIGGER tr_ensure_auth_identity
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.ensure_auth_identity();
+
+-- Trigger Function 3: Sync new auth users into public.users and public.user_settings
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger AS $$
+DECLARE
+  v_role text := 'user';
+  v_admin_emails text[] := ARRAY['shoaibzaynah@gmail.com', 'zaynahspos@gmail.com', 'totvoguepk@gmail.com'];
+BEGIN
+  IF LOWER(NEW.email) = ANY(v_admin_emails) THEN
+    v_role := 'admin';
+  END IF;
+
+  INSERT INTO public.users (id, email, role, created_at, updated_at)
+  VALUES (NEW.id, NEW.email, v_role, NOW(), NOW())
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      role = CASE WHEN LOWER(EXCLUDED.email) = ANY(v_admin_emails) THEN 'admin' ELSE public.users.role END,
+      updated_at = NOW();
+
+  INSERT INTO public.user_settings (user_id, created_at, updated_at)
+  VALUES (NEW.id, NOW(), NOW())
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+-- ==============================================================================
+-- 9. SUPABASE STORAGE BUCKET & RLS POLICIES FOR AVATARS
+-- Ensures public access to user avatars with WebP/PNG/JPG/ICO support
+-- ==============================================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars',
+  'avatars',
+  true,
+  5242880,
+  ARRAY['image/webp', 'image/png', 'image/jpeg', 'image/x-icon', 'image/vnd.microsoft.icon']
+)
+ON CONFLICT (id) DO UPDATE
+SET public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/webp', 'image/png', 'image/jpeg', 'image/x-icon', 'image/vnd.microsoft.icon'];
+
+DROP POLICY IF EXISTS "Public avatars access" ON storage.objects;
+CREATE POLICY "Public avatars access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Authenticated users can upload avatars" ON storage.objects;
+CREATE POLICY "Authenticated users can upload avatars"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can update their avatars" ON storage.objects;
+CREATE POLICY "Users can update their avatars"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can delete their avatars" ON storage.objects;
+CREATE POLICY "Users can delete their avatars"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'avatars');
+

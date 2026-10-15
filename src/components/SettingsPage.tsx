@@ -123,6 +123,89 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
   const [pwLoading, setPwLoading] = useState(false)
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image is too large. Please select an image under 5MB.')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const reader = new FileReader()
+      reader.onload = (loadEvt) => {
+        const img = new Image()
+        img.onload = async () => {
+          try {
+            const canvas = document.createElement('canvas')
+            const size = 160 // Standard icon avatar size
+            canvas.width = size
+            canvas.height = size
+            const ctx = canvas.getContext('2d')
+            if (!ctx) throw new Error('Could not access canvas context')
+
+            // Square center crop
+            const minDim = Math.min(img.width, img.height)
+            const sx = (img.width - minDim) / 2
+            const sy = (img.height - minDim) / 2
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
+
+            // Convert to WebP format (10-20 KB)
+            canvas.toBlob(async (blob) => {
+              if (!blob) {
+                toast.error('Failed to encode image to WebP')
+                setUploadingAvatar(false)
+                return
+              }
+
+              const kbSize = (blob.size / 1024).toFixed(1)
+              console.log(`[Avatar Upload] WebP compressed size: ${kbSize} KB`)
+
+              const userId = user?.id || 'guest'
+              const filePath = `${userId}/avatar-${Date.now()}.webp`
+
+              // 1. Upload to Supabase Storage avatars bucket
+              const { error: uploadErr } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, blob, {
+                  contentType: 'image/webp',
+                  upsert: true
+                })
+
+              if (uploadErr) {
+                console.warn('[Avatar] Cloud upload failed, falling back to local WebP:', uploadErr.message)
+                const fallbackDataUrl = canvas.toDataURL('image/webp', 0.8)
+                updateSetting('avatar_url', fallbackDataUrl)
+                toast.success('Avatar updated locally.')
+                setUploadingAvatar(false)
+                return
+              }
+
+              // 2. Get permanent public URL
+              const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+              const permanentUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+              // 3. Save setting & persist to database
+              updateSetting('avatar_url', permanentUrl)
+              toast.success(`Profile photo saved to cloud storage! (${kbSize} KB WebP)`)
+              setUploadingAvatar(false)
+            }, 'image/webp', 0.82)
+          } catch (err: any) {
+            setUploadingAvatar(false)
+            toast.error(err.message || 'Image processing failed')
+          }
+        }
+        img.src = loadEvt.target?.result as string
+      }
+      reader.readAsDataURL(file)
+    } catch (err: any) {
+      setUploadingAvatar(false)
+      toast.error(err.message || 'Failed to read image file')
+    }
+  }
 
   // Load addresses when PostEx token exists
   useEffect(() => {
@@ -854,48 +937,26 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
               <div className="flex items-center gap-3.5">
                 <div className="relative group shrink-0">
                   <UserAvatar email={user.email} avatarUrl={settings.avatar_url} size="lg" />
-                  <label
-                    htmlFor="avatar-file-input"
-                    className="absolute inset-0 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer text-[10px] font-bold"
-                    title="Change Profile Photo"
-                  >
-                    Edit
-                  </label>
+                  {uploadingAvatar ? (
+                    <div className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="avatar-file-input"
+                      className="absolute inset-0 rounded-xl bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer text-[10px] font-bold"
+                      title="Change Profile Photo"
+                    >
+                      Edit
+                    </label>
+                  )}
                   <input
                     id="avatar-file-input"
                     type="file"
                     accept="image/*"
+                    disabled={uploadingAvatar}
                     className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      if (file.size > 2 * 1024 * 1024) {
-                        toast.error('Image is too large. Please select an image under 2MB.')
-                        return
-                      }
-                      const reader = new FileReader()
-                      reader.onload = (loadEvt) => {
-                        const img = new Image()
-                        img.onload = () => {
-                          const canvas = document.createElement('canvas')
-                          const size = 160
-                          canvas.width = size
-                          canvas.height = size
-                          const ctx = canvas.getContext('2d')
-                          if (ctx) {
-                            const minDim = Math.min(img.width, img.height)
-                            const sx = (img.width - minDim) / 2
-                            const sy = (img.height - minDim) / 2
-                            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-                            updateSetting('avatar_url', dataUrl)
-                            toast.success('Profile avatar updated successfully!')
-                          }
-                        }
-                        img.src = loadEvt.target?.result as string
-                      }
-                      reader.readAsDataURL(file)
-                    }}
+                    onChange={handleAvatarFileChange}
                   />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -913,9 +974,11 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
                   <div className="flex items-center gap-2 mt-1">
                     <label
                       htmlFor="avatar-file-input"
-                      className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2"
+                      className={`text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2 ${
+                        uploadingAvatar ? 'opacity-50 pointer-events-none' : ''
+                      }`}
                     >
-                      {settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
+                      {uploadingAvatar ? 'Uploading 10-20KB WebP...' : settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
                     </label>
                     {settings.avatar_url && (
                       <>
