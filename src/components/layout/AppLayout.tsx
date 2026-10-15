@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { TabItem } from './BottomTabBar'
-import { SunIcon, MoonIcon, AlertTriangleIcon, SmartphoneIcon } from '../Icons'
+import { SunIcon, MoonIcon, AlertTriangleIcon, SmartphoneIcon, RefreshIcon } from '../Icons'
+import { forceAppUpdate } from '../../utils/pwaReload'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -42,6 +43,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   operationalCitiesCount = 500
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefreshApp = async () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    await forceAppUpdate()
+  }
 
   // Tab categorization
   const operationsTabIds = ['paste', 'table', 'results', 'history']
@@ -281,10 +289,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         
         {/* Top Header / Portal Navbar */}
-        <header className="h-14 sm:h-16 pt-[max(env(safe-area-inset-top),0px)] min-h-[calc(3.5rem+max(env(safe-area-inset-top),0px))] px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0c121e] border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 shrink-0 z-20 transition-colors duration-200">
+        <header className="pt-[max(env(safe-area-inset-top),0.75rem)] pb-2.5 min-h-[calc(3.75rem+max(env(safe-area-inset-top),0.75rem))] px-3.5 sm:px-6 lg:px-8 bg-white dark:bg-[#0c121e] border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-20 transition-colors duration-200">
           
           {/* Left: Mobile Menu Trigger + Breadcrumb */}
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -323,7 +331,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
 
           {/* Right: Quick Indicators & Profile */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             
             {/* Live PostEx Status Pill */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-bold">
@@ -354,6 +362,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               </button>
             )}
 
+            {/* PWA App Hard Refresh / Cache Buster */}
+            <button
+              type="button"
+              onClick={handleRefreshApp}
+              disabled={isRefreshing}
+              className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+              title="Refresh app & fetch latest updates"
+              aria-label="Refresh app"
+            >
+              <RefreshIcon size={16} className={isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-500 dark:text-slate-400'} />
+              <span className="hidden sm:inline text-xs font-bold">
+                {isRefreshing ? 'Updating...' : 'Refresh'}
+              </span>
+            </button>
+
             {/* Theme Toggle (Mobile & Tablet) */}
             <button
               onClick={onToggleTheme}
@@ -367,7 +390,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {user && (
               <div 
                 onClick={() => setActiveTab('settings')}
-                className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer"
+                className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer"
                 title={user.email}
               >
                 <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-500 font-black text-xs flex items-center justify-center">
@@ -479,69 +502,111 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           />
 
           {/* Drawer Menu */}
-          <div className="relative w-72 max-w-[80vw] bg-white dark:bg-[#0c121e] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="relative w-80 max-w-[85vw] bg-white dark:bg-[#0c121e] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+            {/* Safe Area Notch/Dynamic Island Clearance Header */}
+            <div className="pt-[max(env(safe-area-inset-top),1.25rem)] pb-3 px-4 border-b border-slate-200/90 dark:border-slate-800/90 flex items-center justify-between bg-white dark:bg-[#0c121e] shrink-0">
               <div className="flex items-center gap-2.5">
                 <img 
                   src="/favicon-96x96.png?v=20261014" 
-                  className="w-8 h-8 rounded-lg object-contain" 
+                  className="w-8 h-8 rounded-xl object-contain shadow-xs border border-slate-100 dark:border-slate-800" 
                   alt="Logo" 
                 />
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Zaynahs Dispatcher</h2>
-                  <p className="text-[10px] text-emerald-500 font-semibold">PostEx Logistics AI</p>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Zaynahs Dispatcher</h2>
+                  <p className="text-[10px] text-emerald-500 font-bold tracking-wide">PostEx Logistics AI</p>
                 </div>
               </div>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition cursor-pointer"
+                aria-label="Close menu"
               >
-                ✕
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
-              <div className="space-y-1">
-                {tabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id)
-                      setMobileMenuOpen(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer ${
-                      activeTab === tab.id
-                        ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 font-bold'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <tab.Icon size={18} className={activeTab === tab.id ? 'text-emerald-400' : 'text-slate-400'} />
-                      <span>{tab.label}</span>
-                    </div>
-                    {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
-                      <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-bold">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
+            {/* User Profile Mini Card in Drawer */}
+            {user && (
+              <div className="mx-3 mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center shrink-0">
+                    {user.email ? user.email[0].toUpperCase() : 'U'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                  Active
+                </span>
               </div>
+            )}
+
+            {/* Navigation Tabs List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    setMobileMenuOpen(false)
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold cursor-pointer transition ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 font-bold border border-emerald-500/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <tab.Icon size={19} className={activeTab === tab.id ? 'text-emerald-400' : 'text-slate-400'} />
+                    <span>{tab.label}</span>
+                  </div>
+                  {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-400">
+            {/* Footer with Hard Refresh, Theme Toggle & Sign Out */}
+            <div className="p-3.5 pb-[max(env(safe-area-inset-bottom),1.25rem)] border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/60 space-y-2 shrink-0">
+              {/* Hard Refresh / Update Button in Mobile Drawer */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  handleRefreshApp()
+                }}
+                disabled={isRefreshing}
+                className="w-full py-2.5 px-3 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                <RefreshIcon size={15} className={isRefreshing ? 'animate-spin text-emerald-500' : 'text-emerald-500'} />
+                <span>{isRefreshing ? 'Updating App...' : 'Refresh & Check Updates'}</span>
+              </button>
+
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-400 px-1 py-1">
                 <span>Theme</span>
-                <button onClick={onToggleTheme} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer flex items-center gap-1">
-                  {theme === 'dark' ? <><SunIcon size={14} className="text-amber-400" /> Light</> : <><MoonIcon size={14} className="text-indigo-400" /> Dark</>}
+                <button onClick={onToggleTheme} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-emerald-500/10 transition">
+                  {theme === 'dark' ? <><SunIcon size={14} className="text-amber-400" /> Light Mode</> : <><MoonIcon size={14} className="text-indigo-400" /> Dark Mode</>}
                 </button>
               </div>
+
               <button
+                type="button"
                 onClick={() => {
                   setMobileMenuOpen(false)
                   onLogout()
                 }}
-                className="w-full py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500/20 transition cursor-pointer"
+                className="w-full py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Sign Out
               </button>

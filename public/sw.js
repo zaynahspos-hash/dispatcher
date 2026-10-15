@@ -1,4 +1,4 @@
-const BUILD_VERSION = 'v20261014'
+const BUILD_VERSION = 'v20261015-refresh'
 const CACHE_PREFIX = 'courier-manager'
 const CACHE_STATIC = `${CACHE_PREFIX}-static-${BUILD_VERSION}`
 const CACHE_HTML = `${CACHE_PREFIX}-html-${BUILD_VERSION}`
@@ -33,6 +33,17 @@ self.addEventListener('activate', (event) => {
       )
     }).then(() => self.clients.claim())
   )
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then((names) => {
+      return Promise.all(names.map((name) => caches.delete(name)))
+    })
+  }
 })
 
 function isNavigationRequest(url) {

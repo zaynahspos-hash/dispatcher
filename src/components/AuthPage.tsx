@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabaseClient'
+import { RefreshIcon } from './Icons'
+import { forceAppUpdate } from '../utils/pwaReload'
 
 interface AuthPageProps {
   onSuccess: () => void
@@ -45,6 +47,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [isResetEmailSent, setIsResetEmailSent] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Direct token and OTP verification states for reset flow
   const [otpCode, setOtpCode] = useState('')
@@ -346,6 +349,22 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
 
       {/* Main Auth Card */}
       <div className="w-full max-w-[420px] bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10">
+        
+        {/* Top-Right Hard Refresh Button for PWA */}
+        <button
+          type="button"
+          onClick={async () => {
+            if (isRefreshing) return
+            setIsRefreshing(true)
+            await forceAppUpdate()
+          }}
+          disabled={isRefreshing}
+          className="absolute top-4 right-4 p-2 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition cursor-pointer flex items-center gap-1 active:scale-95 disabled:opacity-50"
+          title="Refresh app cache & check updates"
+          aria-label="Refresh app"
+        >
+          <RefreshIcon size={14} className={isRefreshing ? 'animate-spin text-emerald-400' : ''} />
+        </button>
         
         {/* App Branding & Logo */}
         <div className="flex flex-col items-center text-center mb-6">
