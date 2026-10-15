@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { CITY_LIST } from './cityList'
+import { normalizeCityName } from './cityList'
 
 export interface Parcel {
   id: string
@@ -88,9 +88,9 @@ export async function parseParcelText(rawText: string, settings: Settings): Prom
       if (model === 'custom') model = 'meta-llama/llama-3.1-8b-instruct:free'
     } else if (provider === 'gemini') {
       apiKeyString = settings.gemini_api_key || ''
-      let rawModel = settings.gemini_model || 'gemini-3-flash-preview'
-      if (!rawModel || rawModel === 'custom' || rawModel.includes('2.0') || rawModel.includes('1.5')) {
-        rawModel = 'gemini-3-flash-preview'
+      let rawModel = settings.gemini_model || 'gemini-3.5-flash-lite'
+      if (!rawModel || rawModel === 'custom' || rawModel.includes('2.0') || rawModel.includes('1.5') || rawModel.includes('2.5') || rawModel.includes('preview')) {
+        rawModel = 'gemini-3.5-flash-lite'
       }
       model = rawModel
     } else if (provider === 'openai') {
@@ -139,13 +139,12 @@ You are a Pakistani courier parcel data extractor.
 Extract ALL parcels from the WhatsApp text below and return a JSON array.
 
 RULES:
-- Name: Properly capitalized. This is the customer's full name. If the text starts with a name or mentions a contact name, extract it. Do NOT return "Customer Name" as a placeholder; extract the actual name from the text.
+- Name: Customer's full name, properly capitalized.
 - Phone: Always 03XXXXXXXXX format (fix +92 303 → 03035..., remove spaces/dashes)
 - If multiple phones: first in phone field, rest as "(Alternate: 03XXXXXXXXX)" at end of address
-- City: Match EXACTLY from this list (fix spelling): ${CITY_LIST.join(', ')}
-- If city not in list but recognizable Pakistan city, use closest match
-- Address: Convert Urdu to Roman Urdu. Use English: near/opposite/beside/behind/in front of. City name at end.
-- Total: number only (no Rs.). If missing or Non-COD/Advance Paid → 0
+- City: Extract Pakistani destination city (e.g. Lahore, Karachi, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Gujranwala, Sialkot, Quetta, Hyderabad, etc.).
+- Address: Street address. Do NOT prefix with city name; place city name at end.
+- Total: COD cash amount as number only (0 if advance paid / non-cod).
 - Items: number. If missing → use default_items setting
 - OrderType: "Normal" or "Replacement" (if keywords: Return/Exchange/Replacement/Changing/Wrong Item)
 - AirwayBillCopy: 1 (default)
@@ -163,11 +162,11 @@ Return ONLY a valid JSON array. No markdown, no explanation.
 Format:
 [
   {
-    "id": "tv1234",
+    "id": "ord1",
     "name": "Muhammad Ali",
-    "phone": "03XXXXXXXXX",
+    "phone": "03001234567",
     "city": "Lahore",
-    "address": "Full address, City",
+    "address": "House 5, Street 3, DHA Phase 1, Lahore",
     "total": 2500,
     "items": 2,
     "weight": 0.5,
@@ -196,18 +195,13 @@ Format:
         let tokensUsed = 0
 
         if (provider === 'gemini') {
-          // Normalize model if old or deprecated (Rule from GEMINI_AND_POSTEX_SYSTEM_GUIDE.md)
           let currentModel = model
-          if (!currentModel || currentModel.includes('2.0') || currentModel.includes('1.5') || currentModel === 'custom') {
-            currentModel = 'gemini-3-flash-preview'
+          if (!currentModel || currentModel.includes('2.0') || currentModel.includes('1.5') || currentModel.includes('2.5') || currentModel === 'custom') {
+            currentModel = 'gemini-3.5-flash-lite'
           }
 
           const generationConfig: any = {
             responseMimeType: "application/json"
-          }
-          // Disable thinking tokens if supported to speed up response (Section 1.5 in guide)
-          if (currentModel.startsWith('gemini-') && !currentModel.includes('lite')) {
-            generationConfig.thinkingConfig = { thinkingBudget: 0 }
           }
 
           let res: any
@@ -227,29 +221,19 @@ Format:
             // Auto fallback if model is unavailable / discontinued
             const errMsg = modelErr.response?.data?.error?.message || modelErr.message || ''
             const status = modelErr.response?.status
-            if (status === 503 || errMsg.includes('high demand') || errMsg.includes('no longer available') || errMsg.includes('not found') || status === 404 || (status === 400 && errMsg.toLowerCase().includes('model'))) {
-              console.warn(`[Gemini] Model ${currentModel} error (${errMsg}). Auto-switching to working alternative...`)
-              currentModel = currentModel === 'gemini-3-flash-preview' ? 'gemini-2.5-flash' : 'gemini-2.5-flash-lite'
-              const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
-              const fallbackConfig: any = {
-                responseMimeType: "application/json"
-              }
-              if (!currentModel.includes('lite')) {
-                fallbackConfig.thinkingConfig = { thinkingBudget: 0 }
-              }
-              res = await axios.post(fallbackUrl, {
-                contents: [{
-                  role: 'user',
-                  parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
-                }],
-                systemInstruction: {
-                  parts: [{ text: systemPrompt }]
-                },
-                generationConfig: fallbackConfig
-              })
-            } else {
-              throw modelErr
-            }
+            console.warn(`[Gemini] Model ${currentModel} error (${status}): ${errMsg}. Auto-switching to working alternative...`)
+            currentModel = (currentModel === 'gemini-3.5-flash-lite') ? 'gemini-3.8-flash' : 'gemini-flash-lite-latest'
+            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
+            res = await axios.post(fallbackUrl, {
+              contents: [{
+                role: 'user',
+                parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
+              }],
+              systemInstruction: {
+                parts: [{ text: systemPrompt }]
+              },
+              generationConfig
+            })
           }
 
           // Strip internal thoughts (Section 1.6 in guide)
@@ -348,9 +332,24 @@ Format:
           cleaned = cleaned.substring(startIdx, endIdx + 1)
         }
         const parsed = JSON.parse(cleaned)
-        
+        const rawList = Array.isArray(parsed) ? parsed : [parsed]
+        const normalizedList: Parcel[] = rawList.map((p: any, idx: number) => ({
+          id: p.id ? String(p.id) : `ORD-${Date.now()}-${idx + 1}`,
+          name: String(p.name || '').trim(),
+          phone: String(p.phone || '').trim(),
+          city: normalizeCityName(p.city),
+          address: String(p.address || '').trim(),
+          total: Number(p.total || 0),
+          items: Number(p.items || settings.default_items || 1),
+          weight: Number(p.weight || settings.default_weight || 0.5),
+          orderType: p.orderType || 'Normal',
+          airwayBillCopy: Number(p.airwayBillCopy || 1),
+          detail: String(p.detail || settings.default_product || 'Kids Clothes'),
+          note: String(p.note || settings.default_note || 'Call before delivery')
+        }))
+
         resultPayload = {
-          parcels: Array.isArray(parsed) ? parsed : [parsed],
+          parcels: normalizedList,
           tokensUsed
         }
         success = true

@@ -29,7 +29,7 @@ const DEFAULTS: Settings = {
   openrouter_api_key: '',
   openrouter_model: 'meta-llama/llama-3.1-8b-instruct:free',
   gemini_api_key: '',
-  gemini_model: 'gemini-3-flash-preview',
+  gemini_model: 'gemini-3.5-flash-lite',
   anthropic_api_key: '',
   anthropic_model: 'claude-haiku-4-5',
   deepseek_api_key: '',

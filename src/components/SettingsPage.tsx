@@ -57,8 +57,8 @@ const PROVIDER_METADATA: Record<string, {
     name: 'Google Gemini (Free Quota)',
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyLabel: 'Get Free Gemini Key (1,500 req/day)',
-    defaultModel: 'gemini-3-flash-preview',
-    models: ['gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'],
+    defaultModel: 'gemini-3.5-flash-lite',
+    models: ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'],
     badge: '1,500 Free Req/Day'
   },
   openai: {

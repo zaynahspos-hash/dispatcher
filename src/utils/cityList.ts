@@ -154,3 +154,33 @@ export const CITY_LIST: string[] = [
   "WARYAM WALA", "WAZIR KE CHATTHA", "WAZIRABAD", "WINDER", "YAZMAN",
   "ZAFARWAL", "ZAHIR PIR", "ZHOB"
 ]
+
+// Pre-computed lowercase map for O(1) instant resolution
+const CITY_MAP = new Map<string, string>()
+for (const city of CITY_LIST) {
+  CITY_MAP.set(city.toLowerCase().replace(/[^a-z0-9]/g, ''), city)
+}
+
+/**
+ * Normalizes any extracted city name into PostEx-approved canonical spelling in 0ms.
+ */
+export function normalizeCityName(rawCity?: string | null): string {
+  if (!rawCity) return ''
+  const trimmed = rawCity.trim().toUpperCase()
+  if (CITY_LIST.includes(trimmed)) return trimmed
+
+  const simplified = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (CITY_MAP.has(simplified)) {
+    return CITY_MAP.get(simplified)!
+  }
+
+  // Substring search for composite names (e.g. "Lahore Cantt" -> "LAHORE")
+  for (const city of CITY_LIST) {
+    const cSimple = city.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (simplified.includes(cSimple) || (cSimple.length >= 4 && cSimple.includes(simplified))) {
+      return city
+    }
+  }
+
+  return trimmed
+}
