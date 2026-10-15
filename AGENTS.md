@@ -95,6 +95,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 - [docs/PWA_INSTALL_GUIDE.md](docs/PWA_INSTALL_GUIDE.md) — Progressive Web App installation for warehouse handheld scanners and mobile operations.
 - [docs/ERROR_SYSTEM_GUIDE.md](docs/ERROR_SYSTEM_GUIDE.md) — Error interceptors, user toast notifications, and retry strategies.
 - [docs/MANUAL_SETUP_GUIDE.md](docs/MANUAL_SETUP_GUIDE.md) — Zero-CLI manual setup guide using pure Supabase SQL and Vite.
+- [docs/SUPABASE_AUTH_COMPLETE_GUIDE.md](docs/SUPABASE_AUTH_COMPLETE_GUIDE.md) — Comprehensive Supabase Auth & Custom SMTP manual: rate-limit bypass, Gmail app passwords, domain allowlisting, programmatic email template updates, and end-to-end password recovery lifecycle.
 - [docs/ULTRA_DEEP_REBUILD_SYSTEM.md](docs/ULTRA_DEEP_REBUILD_SYSTEM.md) — Master manual for the 6-layer ultra deep rebuild: architecture, RLS security, PostEx V3, modularity, and phase-by-phase execution.
 - [supabase/schema/SUPER_MASTER_SCHEMA.sql](supabase/schema/SUPER_MASTER_SCHEMA.sql) — The authoritative SQL master schema for Supabase: pure snake_case tables, indexes, triggers, and strict multi-tenant RLS policies.
 
