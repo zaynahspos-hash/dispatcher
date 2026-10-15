@@ -324,44 +324,52 @@ export default function ParcelTable({
       </div>
 
       {/* Action Toolbar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3">
+        {/* Secondary Utilities: Add Row, Export, Clear All */}
+        <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
           <button
             onClick={addRow}
-            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
+            className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
           >
-            <PlusIcon size={14} /> Add Row
+            <PlusIcon size={14} className="text-emerald-500 shrink-0" />
+            <span>Add Row</span>
           </button>
 
           <button
             onClick={exportExcel}
-            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
+            className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
           >
-            <UploadIcon size={14} /> Export XLSX
+            <UploadIcon size={14} className="text-emerald-500 shrink-0" />
+            <span>Export XLSX</span>
           </button>
 
           <button
             onClick={clearAll}
-            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-950/40 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
+            className="h-10 px-3 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-950/40 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
             title="Clear all staged rows"
           >
-            <TrashIcon size={14} /> Clear All
+            <TrashIcon size={14} className="shrink-0" />
+            <span>Clear All</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={() => onBookSelected(selectedList)}
-            disabled={loading || selected.size === 0}
-            className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-          >
-            <SyncIcon size={14} /> Book Selected ({selected.size})
-          </button>
+        {/* Primary Dispatch Actions */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {selected.size > 0 && (
+            <button
+              onClick={() => onBookSelected(selectedList)}
+              disabled={loading}
+              className="flex-1 sm:flex-initial h-10 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold text-xs hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shadow-xs"
+            >
+              <SyncIcon size={14} className="shrink-0 text-emerald-500" />
+              <span>Book Selected ({selected.size})</span>
+            </button>
+          )}
 
           <button
             onClick={onBookAll}
             disabled={loading || parcels.length === 0}
-            className="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-tight shadow-md shadow-emerald-600/20 transition disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className={`${selected.size > 0 ? 'flex-1' : 'w-full'} sm:flex-initial h-10 px-5 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-tight shadow-md shadow-emerald-600/20 transition disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap`}
           >
             {loading ? (
               <>
@@ -373,7 +381,7 @@ export default function ParcelTable({
               </>
             ) : (
               <>
-                <SyncIcon size={14} />
+                <SyncIcon size={14} className="shrink-0 text-white" />
                 <span>Book All ({parcels.length}) &rarr;</span>
               </>
             )}
@@ -586,7 +594,7 @@ export default function ParcelTable({
               }`}
             >
               {/* Mobile Card Header */}
-              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -594,27 +602,27 @@ export default function ParcelTable({
                     onChange={() => toggleSelect(i)}
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                   />
-                  <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     #{i + 1}
                   </span>
                   <input
                     value={parcel.id || ''}
                     onChange={e => updateField(i, 'id', e.target.value)}
                     placeholder="Ref ID"
-                    className="w-24 px-2 py-0.5 rounded bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono font-bold text-slate-700 dark:text-slate-200 focus:outline-none"
+                    className="w-24 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black font-mono px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="text-xs font-black font-mono px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
                     Rs. {parcel.total || 0}
                   </span>
                   <button
                     onClick={() => deleteParcel(i)}
                     title="Delete Row"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer active:scale-95"
                   >
-                    <TrashIcon size={15} />
+                    <TrashIcon size={14} />
                   </button>
                 </div>
               </div>

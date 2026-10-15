@@ -180,7 +180,7 @@ export default function BookingResults({
       </div>
 
       {/* Action buttons */}
-      <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 mb-5">
         {booked.length > 0 && (
           <>
             <button
@@ -195,7 +195,7 @@ export default function BookingResults({
                 onPrintLabels()
               }}
               disabled={loadingLabels}
-              className="col-span-2 sm:flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md text-sm"
+              className="col-span-2 sm:flex-initial h-11 px-5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20 active:scale-95 whitespace-nowrap"
             >
               {loadingLabels ? (
                 <>
@@ -207,47 +207,47 @@ export default function BookingResults({
                 </>
               ) : (
                 <>
-                  <PrintIcon size={18} />
+                  <PrintIcon size={16} />
                   <span>Print Labels (PDF)</span>
                 </>
               )}
             </button>
             <button
               onClick={copyTrackings}
-              className="sm:flex-none px-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition flex items-center gap-1.5 justify-center cursor-pointer"
+              className="h-11 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5 justify-center cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
             >
-              <PasteIcon size={16} />
+              <PasteIcon size={15} className="text-emerald-500" />
               <span>Copy</span>
             </button>
           </>
         )}
         <button
           onClick={() => setShowVault(true)}
-          className="sm:flex-none px-3.5 py-3 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-xs"
+          className="h-11 px-3.5 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
           title="Open Local Airway Bill & CN Document Vault"
         >
-          <FolderIcon size={16} />
+          <FolderIcon size={15} className="text-emerald-500" />
           <span>Airway Vault</span>
         </button>
         <button
           onClick={exportResultsExcel}
-          className="sm:flex-none px-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition flex items-center gap-1.5 justify-center cursor-pointer"
+          className="h-11 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-1.5 justify-center cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
         >
-          <UploadIcon size={16} />
+          <UploadIcon size={15} className="text-emerald-500" />
           <span>Export</span>
         </button>
         <button
           onClick={handleAddNewResult}
-          className="sm:flex-none px-3 py-3 bg-[#475569] dark:bg-gray-700 text-[#ffffff] hover:bg-[#334155] dark:hover:bg-gray-600 rounded-xl text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-md"
+          className="h-11 px-3.5 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
         >
-          <PlusIcon size={15} />
+          <PlusIcon size={15} className="text-emerald-500" />
           <span>Add Row</span>
         </button>
         <button
           onClick={clearAllResults}
-          className="sm:flex-none px-3 py-3 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-[#ffffff] rounded-xl text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-md"
+          className="h-11 px-3.5 border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
         >
-          <TrashIcon size={16} />
+          <TrashIcon size={15} />
           <span>Clear All</span>
         </button>
       </div>

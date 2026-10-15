@@ -296,10 +296,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="lg:hidden w-8.5 h-8.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer active:scale-95 shadow-xs"
               aria-label="Open menu"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
@@ -309,7 +309,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               <img 
                 src="/apple-touch-icon.png?v=20261014" 
                 onError={(e) => { (e.target as HTMLImageElement).src = '/favicon-96x96.png?v=20261014' }} 
-                className="w-7 h-7 rounded-lg object-contain" 
+                className="w-7 h-7 rounded-lg object-contain shadow-xs" 
                 alt="Logo" 
               />
               <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
@@ -331,7 +331,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
 
           {/* Right: Quick Indicators & Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             
             {/* Live PostEx Status Pill */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-bold">
@@ -355,10 +355,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {!isSettingsConfigured && (
               <button
                 onClick={() => setActiveTab('settings')}
-                className="flex items-center gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-xl text-xs font-bold hover:bg-amber-500/25 transition cursor-pointer"
+                className="w-8.5 h-8.5 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 text-xs font-bold hover:bg-amber-500/25 transition cursor-pointer active:scale-95 shadow-xs"
+                title="Configure Settings"
               >
-                <AlertTriangleIcon size={14} className="text-amber-500 shrink-0" />
-                <span className="hidden sm:inline">Setup Settings</span>
+                <AlertTriangleIcon size={15} className="text-amber-500 shrink-0" />
+                <span className="hidden sm:inline">Setup</span>
               </button>
             )}
 
@@ -367,11 +368,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               type="button"
               onClick={handleRefreshApp}
               disabled={isRefreshing}
-              className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+              className="w-8.5 h-8.5 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 shadow-xs"
               title="Refresh app & fetch latest updates"
               aria-label="Refresh app"
             >
-              <RefreshIcon size={16} className={isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-500 dark:text-slate-400'} />
+              <RefreshIcon size={15} className={isRefreshing ? 'animate-spin text-emerald-500' : 'text-slate-500 dark:text-slate-400'} />
               <span className="hidden sm:inline text-xs font-bold">
                 {isRefreshing ? 'Updating...' : 'Refresh'}
               </span>
@@ -380,20 +381,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {/* Theme Toggle (Mobile & Tablet) */}
             <button
               onClick={onToggleTheme}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="w-8.5 h-8.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center transition cursor-pointer active:scale-95 shadow-xs"
               title="Toggle theme"
             >
-              {theme === 'dark' ? <SunIcon size={16} className="text-amber-400" /> : <MoonIcon size={16} className="text-indigo-400" />}
+              {theme === 'dark' ? <SunIcon size={15} className="text-amber-400" /> : <MoonIcon size={15} className="text-indigo-400" />}
             </button>
 
             {/* User Avatar Pill */}
             {user && (
               <div 
                 onClick={() => setActiveTab('settings')}
-                className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer"
+                className="w-8.5 h-8.5 sm:w-auto sm:p-1 sm:pl-1.5 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center sm:justify-start gap-2 transition cursor-pointer active:scale-95 shadow-xs"
                 title={user.email}
               >
-                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-500 font-black text-xs flex items-center justify-center">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center">
                   {user.email ? user.email[0].toUpperCase() : 'U'}
                 </div>
                 <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
@@ -405,8 +406,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
         </header>
 
-        {/* Scrollable Main Application Canvas */}
-        <main className="flex-1 overflow-y-auto overscroll-y-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(76px+max(env(safe-area-inset-bottom),14px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
+        {/* Scrollable Main Application Canvas (Generous mobile pb to clear bottom bar) */}
+        <main className="flex-1 overflow-y-auto overscroll-y-none px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 pb-[calc(110px+max(env(safe-area-inset-bottom),20px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
           <div className="w-full max-w-[1440px] space-y-6">
             {children}
           </div>

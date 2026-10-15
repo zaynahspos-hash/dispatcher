@@ -61,10 +61,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
       {children}
       
-      {/* iOS Floating Island Toast Overlay */}
+      {/* Floating Island Toast Notification — Placed safely below the header bar */}
       <div 
         aria-live="polite" 
-        className="fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-[92vw] sm:max-w-md px-2"
+        className="fixed top-[calc(max(env(safe-area-inset-top),0.75rem)+3.85rem)] sm:top-6 sm:right-6 sm:left-auto sm:translate-x-0 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center sm:items-end gap-2.5 pointer-events-none w-full max-w-[92vw] sm:max-w-sm px-2"
       >
         {toasts.map(toast => {
           const typeStyles = {
