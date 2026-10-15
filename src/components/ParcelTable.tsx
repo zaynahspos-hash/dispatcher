@@ -15,9 +15,11 @@ interface ParcelTableProps {
   cities?: string[]
 }
 
-const ORDER_TYPES = [
+export const ORDER_TYPES = [
   { value: 'Normal', label: 'Normal (COD)' },
-  { value: 'Replacement', label: 'Replacement (Exchange)' }
+  { value: 'Reversed', label: 'Reversed (Return Pickup)' },
+  { value: 'Replacement', label: 'Replacement (Exchange)' },
+  { value: 'Overland', label: 'Overland (Heavy Cargo)' }
 ]
 
 const POPULAR_CITIES = [
@@ -259,64 +261,68 @@ export default function ParcelTable({
   }
 
   return (
-    <div className="space-y-5">
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+    <div className="space-y-4">
+      {/* Sleek Integrated KPI Summary Bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800/80 shadow-xs">
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
             Staged Parcels
           </span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+            <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">
               {parcels.length}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              ({selected.size} Selected)
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              ({selected.size} selected)
             </span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
             Total COD Value
           </span>
           <div className="flex items-baseline gap-1 mt-1">
             <span className="text-xs font-bold text-slate-400">Rs.</span>
-            <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+            <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
               {totalCOD.toLocaleString()}
             </span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
             Phone Format
           </span>
-          <div className="mt-1">
+          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold">
             {invalidPhonesCount === 0 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> 100% Valid
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                100% Valid
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span> {invalidPhonesCount} Invalid
+              <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                {invalidPhonesCount} Invalid
               </span>
             )}
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
             PostEx Coverage
           </span>
-          <div className="mt-1">
+          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold">
             {unverifiedCitiesCount === 0 ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> All Cities Matched
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                All Cities Matched
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span> {unverifiedCitiesCount} Unverified
+              <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                {unverifiedCitiesCount} Unverified
               </span>
             )}
           </div>
@@ -324,12 +330,12 @@ export default function ParcelTable({
       </div>
 
       {/* Action Toolbar */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3">
+      <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Secondary Utilities: Add Row, Export, Clear All */}
-        <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={addRow}
-            className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+            className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 whitespace-nowrap"
           >
             <PlusIcon size={14} className="text-emerald-500 shrink-0" />
             <span>Add Row</span>
@@ -337,7 +343,7 @@ export default function ParcelTable({
 
           <button
             onClick={exportExcel}
-            className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+            className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 whitespace-nowrap"
           >
             <UploadIcon size={14} className="text-emerald-500 shrink-0" />
             <span>Export XLSX</span>
@@ -345,23 +351,23 @@ export default function ParcelTable({
 
           <button
             onClick={clearAll}
-            className="h-10 px-3 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/80 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-950/40 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+            className="h-10 px-3.5 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold text-xs hover:bg-rose-100/80 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 whitespace-nowrap"
             title="Clear all staged rows"
           >
             <TrashIcon size={14} className="shrink-0" />
-            <span>Clear All</span>
+            <span className="hidden sm:inline">Clear All</span>
           </button>
         </div>
 
         {/* Primary Dispatch Actions */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {selected.size > 0 && (
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          {selected.size > 0 && selected.size < parcels.length && (
             <button
               onClick={() => onBookSelected(selectedList)}
               disabled={loading}
-              className="flex-1 sm:flex-initial h-10 px-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold text-xs hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shadow-xs"
+              className="flex-1 sm:flex-initial h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 whitespace-nowrap shadow-xs"
             >
-              <SyncIcon size={14} className="shrink-0 text-emerald-500" />
+              <SyncIcon size={14} className="shrink-0 text-slate-400" />
               <span>Book Selected ({selected.size})</span>
             </button>
           )}
@@ -369,7 +375,7 @@ export default function ParcelTable({
           <button
             onClick={onBookAll}
             disabled={loading || parcels.length === 0}
-            className={`${selected.size > 0 ? 'flex-1' : 'w-full'} sm:flex-initial h-10 px-5 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-tight shadow-md shadow-emerald-600/20 transition disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap`}
+            className={`${selected.size > 0 && selected.size < parcels.length ? 'flex-1' : 'w-full'} sm:flex-initial h-10 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-tight shadow-sm shadow-emerald-600/20 transition disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer active:scale-98 whitespace-nowrap`}
           >
             {loading ? (
               <>
@@ -381,7 +387,6 @@ export default function ParcelTable({
               </>
             ) : (
               <>
-                <SyncIcon size={14} className="shrink-0 text-white" />
                 <span>Book All ({parcels.length}) &rarr;</span>
               </>
             )}
@@ -389,14 +394,14 @@ export default function ParcelTable({
         </div>
       </div>
 
-      {/* Desktop Data Grid */}
-      <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-[#0c121e] shadow-sm">
-        {/* Generous min-height and padding so city dropdown is never clipped at the bottom */}
-        <div className="overflow-x-auto min-h-[380px] pb-32">
-          <table className="w-full text-xs min-w-[1100px] border-collapse">
-            <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      {/* Desktop Excel Data Grid */}
+      <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden">
+        {/* Horizontal scroll container with comfortable column widths */}
+        <div className="overflow-x-auto min-h-[400px] pb-32">
+          <table className="w-full text-xs min-w-[1260px] border-collapse">
+            <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
               <tr>
-                <th className="px-3.5 py-3 text-left w-10">
+                <th className="w-12 px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">
                   <input
                     type="checkbox"
                     checked={selected.size === parcels.length && parcels.length > 0}
@@ -404,19 +409,19 @@ export default function ParcelTable({
                     className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                   />
                 </th>
-                <th className="px-2 py-3 text-left w-10 font-mono">#</th>
-                <th className="px-3 py-3 text-left w-24">Ref ID</th>
-                <th className="px-3 py-3 text-left w-36">Customer</th>
-                <th className="px-3 py-3 text-left w-32">Phone</th>
-                <th className="px-3 py-3 text-left w-40">City</th>
-                <th className="px-3 py-3 text-left min-w-[200px]">Address</th>
-                <th className="px-3 py-3 text-left w-24">COD (Rs.)</th>
-                <th className="px-3 py-3 text-left w-16">Items</th>
-                <th className="px-3 py-3 text-left w-28">Type</th>
-                <th className="px-3 py-3 text-center w-12">Action</th>
+                <th className="w-12 px-2 py-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-800">#</th>
+                <th className="w-32 min-w-[120px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Ref ID</th>
+                <th className="w-44 min-w-[170px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Customer</th>
+                <th className="w-36 min-w-[140px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Phone</th>
+                <th className="w-44 min-w-[170px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">City</th>
+                <th className="min-w-[280px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Delivery Address</th>
+                <th className="w-32 min-w-[120px] px-3 py-3 text-right border-r border-slate-200/80 dark:border-slate-800">COD (Rs.)</th>
+                <th className="w-20 min-w-[80px] px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">Items</th>
+                <th className="w-36 min-w-[140px] px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">Order Type</th>
+                <th className="w-16 min-w-[64px] px-3 py-3 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
               {parcels.map((parcel, i) => {
                 const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
                 const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
@@ -425,11 +430,12 @@ export default function ParcelTable({
                 return (
                   <tr
                     key={i}
-                    className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
+                    className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
                       selected.has(i) ? 'bg-emerald-500/5 dark:bg-emerald-500/5' : ''
                     }`}
                   >
-                    <td className="px-3.5 py-2.5">
+                    {/* Checkbox */}
+                    <td className="w-12 px-3 py-2 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
                       <input
                         type="checkbox"
                         checked={selected.has(i)}
@@ -437,35 +443,47 @@ export default function ParcelTable({
                         className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                       />
                     </td>
-                    <td className="px-2 py-2.5 text-slate-400 font-mono text-[11px]">{i + 1}</td>
-                    <td className="px-3 py-2.5 font-mono">
+
+                    {/* Row Index */}
+                    <td className="w-12 px-2 py-2 text-center text-slate-400 font-mono text-[11px] border-r border-b border-slate-200/80 dark:border-slate-800">
+                      {i + 1}
+                    </td>
+
+                    {/* Ref ID (Flush Excel Cell) */}
+                    <td className="w-32 min-w-[120px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                       <input
                         value={parcel.id || ''}
                         onChange={e => updateField(i, 'id', e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                       />
                     </td>
-                    <td className="px-3 py-2.5">
+
+                    {/* Customer Name */}
+                    <td className="w-44 min-w-[170px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                       <input
                         value={parcel.name || ''}
                         onChange={e => updateField(i, 'name', e.target.value)}
                         placeholder="Recipient Name"
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-full h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                       />
                     </td>
-                    <td className="px-3 py-2.5 font-mono">
+
+                    {/* Phone Number */}
+                    <td className="w-36 min-w-[140px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                       <input
                         value={parcel.phone || ''}
                         onChange={e => updateField(i, 'phone', e.target.value)}
                         placeholder="03001234567"
-                        className={`w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border text-xs font-mono focus:outline-none ${
+                        className={`w-full h-10 px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
                           isPhoneValid
-                            ? 'border-slate-200 dark:border-slate-800 focus:ring-1 focus:ring-emerald-500'
-                            : 'border-rose-400 bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                            ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
+                            : 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-600 focus:ring-rose-500'
                         }`}
                       />
                     </td>
-                    <td className="px-3 py-2.5 relative city-autocomplete-container">
+
+                    {/* City (with live search dropdown) */}
+                    <td className="w-44 min-w-[170px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container">
                       <input
                         ref={editingCity?.row === i && !editingCity?.isMobile ? cityInputRef : undefined}
                         value={parcel.city || ''}
@@ -479,17 +497,17 @@ export default function ParcelTable({
                           setEditingCity({ row: i, isMobile: false })
                         }}
                         placeholder="Type City..."
-                        className={`w-full px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border text-xs font-semibold focus:outline-none ${
+                        className={`w-full h-10 px-3 py-2 bg-transparent text-xs font-semibold focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
                           isCityValid
-                            ? 'border-slate-200 dark:border-slate-800 focus:ring-1 focus:ring-emerald-500'
-                            : 'border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
+                            ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
+                            : 'bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 focus:ring-amber-500'
                         }`}
                       />
 
-                      {/* City Dropdown Menu: Opens upward if near bottom, downward if higher */}
+                      {/* City Dropdown Menu */}
                       {editingCity?.row === i && !editingCity?.isMobile && filteredCities.length > 0 && (
                         <div
-                          className={`absolute z-50 left-0 right-0 min-w-[220px] bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in duration-100 ${
+                          className={`absolute z-50 left-0 right-0 min-w-[240px] bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in duration-100 ${
                             isNearBottom ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
                           }`}
                         >
@@ -507,7 +525,7 @@ export default function ParcelTable({
                                   updateField(i, 'city', city)
                                   setEditingCity(null)
                                 }}
-                                className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
+                                className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
                                   parcel.city?.toUpperCase() === city
                                     ? 'bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400'
                                     : 'hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200'
@@ -525,46 +543,56 @@ export default function ParcelTable({
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5">
+
+                    {/* Address */}
+                    <td className="min-w-[280px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                       <input
                         value={parcel.address || ''}
                         onChange={e => updateField(i, 'address', e.target.value)}
                         placeholder="House, street, area..."
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-full h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                       />
                     </td>
-                    <td className="px-3 py-2.5 font-mono">
+
+                    {/* COD Amount (Right Aligned Font Mono) */}
+                    <td className="w-32 min-w-[120px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                       <input
                         type="number"
                         value={parcel.total}
                         onChange={e => updateField(i, 'total', Number(e.target.value))}
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none"
+                        className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                       />
                     </td>
-                    <td className="px-3 py-2.5">
+
+                    {/* Items Count (Centered) */}
+                    <td className="w-20 min-w-[80px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                       <input
                         type="number"
                         value={parcel.items}
                         onChange={e => updateField(i, 'items', Number(e.target.value))}
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-center focus:outline-none"
+                        className="w-full h-10 px-2 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                       />
                     </td>
-                    <td className="px-3 py-2.5">
+
+                    {/* Order Type (All 4 PostEx V3 Types) */}
+                    <td className="w-36 min-w-[140px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                       <select
-                        value={parcel.orderType === 'Replacement' ? 'Replacement' : 'Normal'}
+                        value={parcel.orderType || 'Normal'}
                         onChange={e => updateField(i, 'orderType', e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-medium focus:outline-none"
+                        className="w-full h-10 px-2.5 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset cursor-pointer"
                       >
                         {ORDER_TYPES.map(t => (
                           <option key={t.value} value={t.value}>{t.label}</option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-3 py-2.5 text-center">
+
+                    {/* Action (Centered, never clipped) */}
+                    <td className="w-16 min-w-[64px] p-0 border-b border-slate-200/80 dark:border-slate-800 text-center">
                       <button
                         onClick={() => deleteParcel(i)}
                         title="Delete Row"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer inline-flex items-center justify-center"
                       >
                         <TrashIcon size={14} />
                       </button>
@@ -732,7 +760,7 @@ export default function ParcelTable({
                       Order Type
                     </label>
                     <select
-                      value={parcel.orderType === 'Replacement' ? 'Replacement' : 'Normal'}
+                      value={parcel.orderType || 'Normal'}
                       onChange={e => updateField(i, 'orderType', e.target.value)}
                       className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
                     >

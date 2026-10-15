@@ -200,6 +200,7 @@ export default function App() {
     setResults,
     loading,
     loadingMessage,
+    loadingProgress,
     loadingLabels,
     handleParse,
     handleBookAll,
@@ -321,6 +322,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
+        settings={settings}
+        updateSetting={updateSetting}
         dailyTokens={dailyTokens}
         monthlyTokens={monthlyTokens}
         dailyRequests={dailyRequests}
@@ -406,10 +409,11 @@ export default function App() {
         </ErrorBoundary>
       </AppLayout>
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay with Live Counters (Done/Remaining/Total) */}
       <GlobalLoadingOverlay
         loading={loading}
         message={loadingMessage}
+        progress={loadingProgress}
       />
 
       {isAuthModalOpen && (

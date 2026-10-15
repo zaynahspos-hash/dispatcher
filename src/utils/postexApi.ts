@@ -190,11 +190,15 @@ export async function createOrder(token: string, parcel: Parcel, settings: Setti
     returnCode = pickupCode
   }
 
-  // PostEx V3 create-order strictly accepts ONLY 'Normal' or 'Replacement'
-  let safeOrderType: 'Normal' | 'Replacement' = 'Normal'
+  // PostEx V3 create-order order types: Normal, Reversed, Replacement, Overland
+  let safeOrderType: 'Normal' | 'Reversed' | 'Replacement' | 'Overland' = 'Normal'
   const rawType = String(parcel.orderType || settings.postex_type || 'Normal').trim().toLowerCase()
   if (rawType.includes('replace') || rawType.includes('exchange')) {
     safeOrderType = 'Replacement'
+  } else if (rawType.includes('reverse')) {
+    safeOrderType = 'Reversed'
+  } else if (rawType.includes('overland') || rawType.includes('cargo')) {
+    safeOrderType = 'Overland'
   } else {
     safeOrderType = 'Normal'
   }

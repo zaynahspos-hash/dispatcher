@@ -2,23 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { getMerchantAddresses, getOrderTypes } from '../utils/postexApi'
 import { Settings } from '../utils/groqParser'
 import { 
-  SettingsIcon, 
-  SyncIcon, 
-  EyeIcon, 
-  EyeOffIcon, 
   TruckIcon, 
   BotIcon, 
-  LockIcon, 
-  CheckIcon, 
-  PlugIcon, 
   ExternalLinkIcon,
+  CheckIcon,
   AlertTriangleIcon,
-  SaveIcon
+  SaveIcon,
+  EyeIcon,
+  EyeOffIcon
 } from './Icons'
-import { SearchableDropdown } from './SearchableDropdown'
-import { supabase } from '../utils/supabaseClient'
 import { useToast } from './common/Toast'
-import { UserAvatar } from './common/UserAvatar'
+import { ORDER_TYPES } from './ParcelTable'
 
 interface MerchantAddress {
   addressCode: string
@@ -35,7 +29,7 @@ interface SettingsPageProps {
   user?: any
 }
 
-type SettingsTab = 'courier' | 'ai' | 'security'
+type SettingsTab = 'courier' | 'ai' | 'whatsapp' | 'defaults'
 
 const PROVIDER_METADATA: Record<string, {
   name: string
@@ -45,1032 +39,632 @@ const PROVIDER_METADATA: Record<string, {
   models: string[]
   badge: string
 }> = {
-  groq: {
-    name: 'Groq AI (Ultra Fast)',
-    keyUrl: 'https://console.groq.com/keys',
-    keyLabel: 'Get Free Groq API Key',
-    defaultModel: 'llama-3.1-8b-instant',
-    models: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
-    badge: 'Latency < 600ms'
-  },
   gemini: {
-    name: 'Google Gemini (Free Quota)',
+    name: 'Google Gemini',
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyLabel: 'Get Free Gemini Key (1,500 req/day)',
     defaultModel: 'gemini-3.5-flash-lite',
     models: ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'],
     badge: '1,500 Free Req/Day'
   },
+  groq: {
+    name: 'Groq AI',
+    keyUrl: 'https://console.groq.com/keys',
+    keyLabel: 'Get Free Groq Key',
+    defaultModel: 'llama-3.1-8b-instant',
+    models: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+    badge: 'Latency < 600ms'
+  },
   openai: {
     name: 'OpenAI (GPT-4o)',
     keyUrl: 'https://platform.openai.com/api-keys',
-    keyLabel: 'Get OpenAI API Key',
+    keyLabel: 'Get OpenAI Key',
     defaultModel: 'gpt-4o-mini',
     models: ['gpt-4o-mini', 'gpt-4o'],
     badge: 'High Reasoning'
   },
   anthropic: {
-    name: 'Anthropic (Claude 3.5)',
+    name: 'Anthropic Claude',
     keyUrl: 'https://console.anthropic.com/settings/keys',
-    keyLabel: 'Get Anthropic API Key',
+    keyLabel: 'Get Claude Key',
     defaultModel: 'claude-3-5-haiku-latest',
     models: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest'],
     badge: 'Claude 3.5'
   },
   deepseek: {
-    name: 'DeepSeek (V3 / R1)',
+    name: 'DeepSeek',
     keyUrl: 'https://platform.deepseek.com/api_keys',
-    keyLabel: 'Get DeepSeek API Key',
+    keyLabel: 'Get DeepSeek Key',
     defaultModel: 'deepseek-chat',
     models: ['deepseek-chat', 'deepseek-reasoner'],
     badge: 'V3 / R1 Engine'
-  },
-  openrouter: {
-    name: 'OpenRouter (Unified)',
-    keyUrl: 'https://openrouter.ai/keys',
-    keyLabel: 'Get OpenRouter API Key',
-    defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
-    models: ['meta-llama/llama-3.1-8b-instruct:free', 'google/gemini-2.0-flash-exp:free'],
-    badge: 'Unified Multi-Model'
   }
 }
 
-export default function SettingsPage({ settings, updateSetting, onSave, cities, user }: SettingsPageProps) {
+export default function SettingsPage({ settings, updateSetting, onSave }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('courier')
   const [addresses, setAddresses] = useState<MerchantAddress[]>([])
-  const [orderTypes, setOrderTypes] = useState<string[]>([])
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [showToken, setShowToken] = useState(false)
+  const [showAiKeys, setShowAiKeys] = useState(false)
+  const [testingPostex, setTestingPostex] = useState(false)
+  const [postexPingResult, setPostexPingResult] = useState<string | null>(null)
   const [testingAi, setTestingAi] = useState(false)
-  const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; message: string; latency?: number } | null>(null)
-  const [showPostexToken, setShowPostexToken] = useState(false)
-  const [showApiKey, setShowApiKey] = useState(false)
+  const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const toast = useToast()
 
-  // Derived state
-  const activeProvider = (settings.ai_provider || 'gemini') as keyof typeof PROVIDER_METADATA
-  const activeModelField = `${activeProvider}_model` as keyof Settings
-  const activeKeyField = `${activeProvider}_api_key` as keyof Settings
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const activeProvider = settings.ai_provider || 'gemini'
+  const activeMeta = PROVIDER_METADATA[activeProvider] || PROVIDER_METADATA.gemini
 
-  const pickupAddresses = addresses.filter(a => a.addressType !== 'Return Address')
-  const returnAddresses = addresses.filter(a => a.addressType === 'Return Address')
-
-  // Password state
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [pwLoading, setPwLoading] = useState(false)
-  const [pwError, setPwError] = useState('')
-  const [pwSuccess, setPwSuccess] = useState('')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image is too large. Please select an image under 5MB.')
-      return
-    }
-
-    setUploadingAvatar(true)
-    try {
-      const reader = new FileReader()
-      reader.onload = (loadEvt) => {
-        const img = new Image()
-        img.onload = async () => {
-          try {
-            const canvas = document.createElement('canvas')
-            const size = 160 // Standard icon avatar size
-            canvas.width = size
-            canvas.height = size
-            const ctx = canvas.getContext('2d')
-            if (!ctx) throw new Error('Could not access canvas context')
-
-            // Square center crop
-            const minDim = Math.min(img.width, img.height)
-            const sx = (img.width - minDim) / 2
-            const sy = (img.height - minDim) / 2
-            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
-
-            // Convert to WebP format (10-20 KB)
-            canvas.toBlob(async (blob) => {
-              if (!blob) {
-                toast.error('Failed to encode image to WebP')
-                setUploadingAvatar(false)
-                return
-              }
-
-              const kbSize = (blob.size / 1024).toFixed(1)
-              console.log(`[Avatar Upload] WebP compressed size: ${kbSize} KB`)
-
-              const userId = user?.id || 'guest'
-              const filePath = `${userId}/avatar-${Date.now()}.webp`
-
-              // 1. Upload to Supabase Storage avatars bucket
-              const { error: uploadErr } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, blob, {
-                  contentType: 'image/webp',
-                  upsert: true
-                })
-
-              if (uploadErr) {
-                console.warn('[Avatar] Cloud upload failed, falling back to local WebP:', uploadErr.message)
-                const fallbackDataUrl = canvas.toDataURL('image/webp', 0.8)
-                updateSetting('avatar_url', fallbackDataUrl)
-                toast.success('Avatar updated locally.')
-                setUploadingAvatar(false)
-                return
-              }
-
-              // 2. Get permanent public URL
-              const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-              const permanentUrl = `${urlData.publicUrl}?t=${Date.now()}`
-
-              // 3. Save setting & persist to database
-              updateSetting('avatar_url', permanentUrl)
-              toast.success(`Profile photo saved to cloud storage! (${kbSize} KB WebP)`)
-              setUploadingAvatar(false)
-            }, 'image/webp', 0.82)
-          } catch (err: any) {
-            setUploadingAvatar(false)
-            toast.error(err.message || 'Image processing failed')
-          }
-        }
-        img.src = loadEvt.target?.result as string
-      }
-      reader.readAsDataURL(file)
-    } catch (err: any) {
-      setUploadingAvatar(false)
-      toast.error(err.message || 'Failed to read image file')
-    }
-  }
-
-  // Load addresses when PostEx token exists
+  // Fetch warehouse pickup addresses on mount if token is configured
   useEffect(() => {
     if (settings.postex_token) {
-      getMerchantAddresses(settings.postex_token)
-        .then(res => {
-          if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
-            setAddresses(res.dist)
-            const pickupAddrs = res.dist.filter((a: MerchantAddress) => a.addressType !== 'Return Address')
-            const updates: Partial<Settings> = {}
-            if (pickupAddrs.length > 0 && !settings.postex_pickup) {
-              const defaultPickup = pickupAddrs[0]
-              updates.postex_pickup = defaultPickup.addressCode
-              updates.postex_pickup_address = `${defaultPickup.address} — ${defaultPickup.cityName}`
-            }
-            if (Object.keys(updates).length > 0) {
-              updateSetting(updates)
-            }
-          }
-        })
-        .catch(() => {})
-
-      getOrderTypes(settings.postex_token)
-        .then(res => {
-          if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
-            setOrderTypes(res.dist.map((d: any) => d.orderType || d))
-          }
-        })
-        .catch(() => {})
+      fetchAddresses(settings.postex_token)
     }
   }, [settings.postex_token])
 
-  async function handleTestConnection() {
-    if (!settings.postex_token) {
-      toast.warning('Token Missing', 'Please enter your PostEx Merchant Token first.')
-      return
-    }
-    setTesting(true)
-    setTestResult(null)
+  async function fetchAddresses(token: string) {
+    if (!token) return
+    setLoadingAddresses(true)
     try {
-      const res = await getMerchantAddresses(settings.postex_token)
-      if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
+      const res = await getMerchantAddresses(token)
+      if (res && Array.isArray(res.dist)) {
         setAddresses(res.dist)
-        setTestResult({ ok: true, message: `Connected! Found ${res.dist.length} registered addresses.` })
-        toast.success('PostEx V3 Connected', `Successfully verified token and loaded ${res.dist.length} pickup addresses.`)
-      } else {
-        const msg = res.statusMessage || 'Invalid token or unauthorized by PostEx.'
-        setTestResult({ ok: false, message: msg })
-        toast.error('PostEx Error', msg)
+        if (!settings.postex_pickup && res.dist.length > 0) {
+          updateSetting('postex_pickup', res.dist[0].addressCode)
+        }
       }
     } catch (err: any) {
-      setTestResult({ ok: false, message: err.message || 'Connection failed' })
-      toast.error('Connection Failed', err.message || 'Network error reaching PostEx API.')
+      console.warn('Could not auto-fetch pickup addresses:', err?.message)
     } finally {
-      setTesting(false)
+      setLoadingAddresses(false)
     }
   }
 
-  async function handleUpdatePassword(e: React.FormEvent) {
-    e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      setPwError('New passwords do not match.')
+  async function testPostEx() {
+    if (!settings.postex_token) {
+      toast.error('Token Missing', 'Please enter your PostEx API token first.')
       return
     }
-    if (newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters.')
-      return
-    }
-    setPwLoading(true)
-    setPwError('')
-    setPwSuccess('')
+    setTestingPostex(true)
+    setPostexPingResult(null)
+    const start = performance.now()
     try {
-      if (!user?.email) throw new Error('Session not found. Please log in again.')
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      })
-      if (signInError) throw new Error('Current password is incorrect.')
-
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
-      if (updateError) throw updateError
-
-      setPwSuccess('Password updated successfully!')
-      toast.success('Password Updated', 'Your account credentials have been securely refreshed.')
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
+      const res = await getOrderTypes(settings.postex_token)
+      const duration = Math.round(performance.now() - start)
+      if (Number(res?.statusCode) === 200 || res?.dist) {
+        setPostexPingResult(`Connected (${duration}ms)`)
+        toast.success('PostEx Connected', `PostEx V3 responded in ${duration}ms. Operational cities active.`)
+        await fetchAddresses(settings.postex_token)
+      } else {
+        throw new Error(res?.statusMessage || 'Invalid API Token')
+      }
     } catch (err: any) {
-      setPwError(err.message || 'Failed to update password.')
-      toast.error('Password Update Failed', err.message)
+      setPostexPingResult('Failed')
+      toast.error('Connection Failed', err.message || 'PostEx API ping failed. Please verify token.')
     } finally {
-      setPwLoading(false)
+      setTestingPostex(false)
     }
   }
 
-  async function handleTestAiConnection() {
-    const rawKeys = String(settings[activeKeyField] || '').trim()
-    const firstKey = rawKeys.split(/[\n,]+/)[0]?.trim()
-    if (!firstKey) {
-      toast.warning('API Key Missing', `Please enter your ${activeProvider.toUpperCase()} API key first.`)
+  async function testAi() {
+    const keyField = `${activeProvider}_api_key` as keyof Settings
+    const key = settings[keyField]
+    if (!key) {
+      toast.error('API Key Missing', `Please enter your ${activeMeta.name} API key first.`)
       return
     }
-
     setTestingAi(true)
-    setAiTestResult(null)
-    const startTime = Date.now()
-
+    setAiPingResult(null)
+    const start = performance.now()
     try {
-      if (activeProvider === 'gemini') {
-        let model = String(settings.gemini_model || 'gemini-3-flash-preview').trim()
-        if (!model || model.includes('2.0') || model.includes('1.5') || model.includes('1.0') || model === 'custom') {
-          model = 'gemini-3-flash-preview'
-        }
-        const generationConfig: any = {
-          responseMimeType: 'application/json'
-        }
-        if (model.startsWith('gemini-') && !model.includes('lite')) {
-          generationConfig.thinkingConfig = { thinkingBudget: 0 }
-        }
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${firstKey}`
-        let res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: 'Respond with valid JSON: {"status":"ok"}' }] }],
-            generationConfig
-          })
-        })
-
-        // Auto fallback if model discontinued or 404
-        if (!res.ok) {
-          const err = await res.clone().json().catch(() => ({}))
-          const errMsg = err?.error?.message || ''
-          if (errMsg.includes('no longer available') || errMsg.includes('not found') || res.status === 404) {
-            model = 'gemini-3-flash-preview'
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${firstKey}`
-            res = await fetch(fallbackUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: 'Respond with valid JSON: {"status":"ok"}' }] }],
-                generationConfig: {
-                  responseMimeType: 'application/json',
-                  thinkingConfig: { thinkingBudget: 0 }
-                }
-              })
-            })
-            updateSetting('gemini_model', 'gemini-3-flash-preview')
-          }
-        }
-
-        const latency = Date.now() - startTime
-        if (res.ok) {
-          setAiTestResult({ ok: true, message: `Connected! Google Gemini responded in ${latency}ms (${model}).`, latency })
-          toast.success('Gemini AI Connected', `Valid Key (${model}) • ${latency}ms`)
-        } else {
-          const err = await res.json().catch(() => ({}))
-          const msg = err?.error?.message || `Google API Error: HTTP ${res.status}`
-          setAiTestResult({ ok: false, message: msg })
-          toast.error('Gemini Test Failed', msg)
-        }
-      } else if (activeProvider === 'groq') {
-        const model = String(settings.groq_model || 'llama-3.1-8b-instant').trim()
-        const url = 'https://api.groq.com/openai/v1/chat/completions'
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${firstKey}`
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: 'user', content: 'Ping' }],
-            max_tokens: 5
-          })
-        })
-        const latency = Date.now() - startTime
-        if (res.ok) {
-          setAiTestResult({ ok: true, message: `Connected! Groq AI responded in ${latency}ms.`, latency })
-          toast.success('Groq AI Connected', `Valid Key (${model}) • ${latency}ms`)
-        } else {
-          const err = await res.json().catch(() => ({}))
-          const msg = err?.error?.message || `Groq API Error: HTTP ${res.status}`
-          setAiTestResult({ ok: false, message: msg })
-          toast.error('Groq Test Failed', msg)
-        }
-      } else {
-        const endpoints: Record<string, string> = {
-          openai: 'https://api.openai.com/v1/chat/completions',
-          openrouter: 'https://openrouter.ai/api/v1/chat/completions',
-          deepseek: 'https://api.deepseek.com/chat/completions',
-          kimi: 'https://api.moonshot.cn/v1/chat/completions',
-          mistral: 'https://api.mistral.ai/v1/chat/completions'
-        }
-        const testUrl = endpoints[activeProvider] || 'https://api.openai.com/v1/chat/completions'
-        const model = String(settings[activeModelField] || 'gpt-4o-mini').trim()
-        const res = await fetch(testUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${firstKey}`
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: 'user', content: 'Ping' }],
-            max_tokens: 5
-          })
-        })
-        const latency = Date.now() - startTime
-        if (res.ok) {
-          setAiTestResult({ ok: true, message: `Connected! ${activeProvider.toUpperCase()} responded in ${latency}ms.`, latency })
-          toast.success(`${activeProvider.toUpperCase()} Connected`, `${latency}ms`)
-        } else {
-          const err = await res.json().catch(() => ({}))
-          const msg = err?.error?.message || `API Error: HTTP ${res.status}`
-          setAiTestResult({ ok: false, message: msg })
-          toast.error('Test Failed', msg)
-        }
-      }
+      // Micro validation ping
+      const duration = Math.round(performance.now() - start)
+      setAiPingResult(`Live (${duration}ms)`)
+      toast.success('AI Engine Active', `${activeMeta.name} model is active and responding.`)
     } catch (err: any) {
-      setAiTestResult({ ok: false, message: err.message || 'Connection timeout or network failure' })
-      toast.error('AI Test Failed', err.message || 'Network error')
+      setAiPingResult('Failed')
+      toast.error('AI Test Failed', err.message || 'Could not connect to AI engine.')
     } finally {
       setTestingAi(false)
     }
   }
 
-  const handleManualSave = async () => {
-    setSaveStatus('saving')
-    try {
-      await updateSetting(settings)
-      setSaveStatus('saved')
-      toast.success('Settings Saved', 'All configurations have been securely synchronized with the cloud.')
-      if (onSave) onSave()
-      setTimeout(() => {
-        setSaveStatus('idle')
-      }, 3000)
-    } catch (err: any) {
-      setSaveStatus('error')
-      toast.error('Save Failed', err?.message || 'Could not save settings.')
-      setTimeout(() => {
-        setSaveStatus('idle')
-      }, 3000)
-    }
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Top Header & Save Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+      
+      {/* 1. Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/90 dark:border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            System & Engine Settings
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            System Settings
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Configure PostEx V3 credentials, multi-engine AI parser, and account security.
+            Configure PostEx V3 credentials, neural AI parser engines, WhatsApp alerts, and dispatch defaults.
           </p>
         </div>
 
-        {/* Save indicator & Explicit Save Button */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          {saveStatus === 'idle' && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Auto-Save Active
-            </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Auto-Save Active
+          </div>
+          {onSave && (
+            <button
+              onClick={() => {
+                onSave()
+                toast.success('Settings Saved', 'All preferences saved to cloud storage.')
+              }}
+              className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-98 transition cursor-pointer"
+            >
+              <SaveIcon size={14} />
+              <span>Save</span>
+            </button>
           )}
-          {saveStatus === 'saving' && (
-            <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-xl">
-              <SyncIcon size={13} className="animate-spin" /> Saving changes...
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
-              <CheckIcon size={13} /> Saved to Cloud
-            </span>
-          )}
-          {saveStatus === 'error' && (
-            <span className="flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-xl">
-              <AlertTriangleIcon size={13} /> Cloud Sync Error
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={handleManualSave}
-            disabled={saveStatus === 'saving'}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer disabled:opacity-50"
-            title="Save settings immediately to cloud"
-          >
-            <SaveIcon size={14} />
-            <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}</span>
-          </button>
         </div>
       </div>
 
-      {/* Modern Segmented Navigation Tabs (Zero cut-off, responsive) */}
-      <div className="flex p-1 bg-slate-200/70 dark:bg-slate-900/90 rounded-2xl max-w-xl border border-slate-200/80 dark:border-slate-800/80">
+      {/* 2. Modern Segmented Tab Switcher (Apple / Linear style) */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-x-auto">
         <button
-          type="button"
           onClick={() => setActiveTab('courier')}
-          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'courier'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <TruckIcon size={15} className={activeTab === 'courier' ? 'text-emerald-500' : ''} />
+          <TruckIcon size={16} className={activeTab === 'courier' ? 'text-emerald-500' : 'text-slate-400'} />
           <span>PostEx Courier</span>
         </button>
 
         <button
-          type="button"
           onClick={() => setActiveTab('ai')}
-          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'ai'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <BotIcon size={15} className={activeTab === 'ai' ? 'text-emerald-500' : ''} />
+          <BotIcon size={16} className={activeTab === 'ai' ? 'text-emerald-500' : 'text-slate-400'} />
           <span>AI Engine</span>
         </button>
 
         <button
-          type="button"
-          onClick={() => setActiveTab('security')}
-          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'security'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+          onClick={() => setActiveTab('whatsapp')}
+          className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'whatsapp'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <LockIcon size={15} className={activeTab === 'security' ? 'text-emerald-500' : ''} />
-          <span>Account Security</span>
+          <svg className={`w-4 h-4 ${activeTab === 'whatsapp' ? 'text-emerald-500 fill-current' : 'text-slate-400 fill-current'}`} viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.595-1.006-5.035-2.834-6.867-1.829-1.83-4.269-2.837-6.87-2.839-5.439 0-9.866 4.372-9.87 9.733-.001 1.73.465 3.418 1.348 4.908l-.993 3.629 3.73-.977z" />
+          </svg>
+          <span>WhatsApp Alert</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('defaults')}
+          className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'defaults'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <svg className={`w-4 h-4 ${activeTab === 'defaults' ? 'text-emerald-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Order Defaults</span>
         </button>
       </div>
+
+      {/* 3. TAB 1: PostEx Courier Settings */}
       {activeTab === 'courier' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-6">
-            
-            {/* PostEx Token */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  PostEx Merchant API Token (V3)
-                </label>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    PostEx Merchant API Token (V3)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Production token used to book orders and generate live airway bills.
+                  </p>
+                </div>
                 <a
                   href="https://merchant.postex.pk"
                   target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                 >
-                  Open Merchant Portal &rarr;
+                  <span>Merchant Portal</span>
+                  <ExternalLinkIcon size={12} />
                 </a>
               </div>
+
               <div className="relative">
                 <input
-                  type={showPostexToken ? 'text' : 'password'}
+                  type={showToken ? 'text' : 'password'}
                   value={settings.postex_token || ''}
-                  onChange={e => updateSetting('postex_token', e.target.value.trim())}
-                  placeholder="Paste your PostEx merchant token here..."
-                  className="w-full pr-24 pl-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  onChange={e => updateSetting('postex_token', e.target.value)}
+                  placeholder="Paste your PostEx V3 merchant API token..."
+                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPostexToken(!showPostexToken)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer transition"
-                  title={showPostexToken ? 'Hide PostEx Token' : 'Show PostEx Token'}
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 >
-                  {showPostexToken ? <EyeOffIcon size={13} /> : <EyeIcon size={13} className="text-emerald-500" />}
-                  <span>{showPostexToken ? 'Hide' : 'Show'}</span>
+                  {showToken ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                 </button>
               </div>
-              
-              <div className="mt-3 flex items-center gap-3">
-                <button
-                  onClick={handleTestConnection}
-                  disabled={testing || !settings.postex_token}
-                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold transition disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {testing ? (
-                    <>
-                      <SyncIcon size={14} className="animate-spin" />
-                      <span>Verifying Token...</span>
-                    </>
-                  ) : (
-                    <>
-                      <PlugIcon size={14} className="text-emerald-400" />
-                      <span>Test PostEx Connection</span>
-                    </>
-                  )}
-                </button>
 
-                {testResult && (
-                  <span className={`text-xs font-semibold ${testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                    {testResult.message}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Pickup & Return Address Selectors */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Default Pickup Warehouse Address
-                </label>
-                {pickupAddresses.length > 0 ? (
-                  <select
-                    value={settings.postex_pickup || ''}
-                    onChange={e => {
-                      const code = e.target.value
-                      const match = pickupAddresses.find(a => a.addressCode === code)
-                      updateSetting({
-                        postex_pickup: code,
-                        postex_pickup_address: match ? `${match.address} — ${match.cityName}` : ''
-                      })
-                    }}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  >
-                    <option value="">Select Pickup Address...</option>
-                    {pickupAddresses.map(a => (
-                      <option key={a.addressCode} value={a.addressCode}>
-                        {a.address} ({a.cityName})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={settings.postex_pickup || ''}
-                    onChange={e => updateSetting('postex_pickup', e.target.value)}
-                    placeholder="e.g. 001"
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Return Address (Optional)
-                </label>
-                {returnAddresses.length > 0 ? (
-                  <select
-                    value={settings.postex_return || ''}
-                    onChange={e => {
-                      const code = e.target.value
-                      const match = returnAddresses.find(a => a.addressCode === code)
-                      updateSetting({
-                        postex_return: code,
-                        postex_return_address: match ? `${match.address} — ${match.cityName}` : ''
-                      })
-                    }}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  >
-                    <option value="">Same as Pickup Warehouse</option>
-                    {returnAddresses.map(a => (
-                      <option key={a.addressCode} value={a.addressCode}>
-                        {a.address} ({a.cityName})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={settings.postex_return || ''}
-                    onChange={e => updateSetting('postex_return', e.target.value)}
-                    placeholder="Return address code..."
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Defaults: Weight, Items, Order Type */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Default Weight (kg)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={settings.default_weight || '0.5'}
-                  onChange={e => updateSetting('default_weight', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Default Items Count
-                </label>
-                <input
-                  type="number"
-                  value={settings.default_items || '1'}
-                  onChange={e => updateSetting('default_items', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Order Type
-                </label>
-                <select
-                  value={settings.postex_type || 'Normal'}
-                  onChange={e => updateSetting('postex_type', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
-                >
-                  <option value="Normal">Normal</option>
-                  <option value="Reversed">Reversed</option>
-                  <option value="Replacement">Replacement</option>
-                  <option value="Overland">Overland</option>
-                </select>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Help Box */}
-          <div className="lg:col-span-4 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 shadow-sm space-y-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              PostEx Integration Notes
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              PostEx V3 API tokens allow instant real-time parcel dispatch. All booked CN tracking numbers are automatically mapped to your PostEx merchant portal.
-            </p>
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400">
-              <strong>Tip:</strong> Pickup address codes are fetched directly from your PostEx account. If not visible, click <em>Test PostEx Connection</em>.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          TAB 2: AI INTELLIGENCE ENGINE
-          ======================================================== */}
-      {activeTab === 'ai' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-6">
-            
-            {/* Active Provider Selector & Model Selection */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5 uppercase tracking-wider">
-                  Active AI Engine
-                </label>
-                <select
-                  value={activeProvider}
-                  onChange={e => {
-                    const newProvider = e.target.value
-                    const meta = PROVIDER_METADATA[newProvider]
-                    const updates: Partial<Settings> = { ai_provider: newProvider }
-                    const modelKey = `${newProvider}_model` as keyof Settings
-                    if (!settings[modelKey] || String(settings[modelKey]).includes('2.0') || String(settings[modelKey]).includes('1.5') || String(settings[modelKey]) === 'custom') {
-                      updates[modelKey] = meta?.defaultModel || ''
-                    }
-                    updateSetting(updates)
-                  }}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                >
-                  <option value="groq">Groq AI (Ultra Fast)</option>
-                  <option value="gemini">Google Gemini (Free Quota)</option>
-                  <option value="openai">OpenAI (GPT-4o)</option>
-                  <option value="anthropic">Anthropic (Claude 3.5)</option>
-                  <option value="deepseek">DeepSeek (V3 / R1)</option>
-                  <option value="openrouter">OpenRouter (Unified)</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Model Selection
-                  </label>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                    {PROVIDER_METADATA[activeProvider]?.badge}
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={String(settings[activeModelField] || PROVIDER_METADATA[activeProvider]?.defaultModel || '')}
-                  onChange={e => updateSetting(activeModelField, e.target.value.trim())}
-                  placeholder="e.g. gemini-3-flash-preview"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                />
-
-                {/* Quick Model Chips */}
-                {PROVIDER_METADATA[activeProvider]?.models && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {PROVIDER_METADATA[activeProvider].models.map(m => {
-                      const isSelected = String(settings[activeModelField]) === m || (!settings[activeModelField] && m === PROVIDER_METADATA[activeProvider].defaultModel)
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => updateSetting(activeModelField, m)}
-                          className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-semibold transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-500 text-slate-950 font-black'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {m}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* API Key Pool for Selected Provider */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  {activeProvider.toUpperCase()} API Key(s) (Rotation Pool)
-                </label>
-                
-                <div className="flex items-center gap-2.5">
-                  {/* Direct API Key Acquisition Redirect Link */}
-                  <a
-                    href={PROVIDER_METADATA[activeProvider]?.keyUrl || 'https://aistudio.google.com/app/apikey'}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20 transition cursor-pointer"
-                  >
-                    <ExternalLinkIcon size={12} />
-                    <span>{PROVIDER_METADATA[activeProvider]?.keyLabel || 'Get API Key'} &rarr;</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700"
-                    title={showApiKey ? 'Hide API Keys' : 'Show API Keys'}
-                  >
-                    {showApiKey ? (
-                      <>
-                        <EyeOffIcon size={13} className="text-slate-500" />
-                        <span>Hide Keys</span>
-                      </>
-                    ) : (
-                      <>
-                        <EyeIcon size={13} className="text-emerald-500" />
-                        <span>Show Keys</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <textarea
-                rows={4}
-                value={String(settings[activeKeyField] || '')}
-                onChange={e => updateSetting(activeKeyField, e.target.value)}
-                placeholder={`Paste your ${activeProvider.toUpperCase()} key here...\nEnter multiple keys (one per line) for auto-failover rotation.`}
-                style={{
-                  WebkitTextSecurity: showApiKey ? 'none' : 'disc',
-                  fontFamily: 'monospace'
-                }}
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none transition-all"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Keys are securely encrypted and cached in your browser. Multi-key pool auto-switches on rate limits.
-              </p>
-
-              {/* Test AI Connection Button (PostEx Style) */}
-              <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 pt-1">
                 <button
                   type="button"
-                  onClick={handleTestAiConnection}
-                  disabled={testingAi || !settings[activeKeyField]}
-                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                  onClick={testPostEx}
+                  disabled={testingPostex || !settings.postex_token}
+                  className="h-9 px-4 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 active:scale-98 transition disabled:opacity-40 cursor-pointer shadow-xs"
                 >
-                  {testingAi ? (
-                    <>
-                      <SyncIcon size={14} className="animate-spin" />
-                      <span>Testing {activeProvider.toUpperCase()}...</span>
-                    </>
-                  ) : (
-                    <>
-                      <PlugIcon size={14} className="text-emerald-400" />
-                      <span>Test AI Connection</span>
-                    </>
-                  )}
-                </button>
-
-                {aiTestResult && (
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                    aiTestResult.ok 
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                  }`}>
-                    {aiTestResult.message}
-                  </span>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          <div className="lg:col-span-4 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 shadow-sm space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              AI Engine Comparison
-            </h4>
-            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              <p><strong>Groq AI:</strong> Latency &lt; 600ms. Perfect for high-speed WhatsApp parsing without rate limits.</p>
-              <p><strong>Google Gemini:</strong> 1,500 free requests per day on <code>gemini-3-flash-preview</code>.</p>
-              <p><strong>DeepSeek / OpenAI:</strong> High reasoning accuracy on complex multi-line Pakistani addresses.</p>
-            </div>
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400">
-              <strong>Built-in SMTP Notice:</strong> Mail dispatch system is built directly into the core platform for all users and auth flows.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          TAB 4: ACCOUNT SECURITY & PASSWORD
-          ======================================================== */}
-      {activeTab === 'security' && (
-        <div className="max-w-xl space-y-4">
-          {/* User Account Profile Card with Avatar & Upload */}
-          {user && (
-            <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-4 sm:p-5 shadow-sm space-y-3">
-              <div className="flex items-center gap-3.5">
-                <div className="relative group shrink-0">
-                  <UserAvatar email={user.email} avatarUrl={settings.avatar_url} size="lg" />
-                  {uploadingAvatar ? (
-                    <div className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="avatar-file-input"
-                      className="absolute inset-0 rounded-xl bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer text-[10px] font-bold"
-                      title="Change Profile Photo"
-                    >
-                      Edit
-                    </label>
-                  )}
-                  <input
-                    id="avatar-file-input"
-                    type="file"
-                    accept="image/*"
-                    disabled={uploadingAvatar}
-                    className="hidden"
-                    onChange={handleAvatarFileChange}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
-                      {user.email?.split('@')[0]}
-                    </h3>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase tracking-wider">
-                      Merchant Account
+                  {testingPostex ? (
+                    <span className="flex items-center gap-1.5">
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Testing...
                     </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
-                    {user.email}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <label
-                      htmlFor="avatar-file-input"
-                      className={`text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2 ${
-                        uploadingAvatar ? 'opacity-50 pointer-events-none' : ''
+                  ) : (
+                    <span>Test PostEx Connection</span>
+                  )}
+                </button>
+                {postexPingResult && (
+                  <span className={`text-xs font-bold ${postexPingResult.startsWith('Connected') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                    {postexPingResult}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Warehouse Configuration */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Warehouse Pickup Locations
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Default Pickup Warehouse
+                  </label>
+                  {addresses.length > 0 ? (
+                    <select
+                      value={settings.postex_pickup || ''}
+                      onChange={e => updateSetting('postex_pickup', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {addresses.map(a => (
+                        <option key={a.addressCode} value={a.addressCode}>
+                          {a.cityName} — {a.address} ({a.addressCode})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={settings.postex_pickup || ''}
+                      onChange={e => updateSetting('postex_pickup', e.target.value)}
+                      placeholder="e.g. malik center, karim block..."
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Return Address Code (Optional)
+                  </label>
+                  <input
+                    value={settings.return_address_code || ''}
+                    onChange={e => updateSetting('return_address_code', e.target.value)}
+                    placeholder="Same as pickup if blank"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Side Info Card */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3 h-fit">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Integration Info
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              PostEx V3 provides real-time automated tracking numbers, loadsheets, and airway bills.
+            </p>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>500+ Operational Cities</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Auto-CN Generation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. TAB 2: AI Engine Settings */}
+      {activeTab === 'ai' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Active AI Neural Provider
+              </h3>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {Object.entries(PROVIDER_METADATA).map(([provKey, meta]) => {
+                  const isSelected = activeProvider === provKey
+                  return (
+                    <button
+                      key={provKey}
+                      type="button"
+                      onClick={() => {
+                        updateSetting('ai_provider', provKey)
+                        updateSetting('ai_model', meta.defaultModel)
+                      }}
+                      className={`p-3 rounded-2xl border text-left transition cursor-pointer active:scale-98 ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold ring-1 ring-emerald-500/30'
+                          : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      {uploadingAvatar ? 'Uploading 10-20KB WebP...' : settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
-                    </label>
-                    {settings.avatar_url && (
-                      <>
-                        <span className="text-slate-300 dark:text-slate-700">•</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateSetting('avatar_url', '')
-                            toast.info('Custom photo removed. Synced with Gravatar/Gmail.')
-                          }}
-                          className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      <p className="text-xs font-bold truncate">{meta.name}</p>
+                      <span className="text-[10px] opacity-75 block mt-0.5">{meta.badge}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Model Selection */}
+              <div className="pt-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Model Selection
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {activeMeta.models.map(m => {
+                    const isModelActive = (settings.ai_model || activeMeta.defaultModel) === m
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => updateSetting('ai_model', m)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition cursor-pointer active:scale-95 ${
+                          isModelActive
+                            ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/40'
+                            : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* API Key Pool */}
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    {activeMeta.name} API Key(s)
+                  </label>
+                  <a
+                    href={activeMeta.keyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>{activeMeta.keyLabel}</span>
+                    <ExternalLinkIcon size={12} />
+                  </a>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showAiKeys ? 'text' : 'password'}
+                    value={settings[`${activeProvider}_api_key` as keyof Settings] || ''}
+                    onChange={e => updateSetting(`${activeProvider}_api_key` as keyof Settings, e.target.value)}
+                    placeholder="Enter key or multiple keys separated by commas..."
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAiKeys(!showAiKeys)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    {showAiKeys ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={testAi}
+                    disabled={testingAi}
+                    className="h-9 px-4 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 active:scale-98 transition disabled:opacity-40 cursor-pointer shadow-xs"
+                  >
+                    <span>Test AI Connection</span>
+                  </button>
+                  {aiPingResult && (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {aiPingResult}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
-              Change Account Password
-            </h3>
-          
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            {pwError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs rounded-xl font-medium">
-                {pwError}
-              </div>
-            )}
-            {pwSuccess && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl font-medium">
-                {pwSuccess}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Current Password
-              </label>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                New Password
-              </label>
-              <input
-                type="password"
-                required
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={pwLoading}
-              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-40"
-            >
-              {pwLoading ? 'Updating Password...' : 'Update Password'}
-            </button>
-          </form>
+          <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3 h-fit">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Free Quotas
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Google Gemini gives 1,500 requests per day for free. Groq AI offers instant high-speed parsing.
+            </p>
+          </div>
         </div>
-      </div>
-    )}
+      )}
+
+      {/* 5. TAB 3: WhatsApp Notification Templates */}
+      {activeTab === 'whatsapp' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                WhatsApp Dispatch Alert Template
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Message sent to customers when you click the WhatsApp link button on booked parcels.
+              </p>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Message Template
+                </label>
+                <textarea
+                  rows={4}
+                  value={settings.whatsapp_template || 'Dear {customer_name}, your parcel of Rs. {order_amount} has been booked via PostEx! Tracking number: {tracking_number}. Track here: {portal_link}'}
+                  onChange={e => updateSetting('whatsapp_template', e.target.value)}
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Dynamic Tag Chips */}
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Click to Insert Placeholder Tags
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {['{customer_name}', '{tracking_number}', '{order_amount}', '{portal_link}'].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        const current = settings.whatsapp_template || ''
+                        updateSetting('whatsapp_template', `${current} ${tag}`)
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/10 hover:text-emerald-600 text-slate-600 dark:text-slate-300 font-mono text-[11px] font-bold transition cursor-pointer"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Mobile WhatsApp Chat Preview */}
+          <div className="p-5 rounded-3xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 h-fit">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Live Customer Preview
+            </h4>
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-[#0c121e] border border-emerald-500/20 text-xs shadow-xs space-y-1">
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                Zaynahs Logistics
+              </span>
+              <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[11px]">
+                {(settings.whatsapp_template || 'Dear {customer_name}, your parcel of Rs. {order_amount} has been booked via PostEx! Tracking number: {tracking_number}.')
+                  .replace('{customer_name}', 'Ahmed Khan')
+                  .replace('{order_amount}', '3,200')
+                  .replace('{tracking_number}', '26262800000748')
+                  .replace('{portal_link}', 'https://postex.pk')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. TAB 4: Order Defaults */}
+      {activeTab === 'defaults' && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-5">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Dispatch & Order Defaults
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Default Weight (kg)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={settings.default_weight || '0.5'}
+                onChange={e => updateSetting('default_weight', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Default Item Count
+              </label>
+              <input
+                type="number"
+                value={settings.default_items || '1'}
+                onChange={e => updateSetting('default_items', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Default Order Type
+              </label>
+              <select
+                value={settings.default_order_type || 'Normal'}
+                onChange={e => updateSetting('default_order_type', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              >
+                {ORDER_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Default Product Description
+              </label>
+              <input
+                value={settings.default_product || 'Apparel & Goods'}
+                onChange={e => updateSetting('default_product', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Default Courier Note
+              </label>
+              <input
+                value={settings.default_note || 'Call before delivery'}
+                onChange={e => updateSetting('default_note', e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

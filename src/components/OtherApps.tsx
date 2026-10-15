@@ -22,133 +22,136 @@ export default function OtherApps() {
       id: 'pos',
       name: 'Zaynah POS Manager',
       tagline: 'Retail Billing & Offline Sales System',
-      description: 'Zaynah POS Retail business ko lead karne wala smart Point-of-Sale software hai jo shopkeepers, brands aur wholesale dealers ko digitalize karta hai.',
+      description: 'Unified cloud-based Point of Sale platform engineered for Pakistani retail shops, multi-branch stores, and wholesale merchants.',
       url: 'https://zaynahspos.com',
       badge: 'ZaynahPOS.com',
-      // Swapped URLs: logo is the cart icon with bolt, image is the retail tablet store preview
       logo: '/zaynahs-logo.svg',
       image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/zaynahspos.com%20(1).webp',
       article: {
-        title: 'Zaynah POS Kya Hai aur Yeh Kyun Zaroori Hai?',
+        title: 'Core System Capabilities',
         paragraphs: [
-          'Zaynah POS retail businesses ke liye ek comprehensive cloud-based Point of Sale solution hai. Yeh software shop ki daily billing, sales records, aur offline orders tracking ko automatic aur hassle-free banata hai.',
-          'Har sale ke sath stock levels automatically update hote hain aur digital receipts directly print ya WhatsApp share ki ja sakti hain. Is POS system ka main goal retail stores ko fast checkout aur automatic reports faraham karna hai.'
+          'Zaynah POS manages retail sales, barcode scanning, order receipts, and real-time inventory deductions across individual and multi-counter branches.',
+          'Transactions update stock quantities instantaneously. Sales receipts can be dispatched directly to customer WhatsApp numbers or printed via 80mm/58mm thermal printers.'
         ],
         features: [
-          '⚡ Super-Fast Checkout & Thermal Receipt Printing',
-          '📦 Real-time Auto Stock & Inventory Deduction',
-          '📊 Daily Sales Reports & Profit-Loss Trackers',
-          '👥 Customer Directory with Purchase History Logs'
+          'High-Speed Barcode Checkout & Thermal Receipt Printing',
+          'Real-Time Multi-Warehouse Stock & Inventory Tracking',
+          'Daily Sales Ledger, Audit Trails & Profit Analytics',
+          'Unified Customer Directory with Purchase History Logs'
         ]
       }
     },
     {
       id: 'dispatch',
-      name: 'Zaynah Courier Dispatcher v1',
-      tagline: 'WhatsApp AI Booking & PostEx Courier Integrator',
-      description: 'Customer chats ko automatic order bookings main convert karne wala super-fast software. AI and courier integration ek hi platform par.',
+      name: 'Zaynah Courier Dispatcher',
+      tagline: 'Multi-Tenant Logistics Engine & Courier Automation',
+      description: 'Intelligent parcel booking system converting unstructured customer chat messages into verified PostEx courier dispatches in seconds.',
       url: 'https://dispatcher.zaynahspos.com/',
       badge: 'Active System',
       logo: '/apple-touch-icon.png?v=20261014',
       image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/app-preview.webp',
       article: {
-        title: 'Zaynah Courier Dispatcher Kaise Kaam Karta Hai?',
+        title: 'Core System Capabilities',
         paragraphs: [
-          'Zaynah Courier Dispatcher modern AI (Llama, Gemini, Claude) models ka use kar ke WhatsApp se customer addresses aur parcel info extract karta hai.',
-          'Address auto-clean hotay hi yeh direct PostEx Courier database main bulk bookings create kar deta hai. manual typing aur manual booking processes ko khatam kar ke yeh bookings ko 90% tak fast karta hai.'
+          'Courier Dispatcher utilizes LLM intelligence (Groq LLaMA, OpenAI, Gemini) to extract customer names, phone numbers, cities, and COD values from WhatsApp chats.',
+          'Cleaned addresses are validated against PostEx operational delivery zones and booked in 1 click, eliminating manual portal entry errors and saving hours daily.'
         ],
         features: [
-          '🤖 Multi-engine AI Chat Parsing (Llama, Gemini, Claude)',
-          '🚚 Direct PostEx Courier Booking in just 1 Click',
-          '🏷️ Bulk Label Printing & Operational Cities Verification',
-          '📈 Activity Logs & Admin Configuration panel'
+          'Multi-Engine AI Address Cleaning (Groq LLaMA, OpenAI, Gemini)',
+          'Direct PostEx V3 Courier API Booking in 1 Click',
+          'Thermal Airway Bill (CN) Printing & Operational City Resolution',
+          'Activity Audit Logs & Multi-Tenant Organization Control'
         ]
       }
     }
   ]
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
+    <div className="w-full bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors duration-200">
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <AppsIcon size={20} className="text-emerald-600 dark:text-emerald-400" />
-          <span>Our Business Ecosystem</span>
+      <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <AppsIcon size={18} className="text-emerald-600 dark:text-emerald-400" />
+          <span>Ecosystem & Merchant Tools</span>
         </h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Explore and manage connected merchant tools</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+          Connected POS and logistics tools for retail and e-commerce stores
+        </p>
       </div>
 
       {/* Grid of Apps */}
       <div className="p-4 sm:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {apps.map(app => {
             const isCurrent = app.id === 'dispatch'
             return (
               <div 
                 key={app.id} 
-                className="group relative bg-slate-50 dark:bg-gray-800/40 hover:bg-white dark:hover:bg-gray-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-gray-800 hover:border-emerald-200 dark:hover:border-emerald-900/40 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-slate-50/60 dark:bg-slate-900/40 hover:bg-white dark:hover:bg-[#0f172a] rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/30 transition-all duration-200 flex flex-col justify-between"
               >
                 <div>
-                  {/* App Store Style Header: Logo on Left/Top, Details on Right/Bottom */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start text-center sm:text-left mb-4">
+                  {/* Header: Logo & Details */}
+                  <div className="flex gap-4 items-start mb-4">
                     <img 
                       src={app.logo} 
                       alt={`${app.name} Logo`} 
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shadow-sm bg-white dark:bg-gray-950 p-1 border border-slate-200 dark:border-gray-700 flex-shrink-0" 
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-xs bg-white dark:bg-slate-950 p-1.5 border border-slate-200 dark:border-slate-800 shrink-0" 
                     />
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-1.5 sm:gap-2">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg leading-snug break-words">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base">
                           {app.name}
                         </h3>
                         {app.badge && (
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
                             isCurrent 
-                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40' 
-                              : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' 
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                           }`}>
                             {app.badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-extrabold mt-1 break-words">
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-bold mt-1">
                         {app.tagline}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450 mt-1.5">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                         {app.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* App Preview Image Mockup (Screenshot style) */}
-                  <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-5 border border-slate-200 dark:border-gray-700 shadow-sm bg-gray-100 dark:bg-gray-900">
+                  {/* App Preview Image */}
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 shadow-xs">
                     <img 
                       src={app.image} 
                       alt={app.name} 
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500" 
+                      className="w-full h-full object-cover group-hover:scale-101 transition-transform duration-300" 
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                   </div>
 
-                  {/* Detailed Article Section */}
-                  <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-slate-150 dark:border-gray-800">
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-2.5 flex items-center justify-center sm:justify-start gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                  {/* Detailed Feature Box */}
+                  <div className="p-4 rounded-xl bg-white dark:bg-[#0c121e] border border-slate-200/80 dark:border-slate-800">
+                    <h4 className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <span>{app.article.title}</span>
                     </h4>
                     
                     {app.article.paragraphs.map((p, idx) => (
-                      <p key={idx} className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                      <p key={idx} className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                         {p}
                       </p>
                     ))}
 
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-gray-800/50">
-                      <h5 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 text-center sm:text-left">Key Features:</h5>
+                    <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                      <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Key Highlights:</h5>
                       <ul className="space-y-1.5">
                         {app.article.features.map((f, idx) => (
-                          <li key={idx} className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-center sm:justify-start">
-                            {f}
+                          <li key={idx} className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-2">
+                            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>{f}</span>
                           </li>
                         ))}
                       </ul>
@@ -157,29 +160,21 @@ export default function OtherApps() {
                 </div>
 
                 {/* Footer Action */}
-                <div className="mt-6 pt-4 border-t border-slate-150 dark:border-gray-850 flex flex-col sm:flex-row gap-3.5 items-center justify-between text-center sm:text-left">
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">
-                    {isCurrent ? 'Active Application' : 'Website Address'}
+                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    {isCurrent ? 'Current Session' : 'Cloud Software'}
                   </span>
                   
-                  <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3">
-                    {isCurrent && (
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 border-r border-slate-200 dark:border-gray-800 pr-3 flex-shrink-0">
-                        Current App
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2">
                     {app.id === 'pos' && (
                       <a
                         href="https://demo.zaynahspos.com/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer flex-shrink-0 border border-emerald-200 dark:border-emerald-800/40"
+                        className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold flex items-center gap-1 transition cursor-pointer"
                       >
-                        <span>Try Demo</span>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <span>Demo</span>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                         </svg>
                       </a>
@@ -188,9 +183,9 @@ export default function OtherApps() {
                       href={app.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 transition-colors cursor-pointer flex-shrink-0"
+                      className="text-xs px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer"
                     >
-                      <span>Open {app.id === 'pos' ? 'zaynahspos.com' : 'dispatcher.zaynahspos.com'}</span>
+                      <span>Open {app.id === 'pos' ? 'ZaynahPOS' : 'Dispatcher'}</span>
                       <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                       </svg>

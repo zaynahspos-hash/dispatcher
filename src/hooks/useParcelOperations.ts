@@ -4,6 +4,7 @@ import { BookingResult } from '../components/BookingResults'
 import { BookedParcel } from '../components/BookedHistory'
 import { createOrder, printLabels, cancelOrder } from '../utils/postexApi'
 import { logUsage, supabase } from '../utils/supabaseClient'
+import { LoadingProgress } from '../components/layout/GlobalLoadingOverlay'
 
 export function cleanPhoneNumber(phone: string): string {
   if (!phone) return ''
@@ -51,6 +52,7 @@ export function useParcelOperations({
   const [results, setResults] = useState<BookingResult[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
+  const [loadingProgress, setLoadingProgress] = useState<LoadingProgress | null>(null)
   const [loadingLabels, setLoadingLabels] = useState(false)
 
   const isLoadedRef = useRef(false)
@@ -125,12 +127,43 @@ export function useParcelOperations({
     setLoading(true)
     try {
       const blocks = splitTextByOrders(rawText)
+      const totalOrders = Math.max(1, blocks.length)
+
+      setLoadingProgress({
+        title: `Extracting & Cleaning Orders`,
+        step: `Splitting text into ${totalOrders} order block(s)...`,
+        current: 0,
+        total: totalOrders,
+        done: 0,
+        remaining: totalOrders,
+        percentage: 15
+      })
       
       // OPTIMIZATION: For standard order batches (<= 10 orders), parse in ONE fast call!
-      // This eliminates parallel rate-limits, removes redundant network round-trips, and drops extraction time to ~1-2 seconds.
       if (blocks.length <= 10) {
         setLoadingMessage(`Extracting & cleaning orders with ${activeProvider.toUpperCase()}...`)
+        setLoadingProgress({
+          title: `Extracting with ${activeProvider.toUpperCase()}`,
+          step: `AI Neural model extracting details for ${totalOrders} order(s)...`,
+          current: 1,
+          total: totalOrders,
+          done: 0,
+          remaining: totalOrders,
+          percentage: 45
+        })
+
         const result = await parseParcelText(rawText, settings)
+        
+        setLoadingProgress({
+          title: `Normalizing Logistics Data`,
+          step: `Matching 500+ PostEx cities & sanitizing phone numbers...`,
+          current: result.parcels.length,
+          total: totalOrders,
+          done: result.parcels.length,
+          remaining: 0,
+          percentage: 95
+        })
+
         setParcels(result.parcels)
         await logUsage('order_parsed', `Successfully parsed ${result.parcels.length} parcel(s) using ${activeProvider.toUpperCase()}. Tokens used: ${result.tokensUsed}`)
         fetchTokenUsage()
@@ -141,17 +174,48 @@ export function useParcelOperations({
       // For extra-large bulk pastes (> 10 orders), process in small batches of 5 to stay within TPM limits
       let completedCount = 0
       setLoadingMessage(`AI parsing: 0 of ${blocks.length} orders completed...`)
+      setLoadingProgress({
+        title: `Multi-Batch AI Cleaning`,
+        step: `Starting extraction of ${blocks.length} orders...`,
+        current: 0,
+        total: blocks.length,
+        done: 0,
+        remaining: blocks.length,
+        percentage: 5
+      })
       
       const resultsArray: any[] = []
       const chunkSize = 5
       for (let i = 0; i < blocks.length; i += chunkSize) {
         const chunk = blocks.slice(i, i + chunkSize).join('\n\n')
+        const currentBatch = Math.min(chunkSize, blocks.length - i)
+
+        setLoadingProgress({
+          title: `Multi-Batch AI Cleaning`,
+          step: `Extracting batch ${Math.floor(i / chunkSize) + 1} (${completedCount} of ${blocks.length} completed)...`,
+          current: completedCount,
+          total: blocks.length,
+          done: completedCount,
+          remaining: blocks.length - completedCount,
+          percentage: Math.round((completedCount / blocks.length) * 100)
+        })
+
         const res = await parseParcelText(chunk, settings)
         if (res) {
           resultsArray.push(res)
         }
-        completedCount += Math.min(chunkSize, blocks.length - i)
+        completedCount += currentBatch
+
         setLoadingMessage(`AI parsing: ${completedCount} of ${blocks.length} orders completed...`)
+        setLoadingProgress({
+          title: `Multi-Batch AI Cleaning`,
+          step: `Cleaned ${completedCount} of ${blocks.length} orders...`,
+          current: completedCount,
+          total: blocks.length,
+          done: completedCount,
+          remaining: Math.max(0, blocks.length - completedCount),
+          percentage: Math.min(95, Math.round((completedCount / blocks.length) * 100))
+        })
       }
       
       const allParsed: Parcel[] = []
@@ -173,6 +237,7 @@ export function useParcelOperations({
       alert('Parsing error: ' + msg)
     } finally {
       setLoading(false)
+      setLoadingProgress(null)
     }
   }
 
@@ -190,6 +255,15 @@ export function useParcelOperations({
 
     setLoading(true)
     setLoadingMessage(`Booking ${parcelsToBook.length} parcel(s) on PostEx...`)
+    setLoadingProgress({
+      title: 'PostEx Dispatch Engine',
+      step: `Connecting to PostEx V3 API for ${parcelsToBook.length} parcel(s)...`,
+      current: 0,
+      total: parcelsToBook.length,
+      done: 0,
+      remaining: parcelsToBook.length,
+      percentage: 5
+    })
     const token = settings.postex_token
     const bookingResults: BookingResult[] = []
     const successTrackings: string[] = []
@@ -198,6 +272,15 @@ export function useParcelOperations({
     for (let i = 0; i < parcelsToBook.length; i++) {
       const parcel = parcelsToBook[i]
       setLoadingMessage(`Booking ${i + 1}/${parcelsToBook.length}: ${parcel.name}...`)
+      setLoadingProgress({
+        title: 'Booking on PostEx V3',
+        step: `Generating airway bill for ${parcel.name} (${parcel.city})...`,
+        current: i + 1,
+        total: parcelsToBook.length,
+        done: i,
+        remaining: parcelsToBook.length - i,
+        percentage: Math.round(((i + 1) / parcelsToBook.length) * 100)
+      })
       try {
         const res = await createOrder(token, parcel, settings)
         if (Number(res.statusCode) === 200) {
@@ -294,6 +377,7 @@ export function useParcelOperations({
 
     setActiveTab('results')
     setLoading(false)
+    setLoadingProgress(null)
 
     // Auto print labels
     if (successTrackings.length > 0) {
@@ -480,6 +564,7 @@ export function useParcelOperations({
     setResults,
     loading,
     loadingMessage,
+    loadingProgress,
     loadingLabels,
     handleParse,
     handleBookAll,

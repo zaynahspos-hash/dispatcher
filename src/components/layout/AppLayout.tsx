@@ -3,6 +3,8 @@ import { TabItem } from './BottomTabBar'
 import { SunIcon, MoonIcon, AlertTriangleIcon, SmartphoneIcon, RefreshIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
 import { UserAvatar } from '../common/UserAvatar'
+import { UserAccountMenu } from '../common/UserAccountMenu'
+import { Settings } from '../../utils/groqParser'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -10,6 +12,8 @@ interface AppLayoutProps {
   activeTab: string
   setActiveTab: (tab: any) => void
   user: any
+  settings?: Settings
+  updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
   dailyTokens: number
   monthlyTokens: number
   dailyRequests?: number
@@ -32,6 +36,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   activeTab,
   setActiveTab,
   user,
+  settings,
+  updateSetting = () => {},
   dailyTokens,
   monthlyTokens,
   dailyRequests = 0,
@@ -46,6 +52,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   avatarUrl
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleRefreshApp = async () => {
@@ -59,8 +66,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const operationsTabs = tabs.filter(t => operationsTabIds.includes(t.id))
   const systemTabs = tabs.filter(t => !operationsTabIds.includes(t.id))
 
-  // Mobile Bottom Bar (All primary workflow tabs + apps + settings)
-  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'apps', 'settings']
+  // Mobile Bottom Bar (5 core focused tabs)
+  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'apps']
   const mobileBottomTabs = tabs.filter(t => mobileBottomTabIds.includes(t.id))
 
   // Find active tab label for header breadcrumb
@@ -87,15 +94,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-sm tracking-tight text-slate-900 dark:text-white truncate">
-                Zaynahs Courier
-              </h1>
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold px-1.5 py-0.2 rounded-md">
-                v2.4
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+            <h1 className="font-bold text-sm tracking-tight text-slate-900 dark:text-white truncate">
+              Zaynahs Courier
+            </h1>
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
               PostEx &bull; AI Dispatcher
             </p>
           </div>
@@ -107,11 +109,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Group 1: Operations */}
           <div>
             <div className="px-3 mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase">
+              <span className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
                 Operations
-              </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                LIVE
               </span>
             </div>
 
@@ -388,18 +387,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               {theme === 'dark' ? <SunIcon size={15} className="text-amber-400" /> : <MoonIcon size={15} className="text-indigo-400" />}
             </button>
 
-            {/* User Avatar Pill */}
+            {/* User Avatar Pill - Opens Profile / Security / Settings Menu */}
             {user && (
-              <div 
-                onClick={() => setActiveTab('settings')}
+              <button 
+                type="button"
+                onClick={() => setUserMenuOpen(prev => !prev)}
                 className="w-8.5 h-8.5 sm:w-auto sm:p-1 sm:pl-1.5 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center sm:justify-start gap-2 transition cursor-pointer active:scale-95 shadow-xs"
-                title={user.email}
+                title="Account, Security & Settings"
+                aria-label="Open User Account Menu"
               >
-                <UserAvatar email={user.email} avatarUrl={avatarUrl} size="xs" />
+                <UserAvatar email={user.email} avatarUrl={settings?.avatar_url || avatarUrl} size="xs" />
                 <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
                   {user.email?.split('@')[0]}
                 </span>
-              </div>
+                <svg className={`hidden sm:block w-3.5 h-3.5 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180 text-emerald-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             )}
           </div>
 
@@ -449,7 +453,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           ======================================================== */}
       <nav 
         aria-label="Mobile Navigation"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#090d16]/95 border-t border-slate-200 dark:border-slate-800/90 flex pb-[max(env(safe-area-inset-bottom),8px)] h-[calc(56px+max(env(safe-area-inset-bottom),8px))] shadow-[0_-8px_25px_rgba(0,0,0,0.12)] transition-colors"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#0c121e] border-t border-slate-200/90 dark:border-slate-800 flex items-center justify-around pb-[max(env(safe-area-inset-bottom),6px)] h-[calc(60px+max(env(safe-area-inset-bottom),6px))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.5)] select-none"
       >
         {mobileBottomTabs.map(tab => {
           const isActive = activeTab === tab.id
@@ -457,34 +461,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1 gap-0.5 relative transition-all active:scale-95 cursor-pointer ${
-                isActive
-                  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
+              className="flex-1 min-w-0 flex flex-col items-center justify-center py-1 gap-1 relative cursor-pointer active:scale-95 transition-transform"
             >
-              {/* Active Pill Bar */}
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              )}
-              
-              <tab.Icon
-                size={20}
-                className={isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105 transition-transform' : 'text-slate-600 dark:text-slate-400'}
-              />
-              
-              <span className={`text-[10px] leading-tight truncate px-0.5 max-w-full ${
-                isActive ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-600 dark:text-slate-400'
+              <div className="relative inline-flex items-center justify-center">
+                <div className={`p-1 rounded-xl transition-colors ${
+                  isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  <tab.Icon size={21} className={isActive ? 'stroke-[2.5]' : 'stroke-2'} />
+                </div>
+
+                {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="absolute -top-0.5 -right-2.5 min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center ring-2 ring-white dark:ring-[#0c121e] shadow-xs">
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
+              </div>
+
+              <span className={`text-[10px] tracking-tight leading-none truncate px-1 max-w-full ${
+                isActive ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'font-medium text-slate-500 dark:text-slate-400'
               }`}>
                 {tab.mobileLabel}
               </span>
-
-              {/* Notification Badge */}
-              {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
-                <span className="absolute top-1 right-[calc(50%-16px)] min-w-[15px] h-3.5 px-1 bg-emerald-500 text-slate-950 text-[9px] rounded-full font-black flex items-center justify-center leading-none shadow-xs">
-                  {tab.badge > 99 ? '99+' : tab.badge}
-                </span>
-              )}
             </button>
           )
         })}
@@ -611,6 +608,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 5. User Account, Avatar & Privacy Dropdown Menu */}
+      {settings && (
+        <UserAccountMenu
+          isOpen={userMenuOpen}
+          onClose={() => setUserMenuOpen(false)}
+          user={user}
+          settings={settings}
+          updateSetting={updateSetting}
+          onLogout={onLogout}
+          onNavigateToSettings={() => {
+            setUserMenuOpen(false)
+            setActiveTab('settings')
+          }}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
       )}
 
     </div>

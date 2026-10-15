@@ -171,7 +171,7 @@ export function HistoryTableRow({
         <div className="flex items-center justify-center gap-2">
           {isCancelledStatus(parcel.status) ? (
             <div
-              className="inline-flex items-center justify-center bg-slate-700/50 text-slate-500 dark:text-gray-400 font-bold p-2 rounded-xl cursor-not-allowed opacity-50"
+              className="inline-flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 p-2 rounded-xl cursor-not-allowed opacity-50"
               title="WhatsApp link disabled for cancelled orders"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ export function HistoryTableRow({
               href={getWhatsAppLink(parcel, whatsappNote, whatsappTemplate)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-emerald-500 dark:bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-700 text-[#ffffff] font-bold p-2 rounded-xl transition shadow-md shadow-emerald-500/10 cursor-pointer"
+              className="inline-flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 p-2 rounded-xl transition cursor-pointer"
               title="Send tracking details to WhatsApp"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -196,11 +196,11 @@ export function HistoryTableRow({
               type="button"
               onClick={() => onCancel(parcel.tracking)}
               disabled={isSyncing}
-              className="inline-flex items-center justify-center bg-red-500 dark:bg-red-600 hover:bg-red-600 text-[#ffffff] font-bold p-2 rounded-xl transition shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 p-2 rounded-xl transition cursor-pointer disabled:opacity-50"
               title="Cancel Booking"
             >
               {isSyncing ? (
-                <svg className="animate-spin h-4 w-4 text-[#ffffff]" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -213,7 +213,7 @@ export function HistoryTableRow({
             <button
               type="button"
               onClick={() => onOpenAdvice(parcel)}
-              className="bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 text-[#ffffff] font-bold px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer flex items-center gap-1"
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1"
               title="Submit Shipper Advice (Retry/Return)"
             >
               <InfoIcon size={12} />

@@ -166,22 +166,22 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
   }, [history])
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-gray-700/80 p-4 sm:p-6 transition-colors duration-200">
+    <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200">
       {/* Header and Sync Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 dark:border-gray-700 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 dark:border-slate-800 pb-5">
         <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">Booked Parcels History</h2>
-          <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Booked Parcels History</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
             Showing {filteredParcels.length} booked orders stored in this browser
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={handleRefreshAll}
             disabled={isSyncingAll || isLoading}
-            className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700 disabled:opacity-50 text-[#ffffff] font-extrabold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98"
           >
             {isSyncingAll ? (
               <>
@@ -200,13 +200,13 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
           </button>
 
           {selectedIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-sm animate-fade-in">
-              <span className="font-semibold text-emerald-700 dark:text-emerald-300">{selectedIds.length} selected</span>
+            <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs animate-fade-in">
+              <span className="font-bold text-slate-700 dark:text-slate-200">{selectedIds.length} selected</span>
               <button
                 type="button"
                 onClick={handlePrintSelected}
                 disabled={isLoading}
-                className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700 text-[#ffffff] font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <PrintIcon size={12} />
                 <span>Print Labels</span>
@@ -215,7 +215,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                 type="button"
                 onClick={handleGenerateLoadSheet}
                 disabled={isLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-[#ffffff] font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
                 title="Generate Load Sheet PDF"
               >
                 <PrintIcon size={12} />
@@ -225,11 +225,11 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                 type="button"
                 onClick={handleCancelSelected}
                 disabled={isLoading}
-                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-[#ffffff] font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border border-rose-500/20 cursor-pointer disabled:opacity-50"
               >
                 {isCancellingAll ? (
                   <>
-                    <svg className="animate-spin h-3.5 w-3.5 text-[#ffffff]" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
@@ -316,25 +316,25 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
       ) : (
         <div className="flex flex-col gap-4">
           {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-150 dark:border-gray-700">
+          <div className="hidden lg:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-150 dark:border-gray-700">
+                <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800">
                   <th className="p-4 w-10">
                     <input
                       type="checkbox"
                       checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
                       onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
-                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
                     />
                   </th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Consignee</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Tracking Info</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Destination</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Booking Date</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200 text-right">COD Amount</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Status</th>
-                  <th className="p-4 font-bold text-gray-700 dark:text-gray-200 text-center w-36">Action</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Consignee</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Destination</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Booking Date</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200 text-right">COD Amount</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Status</th>
+                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200 text-center w-36">Action</th>
                 </tr>
               </thead>
               <tbody>
