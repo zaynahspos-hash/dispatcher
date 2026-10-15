@@ -19,20 +19,34 @@ import { CITY_LIST } from './utils/cityList'
 import { BookedHistory } from './components/BookedHistory'
 import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, SettingsIcon, AppsIcon } from './components/Icons'
 import { getCached, setCached, removeCached, getTTL } from './utils/cacheWithExpiry'
-import { AppHeader } from './components/layout/AppHeader'
-import { DesktopTabBar } from './components/layout/DesktopTabBar'
+import { AppLayout } from './components/layout/AppLayout'
+import { ToastProvider } from './components/common/Toast'
 import { MobileInstallBanner } from './components/layout/MobileInstallBanner'
-import { BottomTabBar } from './components/layout/BottomTabBar'
-import { MobileNavDrawer } from './components/layout/MobileNavDrawer'
 import { GlobalLoadingOverlay } from './components/layout/GlobalLoadingOverlay'
 import { InstallGuideModal } from './components/layout/InstallGuideModal'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
+
+const ADMIN_EMAILS = [
+  'shoaibzaynah@gmail.com',
+  'zaynahspos@gmail.com',
+  'totvoguepk@gmail.com',
+  ...(import.meta.env.VITE_ADMIN_EMAILS ? import.meta.env.VITE_ADMIN_EMAILS.split(',') : []),
+  import.meta.env.VITE_ADMIN_EMAIL
+].filter(Boolean).map(e => e.toLowerCase().trim())
 
 type Tab = 'paste' | 'table' | 'results' | 'history' | 'settings' | 'admin' | 'apps'
 
 export default function App() {
   const { settings, updateSetting, user, initialAuthChecked, logout } = useSettings()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const h = window.location.hash || ''
+      const s = window.location.search || ''
+      return h.includes('recovery') || h.includes('type=recovery') || s.includes('type=recovery')
+    }
+    return false
+  })
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // PWA install lifecycle
@@ -51,9 +65,16 @@ export default function App() {
 
   // Password recovery listener
   useEffect(() => {
-    if (window.location.hash.includes('recovery=true') || window.location.hash.includes('type=recovery')) {
-      setIsResetPasswordOpen(true)
+    const checkRecovery = () => {
+      const h = window.location.hash || ''
+      const s = window.location.search || ''
+      if (h.includes('recovery') || h.includes('type=recovery') || s.includes('type=recovery')) {
+        setIsResetPasswordOpen(true)
+      }
     }
+
+    checkRecovery()
+    window.addEventListener('hashchange', checkRecovery)
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -62,6 +83,7 @@ export default function App() {
     })
 
     return () => {
+      window.removeEventListener('hashchange', checkRecovery)
       subscription.unsubscribe()
     }
   }, [])
@@ -72,6 +94,7 @@ export default function App() {
     updateHistory,
     dailyTokens,
     monthlyTokens,
+    dailyRequests,
     fetchTokenUsage
   } = useUserHistorySync(user)
 
@@ -90,7 +113,7 @@ export default function App() {
     if (theme === 'dark') root.classList.add('dark')
     else root.classList.remove('dark')
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#3b82f6')
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#10b981')
     try { localStorage.setItem('parcel_app_theme', theme) } catch {}
   }, [theme])
 
@@ -120,6 +143,17 @@ export default function App() {
   })
 
   useEffect(() => {
+    const currentHash = window.location.hash || ''
+    // NEVER overwrite password recovery, tokens, or OAuth error hashes!
+    if (
+      currentHash.includes('recovery') ||
+      currentHash.includes('access_token') ||
+      currentHash.includes('type=') ||
+      currentHash.includes('error')
+    ) {
+      return
+    }
+
     window.location.hash = activeTab
     try {
       localStorage.setItem('parcel_app_active_tab', activeTab)
@@ -131,11 +165,20 @@ export default function App() {
   // Sync state if user changes hash in the address bar directly
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '') as Tab
+      const rawHash = window.location.hash || ''
+      if (
+        rawHash.includes('recovery') ||
+        rawHash.includes('access_token') ||
+        rawHash.includes('type=') ||
+        rawHash.includes('error')
+      ) {
+        return
+      }
+
+      const hash = rawHash.replace('#', '') as Tab
       if (['paste', 'table', 'results', 'history', 'settings', 'admin', 'apps'].includes(hash)) {
         if (hash === 'admin') {
-          const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'shoaibzaynah@gmail.com'
-          if (user && user.email === adminEmail) {
+          if (user && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
             setActiveTab(hash)
           } else {
             window.location.hash = activeTab
@@ -218,7 +261,7 @@ export default function App() {
     </svg>
   )
 
-  const isAdmin = user && user.email === (import.meta.env.VITE_ADMIN_EMAIL || 'shoaibzaynah@gmail.com')
+  const isAdmin = !!(user && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim()))
 
   const tabConfig = [
     { id: 'paste' as Tab, label: 'Paste', mobileLabel: 'Paste', Icon: PasteIcon, badge: null },
@@ -240,7 +283,7 @@ export default function App() {
   if (!initialAuthChecked) {
     return (
       <div className="min-h-screen w-full flex flex-col justify-center items-center bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-        <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-8 w-8 text-emerald-500 mb-2" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -255,7 +298,16 @@ export default function App() {
         <AuthPage onSuccess={() => {}} />
         {isResetPasswordOpen && (
           <ResetPasswordModal
-            onClose={() => setIsResetPasswordOpen(false)}
+            onClose={() => {
+              setIsResetPasswordOpen(false)
+              if (
+                window.location.hash.includes('recovery') ||
+                window.location.hash.includes('access_token') ||
+                window.location.hash.includes('type=')
+              ) {
+                window.location.hash = '#paste'
+              }
+            }}
           />
         )}
       </>
@@ -263,13 +315,15 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950 font-sans overflow-hidden transition-colors duration-200">
-      {/* Header */}
-      <AppHeader
-        onOpenSidebar={() => setIsSidebarOpen(true)}
+    <ToastProvider>
+      <AppLayout
+        tabs={tabConfig}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         user={user}
         dailyTokens={dailyTokens}
         monthlyTokens={monthlyTokens}
+        dailyRequests={dailyRequests}
         onLogout={() => logout()}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         isSettingsConfigured={isSettingsConfigured}
@@ -279,31 +333,20 @@ export default function App() {
         onOpenInstallGuide={() => setShowInstallGuide(true)}
         theme={theme}
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+        operationalCitiesCount={operationalCities.length}
+      >
+        {/* PWA Install Banner (Mobile-friendly, dismissible) */}
+        <MobileInstallBanner
+          isStandalone={isStandalone}
+          showBanner={showMobileInstallBanner}
+          isInstallable={isInstallable}
+          isIOS={isIOS}
+          onInstall={handleInstallApp}
+          onOpenIOSGuide={() => setShowInstallGuide(true)}
+          onDismiss={dismissMobileBanner}
+        />
 
-      {/* Tabs — Desktop only (mobile uses bottom nav) */}
-      <DesktopTabBar
-        tabs={tabConfig}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-        <main className="max-w-[1440px] mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24 sm:pb-8">
-          {/* PWA Install Banner (Mobile-friendly, dismissible) */}
-          <MobileInstallBanner
-            isStandalone={isStandalone}
-            showBanner={showMobileInstallBanner}
-            isInstallable={isInstallable}
-            isIOS={isIOS}
-            onInstall={handleInstallApp}
-            onOpenIOSGuide={() => setShowInstallGuide(true)}
-            onDismiss={dismissMobileBanner}
-          />
-
+        <ErrorBoundary fallbackTitle="Section Error">
           {activeTab === 'paste' && (
             <PasteInput
               onParse={handleParse}
@@ -359,35 +402,8 @@ export default function App() {
           {activeTab === 'apps' && (
             <OtherApps />
           )}
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <BottomTabBar
-        tabs={tabConfig}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-
-      {/* Left Sidebar Menu Drawer */}
-      <MobileNavDrawer
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        tabs={tabConfig}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        user={user}
-        dailyTokens={dailyTokens}
-        monthlyTokens={monthlyTokens}
-        onLogout={() => logout()}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        theme={theme}
-        onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        isInstallable={isInstallable}
-        isStandalone={isStandalone}
-        onInstallApp={handleInstallApp}
-        onOpenInstallGuide={() => setShowInstallGuide(true)}
-      />
+        </ErrorBoundary>
+      </AppLayout>
 
       {/* Loading Overlay */}
       <GlobalLoadingOverlay
@@ -404,7 +420,16 @@ export default function App() {
 
       {isResetPasswordOpen && (
         <ResetPasswordModal
-          onClose={() => setIsResetPasswordOpen(false)}
+          onClose={() => {
+            setIsResetPasswordOpen(false)
+            if (
+              window.location.hash.includes('recovery') ||
+              window.location.hash.includes('access_token') ||
+              window.location.hash.includes('type=')
+            ) {
+              window.location.hash = activeTab ? `#${activeTab}` : '#paste'
+            }
+          }}
         />
       )}
 
@@ -415,6 +440,6 @@ export default function App() {
         installGuideTab={installGuideTab}
         setInstallGuideTab={setInstallGuideTab}
       />
-    </div>
+    </ToastProvider>
   )
 }

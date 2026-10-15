@@ -1,6 +1,6 @@
 import React from 'react'
 import { TabItem } from './BottomTabBar'
-import { CloseIcon, SunIcon, MoonIcon } from '../Icons'
+import { CloseIcon, SunIcon, MoonIcon, DownloadIcon, SmartphoneIcon } from '../Icons'
 
 interface MobileNavDrawerProps {
   isOpen: boolean
@@ -95,17 +95,17 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                 }}
                 className={`w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold transition cursor-pointer ${
                   isActive
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold'
+                    ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold'
                     : 'text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <tab.Icon size={18} className={isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-300'} />
+                  <tab.Icon size={18} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-300'} />
                   <span>{tab.label}</span>
                 </div>
                 {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                    isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
                   }`}>
                     {tab.badge}
                   </span>
@@ -122,13 +122,13 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
               <div className="space-y-1.5">
                 <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                   Logged in as: <br />
-                  <span className="text-blue-600 dark:text-blue-400 font-bold font-mono text-xs">{user.email}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-xs">{user.email}</span>
                 </div>
                 {/* AI Token Usage */}
                 <div className="sm:hidden flex items-center gap-2 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-2.5 py-2 rounded-xl overflow-hidden">
                   <span className="relative flex h-1.5 w-1.5 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                   </span>
                   <div className="flex items-center gap-1 text-[10px] text-slate-700 dark:text-gray-300 font-medium flex-1 whitespace-nowrap overflow-hidden">
                     <span className="text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider shrink-0">AI</span>
@@ -160,7 +160,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                   onOpenAuthModal()
                   onClose()
                 }}
-                className="w-full text-center text-xs py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
+                className="w-full text-center text-xs py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
               >
                 Sign In / Register
               </button>
@@ -187,7 +187,8 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
               }}
               className="w-full flex items-center justify-center gap-1.5 text-xs py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer animate-pulse shrink-0"
             >
-              📥 Install App
+              <DownloadIcon size={14} />
+              <span>Install App</span>
             </button>
           ) : !isStandalone ? (
             <button
@@ -195,9 +196,10 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                 onOpenInstallGuide()
                 onClose()
               }}
-              className="w-full flex items-center justify-center gap-1.5 text-xs py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse"
+              className="w-full flex items-center justify-center gap-1.5 text-xs py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse"
             >
-              📱 Install App (Guide)
+              <SmartphoneIcon size={14} />
+              <span>Install App (Guide)</span>
             </button>
           ) : null}
 

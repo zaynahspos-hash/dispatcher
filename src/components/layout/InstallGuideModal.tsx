@@ -1,4 +1,5 @@
 import React from 'react'
+import { SmartphoneIcon } from '../Icons'
 
 interface InstallGuideModalProps {
   isOpen: boolean
@@ -48,22 +49,22 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
             onClick={() => setInstallGuideTab('android')}
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               installGuideTab === 'android'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            🤖 Android
+            <SmartphoneIcon size={14} /> Android
           </button>
           <button
             type="button"
             onClick={() => setInstallGuideTab('ios')}
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               installGuideTab === 'ios'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            📱 iPhone / iPad
+            <SmartphoneIcon size={14} /> iPhone / iPad
           </button>
         </div>
 
@@ -107,14 +108,14 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
             </>
           )}
           
-          <div className="mt-4 p-3 bg-blue-950/20 border border-blue-900/60 rounded-xl text-[11px] text-blue-300 leading-relaxed">
-            ℹ️ Install hone ke baad, aap Zaynahs Courier app ko normal app ki tarah mobile home screen se fast aur full-screen chala sakenge.
+          <div className="mt-4 p-3 bg-emerald-950/30 border border-emerald-900/60 rounded-xl text-[11px] text-emerald-300 leading-relaxed">
+            Install hone ke baad, aap Zaynahs Courier app ko normal app ki tarah mobile home screen se fast aur full-screen chala sakenge.
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="mt-6 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+          className="mt-6 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
         >
           Samajh Gaya (Done)
         </button>

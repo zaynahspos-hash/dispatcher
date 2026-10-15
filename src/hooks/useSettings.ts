@@ -29,7 +29,7 @@ const DEFAULTS: Settings = {
   openrouter_api_key: '',
   openrouter_model: 'meta-llama/llama-3.1-8b-instruct:free',
   gemini_api_key: '',
-  gemini_model: 'gemini-2.0-flash-lite',
+  gemini_model: 'gemini-3-flash-preview',
   anthropic_api_key: '',
   anthropic_model: 'claude-haiku-4-5',
   deepseek_api_key: '',
@@ -77,6 +77,9 @@ function readAllLocal(userId: string): Settings {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     result[k] = readLocal(userId, k)
   })
+  if (!result.gemini_model || result.gemini_model.includes('2.0') || result.gemini_model.includes('1.5')) {
+    result.gemini_model = 'gemini-3-flash-preview'
+  }
   return result as Settings
 }
 
@@ -144,6 +147,9 @@ export function useSettings() {
       if (data && data.settings) {
         // DB has settings — load them and refresh local cache
         const dbSettings = data.settings as unknown as Settings
+        if (!dbSettings.gemini_model || dbSettings.gemini_model.includes('2.0') || dbSettings.gemini_model.includes('1.5') || dbSettings.gemini_model.includes('1.0') || dbSettings.gemini_model === 'custom') {
+          dbSettings.gemini_model = 'gemini-3-flash-preview'
+        }
         const dbUpdatedAt = data.updated_at || ''
         const localVersion = localStorage.getItem(userVersionKey(currentUser.id))
 

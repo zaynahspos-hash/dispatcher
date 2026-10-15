@@ -12,6 +12,7 @@ export interface BookedParcel {
   tracking: string
   bookingDate: string
   status: string
+  orderType?: string
 }
 
 export type StatusFilterType = 'pending_loadsheet' | 'all' | 'booked' | 'intransit' | 'delivered' | 'returned' | 'cancelled'

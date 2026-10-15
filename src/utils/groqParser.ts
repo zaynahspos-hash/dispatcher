@@ -87,8 +87,11 @@ export async function parseParcelText(rawText: string, settings: Settings): Prom
       if (model === 'custom') model = 'meta-llama/llama-3.1-8b-instruct:free'
     } else if (provider === 'gemini') {
       apiKeyString = settings.gemini_api_key || ''
-      model = settings.gemini_model || 'gemini-2.0-flash-lite'
-      if (model === 'custom') model = 'gemini-2.0-flash-lite'
+      let rawModel = settings.gemini_model || 'gemini-3-flash-preview'
+      if (!rawModel || rawModel === 'custom' || rawModel.includes('2.0') || rawModel.includes('1.5')) {
+        rawModel = 'gemini-3-flash-preview'
+      }
+      model = rawModel
     } else if (provider === 'openai') {
       apiKeyString = settings.openai_api_key || ''
       model = settings.openai_model || 'gpt-4o-mini'
@@ -192,22 +195,73 @@ Format:
         let tokensUsed = 0
 
         if (provider === 'gemini') {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-          const res = await axios.post(url, {
-            contents: [{
-              parts: [{ text: `${systemPrompt}\n\nUser Content:\n${rawText}` }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json"
+          // Normalize model if old or deprecated (Rule from GEMINI_AND_POSTEX_SYSTEM_GUIDE.md)
+          let currentModel = model
+          if (!currentModel || currentModel.includes('2.0') || currentModel.includes('1.5') || currentModel === 'custom') {
+            currentModel = 'gemini-3-flash-preview'
+          }
+
+          const generationConfig: any = {
+            responseMimeType: "application/json"
+          }
+          // Disable thinking tokens if supported to speed up response (Section 1.5 in guide)
+          if (currentModel.startsWith('gemini-') && !currentModel.includes('lite')) {
+            generationConfig.thinkingConfig = { thinkingBudget: 0 }
+          }
+
+          let res: any
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
+            res = await axios.post(url, {
+              contents: [{
+                role: 'user',
+                parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
+              }],
+              systemInstruction: {
+                parts: [{ text: systemPrompt }]
+              },
+              generationConfig
+            })
+          } catch (modelErr: any) {
+            // Auto fallback if model is unavailable / discontinued
+            const errMsg = modelErr.response?.data?.error?.message || modelErr.message || ''
+            const status = modelErr.response?.status
+            if (status === 503 || errMsg.includes('high demand') || errMsg.includes('no longer available') || errMsg.includes('not found') || status === 404 || (status === 400 && errMsg.toLowerCase().includes('model'))) {
+              console.warn(`[Gemini] Model ${currentModel} error (${errMsg}). Auto-switching to working alternative...`)
+              currentModel = currentModel === 'gemini-3-flash-preview' ? 'gemini-2.5-flash' : 'gemini-2.5-flash-lite'
+              const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
+              const fallbackConfig: any = {
+                responseMimeType: "application/json"
+              }
+              if (!currentModel.includes('lite')) {
+                fallbackConfig.thinkingConfig = { thinkingBudget: 0 }
+              }
+              res = await axios.post(fallbackUrl, {
+                contents: [{
+                  role: 'user',
+                  parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
+                }],
+                systemInstruction: {
+                  parts: [{ text: systemPrompt }]
+                },
+                generationConfig: fallbackConfig
+              })
+            } else {
+              throw modelErr
             }
-          })
-          if (res.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            content = res.data.candidates[0].content.parts[0].text
-            if (res.data?.usageMetadata?.totalTokenCount) {
-              tokensUsed = res.data.usageMetadata.totalTokenCount
-            }
-          } else {
+          }
+
+          // Strip internal thoughts (Section 1.6 in guide)
+          const parts = res.data?.candidates?.[0]?.content?.parts || []
+          const nonThought = parts.filter((p: any) => !p.thought)
+          content = (nonThought.length > 0 ? nonThought : parts).map((p: any) => p.text || '').join('').trim()
+
+          if (!content) {
             throw new Error(JSON.stringify(res.data))
+          }
+
+          if (res.data?.usageMetadata?.totalTokenCount) {
+            tokensUsed = res.data.usageMetadata.totalTokenCount
           }
         } 
         else if (provider === 'anthropic') {

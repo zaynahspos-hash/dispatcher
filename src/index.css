@@ -84,5 +84,14 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
+/* Password masking utilities for multi-line API key textarea */
+.password-mask {
+  -webkit-text-security: disc !important;
+}
+
+.password-unmask {
+  -webkit-text-security: none !important;
+}
+
 
 

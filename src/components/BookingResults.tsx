@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
-import { PrintIcon, PasteIcon, UploadIcon, HistoryIcon, CancelIcon, AlertIcon, FileTextIcon, TrashIcon } from './Icons'
+import { 
+  PrintIcon, 
+  PasteIcon, 
+  UploadIcon, 
+  HistoryIcon, 
+  CancelIcon, 
+  AlertIcon, 
+  FileTextIcon, 
+  TrashIcon, 
+  PlusIcon, 
+  FolderIcon, 
+  CheckIcon 
+} from './Icons'
 import { Settings } from '../utils/groqParser'
 import { SearchableDropdown } from './SearchableDropdown'
+import { AirwayVaultModal } from './history/AirwayVaultModal'
+import { saveAirwayDocument } from '../utils/localPdfVault'
 
 export interface BookingResult {
   id: string
@@ -45,6 +59,7 @@ export default function BookingResults({
 }: BookingResultsProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [cancellingTracking, setCancellingTracking] = useState<string[]>([])
+  const [showVault, setShowVault] = useState(false)
 
   const getWhatsAppLink = (parcel: BookingResult) => {
     let cleanPhone = parcel.phone.replace(/\D/g, '')
@@ -133,9 +148,10 @@ export default function BookingResults({
         <p className="text-sm mb-5">Parcels tab mein parcels book karo ya naya custom row add karo.</p>
         <button
           onClick={handleAddNewResult}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-[#ffffff] font-bold rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5 mx-auto"
+          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition cursor-pointer flex items-center gap-1.5 mx-auto"
         >
-          ➕ Add Manual Booking Row
+          <PlusIcon size={16} />
+          <span>Add Manual Booking Row</span>
         </button>
       </div>
     )
@@ -145,21 +161,21 @@ export default function BookingResults({
     <div className="w-full transition-colors duration-200">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-2xl p-2.5 sm:p-5 text-center">
-          <div className="text-3xl sm:text-4xl font-black text-green-600 dark:text-green-400">{booked.length}</div>
-          <div className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-300 mt-1">Booked</div>
+        <div className="bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 rounded-2xl p-2.5 sm:p-5 text-center">
+          <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">{booked.length}</div>
+          <div className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 mt-1">Booked</div>
         </div>
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-2.5 sm:p-5 text-center">
           <div className="text-3xl sm:text-4xl font-black text-red-500 dark:text-red-400">{failed.length}</div>
           <div className="text-xs sm:text-sm font-semibold text-red-600 dark:text-red-400 mt-1">Failed</div>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-2xl p-2.5 sm:p-5 text-center">
-          <div className="text-xs sm:text-2xl font-black text-blue-600 dark:text-blue-400 truncate leading-tight">
+        <div className="bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 rounded-2xl p-2.5 sm:p-5 text-center">
+          <div className="text-xs sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 truncate leading-tight">
             <span className="sm:hidden text-sm font-black">Rs.</span>
             <br className="sm:hidden" />
             <span className="text-base sm:text-2xl">{totalCOD.toLocaleString()}</span>
           </div>
-          <div className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 mt-1">Total COD</div>
+          <div className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 mt-1">Total COD</div>
         </div>
       </div>
 
@@ -168,9 +184,18 @@ export default function BookingResults({
         {booked.length > 0 && (
           <>
             <button
-              onClick={onPrintLabels}
+              onClick={() => {
+                if (booked.length > 0) {
+                  saveAirwayDocument(settings.postex_token || 'merchant', {
+                    batchName: `PostEx Airway Bill (${booked.length} Parcels)`,
+                    trackingNumbers: booked.map(b => b.tracking!).filter(Boolean),
+                    totalCOD: totalCOD
+                  })
+                }
+                onPrintLabels()
+              }}
               disabled={loadingLabels}
-              className="col-span-2 sm:flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 text-[#ffffff] font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md text-sm"
+              className="col-span-2 sm:flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md text-sm"
             >
               {loadingLabels ? (
                 <>
@@ -178,7 +203,7 @@ export default function BookingResults({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Downloading...
+                  <span>Downloading...</span>
                 </>
               ) : (
                 <>
@@ -197,6 +222,14 @@ export default function BookingResults({
           </>
         )}
         <button
+          onClick={() => setShowVault(true)}
+          className="sm:flex-none px-3.5 py-3 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-xs"
+          title="Open Local Airway Bill & CN Document Vault"
+        >
+          <FolderIcon size={16} />
+          <span>Airway Vault</span>
+        </button>
+        <button
           onClick={exportResultsExcel}
           className="sm:flex-none px-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition flex items-center gap-1.5 justify-center cursor-pointer"
         >
@@ -207,7 +240,8 @@ export default function BookingResults({
           onClick={handleAddNewResult}
           className="sm:flex-none px-3 py-3 bg-[#475569] dark:bg-gray-700 text-[#ffffff] hover:bg-[#334155] dark:hover:bg-gray-600 rounded-xl text-sm font-bold transition flex items-center gap-1.5 justify-center cursor-pointer shadow-md"
         >
-          ➕ Add Row
+          <PlusIcon size={15} />
+          <span>Add Row</span>
         </button>
         <button
           onClick={clearAllResults}
@@ -226,22 +260,25 @@ export default function BookingResults({
             Successfully Booked ({booked.length})
           </h3>
           <div className="space-y-2">
-            {booked.map((r, i) => (
-              <ResultRow
-                key={r.id}
-                r={r}
-                isExpanded={expandedId === r.id}
-                onToggleExpand={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                setResults={setResults}
-                settings={settings}
-                cities={cities}
-                onBookSingle={onBookSingle}
-                onCancelShipment={onCancelShipment}
-                cancellingTracking={cancellingTracking}
-                setCancellingTracking={setCancellingTracking}
-                getWhatsAppLink={getWhatsAppLink}
-              />
-            ))}
+            {booked.map((r, i) => {
+              const rowId = r.id || `booked_${i}`
+              return (
+                <ResultRow
+                  key={rowId}
+                  r={r}
+                  isExpanded={expandedId === rowId}
+                  onToggleExpand={() => setExpandedId(prev => prev === rowId ? null : rowId)}
+                  setResults={setResults}
+                  settings={settings}
+                  cities={cities}
+                  onBookSingle={onBookSingle}
+                  onCancelShipment={onCancelShipment}
+                  cancellingTracking={cancellingTracking}
+                  setCancellingTracking={setCancellingTracking}
+                  getWhatsAppLink={getWhatsAppLink}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -254,21 +291,24 @@ export default function BookingResults({
             Manual Bookings ({manual.length})
           </h3>
           <div className="space-y-2">
-            {manual.map((r, i) => (
-              <ResultRow
-                key={r.id}
-                r={r}
-                isExpanded={expandedId === r.id}
-                onToggleExpand={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                setResults={setResults}
-                settings={settings}
-                cities={cities}
-                onBookSingle={onBookSingle}
-                cancellingTracking={cancellingTracking}
-                setCancellingTracking={setCancellingTracking}
-                getWhatsAppLink={getWhatsAppLink}
-              />
-            ))}
+            {manual.map((r, i) => {
+              const rowId = r.id || `manual_${i}`
+              return (
+                <ResultRow
+                  key={rowId}
+                  r={r}
+                  isExpanded={expandedId === rowId}
+                  onToggleExpand={() => setExpandedId(prev => prev === rowId ? null : rowId)}
+                  setResults={setResults}
+                  settings={settings}
+                  cities={cities}
+                  onBookSingle={onBookSingle}
+                  cancellingTracking={cancellingTracking}
+                  setCancellingTracking={setCancellingTracking}
+                  getWhatsAppLink={getWhatsAppLink}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -281,21 +321,24 @@ export default function BookingResults({
             Cancelled ({cancelled.length})
           </h3>
           <div className="space-y-2">
-            {cancelled.map((r, i) => (
-              <ResultRow
-                key={r.id}
-                r={r}
-                isExpanded={expandedId === r.id}
-                onToggleExpand={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                setResults={setResults}
-                settings={settings}
-                cities={cities}
-                onBookSingle={onBookSingle}
-                cancellingTracking={cancellingTracking}
-                setCancellingTracking={setCancellingTracking}
-                getWhatsAppLink={getWhatsAppLink}
-              />
-            ))}
+            {cancelled.map((r, i) => {
+              const rowId = r.id || `cancelled_${i}`
+              return (
+                <ResultRow
+                  key={rowId}
+                  r={r}
+                  isExpanded={expandedId === rowId}
+                  onToggleExpand={() => setExpandedId(prev => prev === rowId ? null : rowId)}
+                  setResults={setResults}
+                  settings={settings}
+                  cities={cities}
+                  onBookSingle={onBookSingle}
+                  cancellingTracking={cancellingTracking}
+                  setCancellingTracking={setCancellingTracking}
+                  getWhatsAppLink={getWhatsAppLink}
+                />
+              )
+            })}
           </div>
         </div>
       )}
@@ -308,24 +351,34 @@ export default function BookingResults({
             Failed / Pending ({failed.length})
           </h3>
           <div className="space-y-2">
-            {failed.map((r, i) => (
-              <ResultRow
-                key={r.id}
-                r={r}
-                isExpanded={expandedId === r.id}
-                onToggleExpand={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                setResults={setResults}
-                settings={settings}
-                cities={cities}
-                onBookSingle={onBookSingle}
-                cancellingTracking={cancellingTracking}
-                setCancellingTracking={setCancellingTracking}
-                getWhatsAppLink={getWhatsAppLink}
-              />
-            ))}
+            {failed.map((r, i) => {
+              const rowId = r.id || `failed_${i}`
+              return (
+                <ResultRow
+                  key={rowId}
+                  r={r}
+                  isExpanded={expandedId === rowId}
+                  onToggleExpand={() => setExpandedId(prev => prev === rowId ? null : rowId)}
+                  setResults={setResults}
+                  settings={settings}
+                  cities={cities}
+                  onBookSingle={onBookSingle}
+                  cancellingTracking={cancellingTracking}
+                  setCancellingTracking={setCancellingTracking}
+                  getWhatsAppLink={getWhatsAppLink}
+                />
+              )
+            })}
           </div>
         </div>
       )}
+
+      {/* Local Airway Bill & CN Document Vault Modal */}
+      <AirwayVaultModal
+        userId={settings.postex_token || 'merchant'}
+        isOpen={showVault}
+        onClose={() => setShowVault(false)}
+      />
     </div>
   )
 }
@@ -429,7 +482,7 @@ function ResultRow({
   }
 
   return (
-    <div className={`border rounded-xl transition-all transition-colors duration-200 overflow-hidden ${getStatusColorClass()} ${isExpanded ? 'ring-1 ring-blue-400 dark:ring-blue-600 shadow-md' : 'hover:bg-opacity-80 cursor-pointer'}`}>
+    <div className={`border rounded-xl transition-all transition-colors duration-200 overflow-hidden ${getStatusColorClass()} ${isExpanded ? 'ring-1 ring-emerald-400 dark:ring-emerald-600 shadow-md' : 'hover:bg-opacity-80 cursor-pointer'}`}>
       {/* Header View */}
       <div 
         onClick={onToggleExpand} 
@@ -549,9 +602,19 @@ function ResultRow({
           >
             <TrashIcon size={16} />
           </button>
-          <svg className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleExpand()
+            }}
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition cursor-pointer flex items-center justify-center shrink-0"
+            title={isExpanded ? 'Collapse Row' : 'Expand Row'}
+          >
+            <svg className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -615,7 +678,7 @@ function ResultRow({
                 type="text"
                 value={formValues.name}
                 onChange={e => setFormValues(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="Enter customer name"
               />
             </div>
@@ -627,7 +690,7 @@ function ResultRow({
                 type="text"
                 value={formValues.phone}
                 onChange={e => setFormValues(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="e.g. 03001234567"
               />
             </div>
@@ -651,7 +714,7 @@ function ResultRow({
                 type="number"
                 value={formValues.total || ''}
                 onChange={e => setFormValues(prev => ({ ...prev, total: Number(e.target.value) || 0 }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="0"
               />
             </div>
@@ -663,7 +726,7 @@ function ResultRow({
                 value={formValues.address}
                 onChange={e => setFormValues(prev => ({ ...prev, address: e.target.value }))}
                 rows={2}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="Street address, sector/area, city"
               />
             </div>
@@ -676,7 +739,7 @@ function ResultRow({
                 step="0.1"
                 value={formValues.weight}
                 onChange={e => setFormValues(prev => ({ ...prev, weight: Number(e.target.value) || 0.5 }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
               />
             </div>
 
@@ -686,7 +749,7 @@ function ResultRow({
                 type="number"
                 value={formValues.items}
                 onChange={e => setFormValues(prev => ({ ...prev, items: Number(e.target.value) || 1 }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
               />
             </div>
 
@@ -695,7 +758,7 @@ function ResultRow({
               <select
                 value={formValues.orderType || 'Normal'}
                 onChange={e => setFormValues(prev => ({ ...prev, orderType: e.target.value }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
               >
                 <option value="Normal">Normal (COD)</option>
                 <option value="Replacement">Replacement (Exchange)</option>
@@ -708,7 +771,7 @@ function ResultRow({
                 type="number"
                 value={formValues.airwayBillCopy}
                 onChange={e => setFormValues(prev => ({ ...prev, airwayBillCopy: Number(e.target.value) || 1 }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
               />
             </div>
 
@@ -718,7 +781,7 @@ function ResultRow({
                 type="text"
                 value={formValues.detail}
                 onChange={e => setFormValues(prev => ({ ...prev, detail: e.target.value }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="Product description..."
               />
             </div>
@@ -729,7 +792,7 @@ function ResultRow({
                 type="text"
                 value={formValues.note}
                 onChange={e => setFormValues(prev => ({ ...prev, note: e.target.value }))}
-                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-blue-400 focus:outline-none text-slate-800 dark:text-gray-100"
+                className="w-full border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-gray-100"
                 placeholder="Instructions for rider..."
               />
             </div>
@@ -741,14 +804,22 @@ function ResultRow({
               <button
                 type="button"
                 onClick={() => handleSave(true)}
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-[#ffffff] font-bold py-2.5 px-5 rounded-xl text-sm shadow-md transition cursor-pointer flex items-center gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm shadow-md transition cursor-pointer flex items-center gap-1.5 active:scale-98"
               >
-                <span>{isSaving ? '✅ Saved!' : 'Save Changes'}</span>
+                <span>{isSaving ? 'Saved!' : 'Save Changes'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onToggleExpand}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+                title="Collapse this row"
+              >
+                <span>Collapse Card ▲</span>
               </button>
               <button
                 type="button"
                 onClick={handleDelete}
-                className="bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold py-2.5 px-4 rounded-xl text-sm transition cursor-pointer active:scale-98"
               >
                 Delete Row
               </button>
@@ -759,14 +830,15 @@ function ResultRow({
                 <button
                   type="button"
                   onClick={handleBook}
-                  className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-[#ffffff] font-bold py-2.5 px-5 rounded-xl text-sm shadow-md transition cursor-pointer flex items-center gap-1.5"
+                  className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm shadow-md transition cursor-pointer flex items-center gap-1.5"
                 >
-                  🚀 Book Parcel (PostEx)
+                  <span>Book Parcel (PostEx)</span>
                 </button>
               )}
               {r.status === 'success' && (
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
-                  🛡️ Order already booked successfully
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckIcon size={14} />
+                  <span>Order booked successfully</span>
                 </span>
               )}
             </div>

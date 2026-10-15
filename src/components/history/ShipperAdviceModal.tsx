@@ -36,7 +36,7 @@ export function ShipperAdviceModal({
               <InfoIcon size={18} className="text-amber-500 dark:text-amber-400" /> Submit Shipper Advice
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              CN: <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{parcel.tracking}</span> ({parcel.name})
+              CN: <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{parcel.tracking}</span> ({parcel.name})
             </p>
           </div>
           <button
@@ -56,7 +56,7 @@ export function ShipperAdviceModal({
                 onClick={() => setAdviceStatusId(2)}
                 className={`py-3 px-4 rounded-xl border text-center font-bold text-xs transition flex flex-col items-center gap-1.5 cursor-pointer ${
                   adviceStatusId === 2
-                    ? 'border-blue-500 dark:border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200'
                 }`}
               >
@@ -89,7 +89,7 @@ export function ShipperAdviceModal({
                   ? "E.g., Customer requested delivery tomorrow, please re-attempt."
                   : "E.g., Customer refused delivery, please request return."
               }
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
               required
             />
           </div>
@@ -112,7 +112,7 @@ export function ShipperAdviceModal({
             <button
               type="submit"
               disabled={isSubmitting || !adviceRemarks.trim()}
-              className="px-4 py-2.5 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 disabled:opacity-50 text-[#ffffff] rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/15 cursor-pointer"
+              className="px-4 py-2.5 bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700 disabled:opacity-50 text-[#ffffff] rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/15 cursor-pointer"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Advice'}
             </button>

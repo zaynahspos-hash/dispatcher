@@ -21,30 +21,31 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
   // Ensure matching row exists in public.users (RULE D13: snake_case)
   const ensureUserProfile = async (user: any) => {
+    if (!user?.id) return
     try {
+      // Postgres trigger `on_auth_user_created` automatically creates public.users and public.user_settings.
+      // Only verify if we have an active authenticated session to avoid RLS 42501 on unconfirmed signups.
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session) return
+
       const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'shoaibzaynah@gmail.com'
       const role = user.email === adminEmail ? 'admin' : 'user'
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('id')
         .eq('id', user.id)
         .maybeSingle()
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('[AuthModal] Profile fetch error:', error)
-      }
-
       if (!data) {
-        const { error: insertError } = await supabase
+        await supabase
           .from('users')
           .insert([{ id: user.id, email: user.email, role }])
-        if (insertError) {
-          console.error('[AuthModal] Profile insert error:', insertError)
-        }
+          .then(() => {})
+          .catch(() => {})
       }
-    } catch (err) {
-      console.error('[AuthModal] Profile sync error:', err)
+    } catch {
+      // Handled by database trigger
     }
   }
 
@@ -62,12 +63,32 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     setSuccessMsg('')
 
     try {
-      const redirectTo = `${window.location.origin}/#recovery=true`
-      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo,
-      })
+      // 1. Send branded email via custom Gmail SMTP endpoint (uses zaynahspos@gmail.com for all tenants)
+      let sentViaCustomSmtp = false
+      try {
+        const res = await fetch('/api/auth/send-reset-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail })
+        })
+        if (res.ok) {
+          sentViaCustomSmtp = true
+        }
+      } catch {
+        // Fallback below
+      }
 
-      if (error) throw error
+      // 2. If not sent via custom endpoint, trigger Supabase fallback
+      if (!sentViaCustomSmtp) {
+        const domain = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? 'https://dispatcher.zaynahspos.com'
+          : window.location.origin
+        const redirectTo = `${domain}/#recovery=true`
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo,
+        })
+        if (error) throw error
+      }
 
       setIsResetEmailSent(true)
       setSuccessMsg(`Password reset link sent to ${cleanEmail}! Please check your email.`)
@@ -197,7 +218,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
               }}
               className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'signin'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -212,7 +233,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
               }}
               className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'signup'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -223,7 +244,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
         {/* Forgot Password Header */}
         {mode === 'forgot' && (
-          <div className="mb-5 p-3 bg-blue-950/30 border border-blue-900/50 rounded-2xl">
+          <div className="mb-5 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-2xl">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">Reset Password via Email</h3>
             <p className="text-[11px] text-slate-400">
               Enter your email to receive a password recovery link.
@@ -263,14 +284,14 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="merchant@example.com"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
             >
               {loading ? 'Sending Reset Link...' : isResetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'}
             </button>
@@ -309,7 +330,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="merchant@example.com"
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none"
               />
             </div>
 
@@ -326,7 +347,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                       setErrorMsg('')
                       setSuccessMsg('')
                     }}
-                    className="text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-wider cursor-pointer"
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wider cursor-pointer"
                   >
                     Forgot Password?
                   </button>
@@ -339,7 +360,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-4 pr-10 py-2.5 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none font-mono"
+                  className="w-full pl-4 pr-10 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none font-mono"
                 />
                 <button
                   type="button"
@@ -371,7 +392,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none font-mono"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none font-mono"
                 />
               </div>
             )}
@@ -379,7 +400,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 mt-2"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 mt-2"
             >
               {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Log In'}
             </button>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { MenuIcon, AlertIcon, RefreshIcon, SunIcon, MoonIcon, SettingsIcon } from '../Icons'
+import { MenuIcon, AlertIcon, RefreshIcon, SunIcon, MoonIcon, SettingsIcon, DownloadIcon, SmartphoneIcon } from '../Icons'
 
 interface AppHeaderProps {
   onOpenSidebar: () => void
@@ -56,13 +56,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             title="Open Navigation Menu"
           >
             <img 
-              src="/favicon-96x96.png?v=20261014" 
-              onError={(e) => { (e.target as HTMLImageElement).src = '/apple-touch-icon.png?v=20261014' }} 
+              src="/apple-touch-icon.png?v=20261014" 
+              onError={(e) => { (e.target as HTMLImageElement).src = '/favicon-96x96.png?v=20261014' }} 
               className="w-8.5 h-8.5 sm:w-10 sm:h-10 object-contain shrink-0 group-hover:scale-105 transition-transform" 
               alt="Logo" 
             />
             <div className="min-w-0 max-w-[190px] sm:max-w-none">
-              <h1 className="text-[15px] sm:text-lg font-bold text-gray-900 dark:text-white leading-tight truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h1 className="text-[15px] sm:text-lg font-bold text-gray-900 dark:text-white leading-tight truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 Zaynahs Courier
               </h1>
               <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight hidden sm:block">
@@ -72,7 +72,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </div>
           
           <div className="hidden sm:flex items-center gap-1.5 ml-1">
-            <span className="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-semibold">
+            <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full font-semibold">
               PostEx
             </span>
           </div>
@@ -87,8 +87,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               title={`Today: ${dailyTokens.toLocaleString()} | Month: ${monthlyTokens.toLocaleString()} tokens`}
             >
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
               </span>
               
               <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-gray-300 font-medium">
@@ -117,7 +117,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {user ? (
             <div className="hidden md:flex items-center gap-2">
               <span className="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 px-3 py-1.5 rounded-lg font-semibold max-w-[150px] truncate transition-colors duration-200" title={user.email}>
-                👤 {user.email.split('@')[0]}
+                {user.email.split('@')[0]}
               </span>
               <button
                 onClick={onLogout}
@@ -129,7 +129,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className="hidden md:flex items-center gap-1.5 text-xs px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
+              className="hidden md:flex items-center gap-1.5 text-xs px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
             >
               Sign In
             </button>
@@ -156,31 +156,33 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 className="sm:hidden flex items-center justify-center w-8 h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer animate-pulse shrink-0 text-sm"
                 title="Install App"
               >
-                📥
+                <DownloadIcon size={16} />
               </button>
               <button
                 onClick={onInstallApp}
                 className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer animate-pulse shrink-0"
                 title="Install App"
               >
-                📥 Install App
+                <DownloadIcon size={14} />
+                <span>Install App</span>
               </button>
             </>
           ) : !isStandalone ? (
             <>
               <button
                 onClick={onOpenInstallGuide}
-                className="sm:hidden flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse text-sm"
+                className="sm:hidden flex items-center justify-center w-8 h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse text-sm"
                 title="Install App Guide"
               >
-                📱
+                <SmartphoneIcon size={16} />
               </button>
               <button
                 onClick={onOpenInstallGuide}
-                className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse"
+                className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer shrink-0 animate-pulse"
                 title="Install App Guide"
               >
-                📱 Install App
+                <SmartphoneIcon size={14} />
+                <span>Install App</span>
               </button>
             </>
           ) : null}
@@ -189,7 +191,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer flex items-center justify-center shrink-0 w-8 h-8 sm:w-9 sm:h-9 touch-manipulation"
+            className="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition cursor-pointer flex items-center justify-center shrink-0 w-8 h-8 sm:w-9 sm:h-9 touch-manipulation"
             title="Refresh Page"
           >
             <RefreshIcon size={16} className="sm:size-4.5" />
@@ -210,7 +212,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             onClick={() => setActiveTab('settings')}
             className={`hidden sm:flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-medium transition cursor-pointer ${
               activeTab === 'settings'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800'
                 : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >

@@ -200,13 +200,13 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
           </button>
 
           {selectedIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-xl border border-blue-100 dark:border-blue-900/50 text-sm animate-fade-in">
-              <span className="font-semibold text-blue-700 dark:text-blue-300">{selectedIds.length} selected</span>
+            <div className="flex flex-wrap items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-sm animate-fade-in">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-300">{selectedIds.length} selected</span>
               <button
                 type="button"
                 onClick={handlePrintSelected}
                 disabled={isLoading}
-                className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 text-[#ffffff] font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700 text-[#ffffff] font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <PrintIcon size={12} />
                 <span>Print Labels</span>
@@ -325,7 +325,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                       type="checkbox"
                       checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
                       onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
                     />
                   </th>
                   <th className="p-4 font-bold text-gray-700 dark:text-gray-200">Consignee</th>
@@ -371,7 +371,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                   type="checkbox"
                   checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
                   onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
-                  className="w-4.5 h-4.5 rounded border-gray-300 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer"
+                  className="w-4.5 h-4.5 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
                 />
                 <span>Select All ({selectedIds.length}/{paginatedParcels.length} selected)</span>
               </label>

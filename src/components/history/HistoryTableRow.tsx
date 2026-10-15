@@ -55,7 +55,7 @@ export function HistoryTableRow({
           type="checkbox"
           checked={isSelected}
           onChange={e => onToggleSelect(parcel.tracking, e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+          className="w-4 h-4 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500"
         />
       </td>
       <td className="p-4">
@@ -65,7 +65,7 @@ export function HistoryTableRow({
               type="text"
               value={editingName}
               onChange={e => setEditingName(e.target.value)}
-              className="px-2 py-1 text-xs border rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 w-full max-w-[140px]"
+              className="px-2 py-1 text-xs border rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-emerald-500 w-full max-w-[140px]"
               autoFocus
               onKeyDown={e => {
                 if (e.key === 'Enter') handleCommitName()
@@ -89,38 +89,41 @@ export function HistoryTableRow({
           </div>
         ) : (
           <div className="flex items-center gap-1 group">
-            <div className="font-semibold text-gray-800 dark:text-gray-100">{parcel.name}</div>
+            <div className="font-semibold text-slate-900 dark:text-white">{parcel.name}</div>
             <button
               type="button"
               onClick={() => {
                 setEditingName(parcel.name)
                 setIsEditing(true)
               }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:text-blue-400 transition cursor-pointer"
+              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer"
               title="Edit Name"
             >
-              ✏️
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
             </button>
           </div>
         )}
-        <div className="text-[10px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{parcel.phone}</div>
+        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5">{parcel.phone}</div>
       </td>
       <td className="p-4">
         <a
           href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 dark:text-blue-400 hover:underline font-bold font-mono"
+          className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs"
         >
           {parcel.tracking}
         </a>
-        <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Ref: {parcel.id}</div>
+        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Ref: {parcel.id}</div>
       </td>
       <td className="p-4">
-        <div className="font-medium text-gray-700 dark:text-gray-200">{parcel.city}</div>
-        <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-xs">{parcel.address}</div>
+        <div className="font-semibold text-slate-800 dark:text-slate-100">{parcel.city}</div>
+        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs">{parcel.address}</div>
       </td>
-      <td className="p-4 text-gray-500 dark:text-gray-400">
+      <td className="p-4 text-slate-600 dark:text-slate-400 font-medium text-xs">
         {new Date(parcel.bookingDate).toLocaleString('en-GB', {
           day: 'numeric',
           month: 'short',
@@ -151,10 +154,10 @@ export function HistoryTableRow({
             onClick={() => onSyncStatus(parcel.tracking)}
             disabled={isSyncing}
             title="Sync real-time status from PostEx"
-            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:text-blue-400 transition disabled:opacity-50 cursor-pointer flex items-center justify-center"
+            className="text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:text-emerald-400 transition disabled:opacity-50 cursor-pointer flex items-center justify-center"
           >
             {isSyncing ? (
-              <svg className="animate-spin h-3.5 w-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>

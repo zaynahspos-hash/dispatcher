@@ -26,7 +26,7 @@ export default function OtherApps() {
       url: 'https://zaynahspos.com',
       badge: 'ZaynahPOS.com',
       // Swapped URLs: logo is the cart icon with bolt, image is the retail tablet store preview
-      logo: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/zaynahspos.com.webp',
+      logo: '/zaynahs-logo.svg',
       image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/zaynahspos.com%20(1).webp',
       article: {
         title: 'Zaynah POS Kya Hai aur Yeh Kyun Zaroori Hai?',
@@ -72,7 +72,7 @@ export default function OtherApps() {
       {/* Header */}
       <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <AppsIcon size={20} className="text-blue-600 dark:text-blue-400" />
+          <AppsIcon size={20} className="text-emerald-600 dark:text-emerald-400" />
           <span>Our Business Ecosystem</span>
         </h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Explore and manage connected merchant tools</p>
@@ -86,7 +86,7 @@ export default function OtherApps() {
             return (
               <div 
                 key={app.id} 
-                className="group relative bg-slate-50 dark:bg-gray-800/40 hover:bg-white dark:hover:bg-gray-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-900/40 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-slate-50 dark:bg-gray-800/40 hover:bg-white dark:hover:bg-gray-800 rounded-2xl p-4 sm:p-6 border border-slate-100 dark:border-gray-800 hover:border-emerald-200 dark:hover:border-emerald-900/40 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   {/* App Store Style Header: Logo on Left/Top, Details on Right/Bottom */}
@@ -104,7 +104,7 @@ export default function OtherApps() {
                         {app.badge && (
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${
                             isCurrent 
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40' 
+                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40' 
                               : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
                           }`}>
                             {app.badge}
@@ -133,7 +133,7 @@ export default function OtherApps() {
                   {/* Detailed Article Section */}
                   <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-slate-150 dark:border-gray-800">
                     <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-2.5 flex items-center justify-center sm:justify-start gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                       <span>{app.article.title}</span>
                     </h4>
                     
@@ -164,7 +164,7 @@ export default function OtherApps() {
                   
                   <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3">
                     {isCurrent && (
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1 border-r border-slate-200 dark:border-gray-800 pr-3 flex-shrink-0">
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 border-r border-slate-200 dark:border-gray-800 pr-3 flex-shrink-0">
                         Current App
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -176,7 +176,7 @@ export default function OtherApps() {
                         href="https://demo.zaynahspos.com/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer flex-shrink-0 border border-blue-200 dark:border-blue-800/40"
+                        className="text-xs px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer flex-shrink-0 border border-emerald-200 dark:border-emerald-800/40"
                       >
                         <span>Try Demo</span>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -188,7 +188,7 @@ export default function OtherApps() {
                       href={app.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 transition-colors cursor-pointer flex-shrink-0"
+                      className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 transition-colors cursor-pointer flex-shrink-0"
                     >
                       <span>Open {app.id === 'pos' ? 'zaynahspos.com' : 'dispatcher.zaynahspos.com'}</span>
                       <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

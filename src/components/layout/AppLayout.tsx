@@ -1,0 +1,555 @@
+import React, { useState } from 'react'
+import { TabItem } from './BottomTabBar'
+import { SunIcon, MoonIcon, AlertTriangleIcon, SmartphoneIcon } from '../Icons'
+
+interface AppLayoutProps {
+  children: React.ReactNode
+  tabs: TabItem[]
+  activeTab: string
+  setActiveTab: (tab: any) => void
+  user: any
+  dailyTokens: number
+  monthlyTokens: number
+  dailyRequests?: number
+  onLogout: () => void
+  onOpenAuthModal: () => void
+  isSettingsConfigured: boolean
+  isInstallable: boolean
+  isStandalone: boolean
+  onInstallApp: () => void
+  onOpenInstallGuide: () => void
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
+  operationalCitiesCount?: number
+}
+
+export const AppLayout: React.FC<AppLayoutProps> = ({
+  children,
+  tabs,
+  activeTab,
+  setActiveTab,
+  user,
+  dailyTokens,
+  monthlyTokens,
+  dailyRequests = 0,
+  onLogout,
+  isSettingsConfigured,
+  isInstallable,
+  isStandalone,
+  onInstallApp,
+  theme,
+  onToggleTheme,
+  operationalCitiesCount = 500
+}) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Tab categorization
+  const operationsTabIds = ['paste', 'table', 'results', 'history']
+  const operationsTabs = tabs.filter(t => operationsTabIds.includes(t.id))
+  const systemTabs = tabs.filter(t => !operationsTabIds.includes(t.id))
+
+  // Mobile Bottom Bar (strict 5 tabs to prevent squishing on handheld screens)
+  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'settings']
+  const mobileBottomTabs = tabs.filter(t => mobileBottomTabIds.includes(t.id))
+
+  // Find active tab label for header breadcrumb
+  const currentTabObj = tabs.find(t => t.id === activeTab) || tabs[0]
+
+  return (
+    <div className="h-screen w-screen flex bg-[#f8fafc] dark:bg-[#070b12] text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-200">
+      
+      {/* ========================================================
+          1. DESKTOP SIDEBAR (Supabase / Proton / Linear Style)
+          ======================================================== */}
+      <aside className="hidden lg:flex w-64 xl:w-72 flex-col bg-white dark:bg-[#0c121e] border-r border-slate-200/80 dark:border-slate-800/80 select-none shrink-0 z-30 transition-all duration-200">
+        
+        {/* Brand Header */}
+        <div className="p-4 xl:p-5 border-b border-slate-200/70 dark:border-slate-800/80 flex items-center gap-3">
+          <div className="relative group cursor-pointer" onClick={() => setActiveTab('paste')}>
+            <img 
+              src="/apple-touch-icon.png?v=20261014" 
+              onError={(e) => { (e.target as HTMLImageElement).src = '/favicon-96x96.png?v=20261014' }} 
+              className="w-10 h-10 rounded-xl object-contain shadow-md shadow-emerald-500/10 border border-slate-200 dark:border-slate-700/60 group-hover:scale-105 transition-transform" 
+              alt="Dispatcher Logo" 
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0c121e] rounded-full" title="PostEx V3 Engine Ready" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-bold text-sm tracking-tight text-slate-900 dark:text-white truncate">
+                Zaynahs Courier
+              </h1>
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold px-1.5 py-0.2 rounded-md">
+                v2.4
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+              PostEx &bull; AI Dispatcher
+            </p>
+          </div>
+        </div>
+
+        {/* Scrollable Navigation Groups */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 overscroll-y-none scrollbar-none">
+          
+          {/* Group 1: Operations */}
+          <div>
+            <div className="px-3 mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase">
+                Operations
+              </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                LIVE
+              </span>
+            </div>
+
+            <nav className="space-y-1">
+              {operationsTabs.map(tab => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/30 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <tab.Icon
+                        size={17}
+                        className={`transition-colors shrink-0 ${
+                          isActive
+                            ? 'text-emerald-400'
+                            : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
+                        }`}
+                      />
+                      <span className="truncate">{tab.label}</span>
+                    </div>
+
+                    {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                        isActive
+                          ? 'bg-emerald-500 text-slate-950 font-black'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+
+          {/* Group 2: Management & Settings */}
+          <div>
+            <div className="px-3 mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold tracking-wider text-slate-600 dark:text-slate-300 uppercase">
+                System & Config
+              </span>
+            </div>
+
+            <nav className="space-y-1">
+              {systemTabs.map(tab => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/30 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <tab.Icon
+                        size={17}
+                        className={`transition-colors shrink-0 ${
+                          isActive
+                            ? 'text-emerald-400'
+                            : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
+                        }`}
+                      />
+                      <span className="truncate">{tab.label}</span>
+                    </div>
+
+                    {tab.id === 'settings' && !isSettingsConfigured && (
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Configuration Needed" />
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+
+          {/* Operational Engine Quick Summary */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#070b12] border border-slate-200/80 dark:border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">PostEx V3</span>
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Connected
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Cities Sync</span>
+              <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                {operationalCitiesCount}+ Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Free AI Quota</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                {Math.max(0, 1500 - dailyRequests).toLocaleString()} free left
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">AI Usage Today</span>
+              <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                {dailyRequests} reqs &bull; {dailyTokens.toLocaleString()} tok
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Sidebar Footer: User Card, Theme & Logout */}
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#080d17]/60 space-y-2">
+          {user && (
+            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/80 shadow-xs">
+              <div className="flex items-center gap-2 min-w-0 pr-1">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs flex items-center justify-center shrink-0">
+                  {user.email ? user.email[0].toUpperCase() : 'M'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {user.email?.split('@')[0]}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={onLogout}
+                title="Sign Out"
+                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition shrink-0 cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between px-1">
+            <button
+              onClick={onToggleTheme}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition cursor-pointer"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <SunIcon size={14} className="text-amber-400" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <MoonIcon size={14} className="text-indigo-400" /> Dark Mode
+                </>
+              )}
+            </button>
+
+            {isInstallable && !isStandalone && (
+              <button
+                onClick={onInstallApp}
+                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <SmartphoneIcon size={13} className="text-emerald-500" /> Install App
+              </button>
+            )}
+          </div>
+        </div>
+
+      </aside>
+
+      {/* ========================================================
+          2. MAIN CONTENT WRAPPER
+          ======================================================== */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        
+        {/* Top Header / Portal Navbar */}
+        <header className="h-14 sm:h-16 pt-[max(env(safe-area-inset-top),0px)] min-h-[calc(3.5rem+max(env(safe-area-inset-top),0px))] px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0c121e] border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 shrink-0 z-20 transition-colors duration-200">
+          
+          {/* Left: Mobile Menu Trigger + Breadcrumb */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              aria-label="Open menu"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Mobile Logo Brand */}
+            <div className="flex lg:hidden items-center gap-2 cursor-pointer" onClick={() => setActiveTab('paste')}>
+              <img 
+                src="/apple-touch-icon.png?v=20261014" 
+                onError={(e) => { (e.target as HTMLImageElement).src = '/favicon-96x96.png?v=20261014' }} 
+                className="w-7 h-7 rounded-lg object-contain" 
+                alt="Logo" 
+              />
+              <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                Zaynahs
+              </span>
+            </div>
+
+            {/* Desktop Breadcrumbs */}
+            <div className="hidden lg:flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer" onClick={() => setActiveTab('paste')}>
+                Dispatcher
+              </span>
+              <span className="text-slate-300 dark:text-slate-600">/</span>
+              <span className="text-slate-900 dark:text-white font-bold flex items-center gap-1.5">
+                <currentTabObj.Icon size={14} className="text-emerald-500" />
+                {currentTabObj.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Quick Indicators & Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            
+            {/* Live PostEx Status Pill */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              PostEx V3 Live
+            </div>
+
+            {/* AI Token Counter */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-medium">
+              <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-300">AI:</span>
+              <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400" title="Requests used today">
+                {dailyRequests} reqs
+              </span>
+              <span className="text-slate-400 dark:text-slate-600">|</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono" title="Tokens used today">
+                {dailyTokens >= 1000 ? `${(dailyTokens / 1000).toFixed(1)}k` : dailyTokens} tok
+              </span>
+            </div>
+
+            {/* Settings Alert if not configured */}
+            {!isSettingsConfigured && (
+              <button
+                onClick={() => setActiveTab('settings')}
+                className="flex items-center gap-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-xl text-xs font-bold hover:bg-amber-500/25 transition cursor-pointer"
+              >
+                <AlertTriangleIcon size={14} className="text-amber-500 shrink-0" />
+                <span className="hidden sm:inline">Setup Settings</span>
+              </button>
+            )}
+
+            {/* Theme Toggle (Mobile & Tablet) */}
+            <button
+              onClick={onToggleTheme}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? <SunIcon size={16} className="text-amber-400" /> : <MoonIcon size={16} className="text-indigo-400" />}
+            </button>
+
+            {/* User Avatar Pill */}
+            {user && (
+              <div 
+                onClick={() => setActiveTab('settings')}
+                className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer"
+                title={user.email}
+              >
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-500 font-black text-xs flex items-center justify-center">
+                  {user.email ? user.email[0].toUpperCase() : 'U'}
+                </div>
+                <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
+                  {user.email?.split('@')[0]}
+                </span>
+              </div>
+            )}
+          </div>
+
+        </header>
+
+        {/* Scrollable Main Application Canvas */}
+        <main className="flex-1 overflow-y-auto overscroll-y-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(76px+max(env(safe-area-inset-bottom),14px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
+          <div className="w-full max-w-[1440px] space-y-6">
+            {children}
+          </div>
+        </main>
+
+        {/* Desktop Portal Footer Status Bar */}
+        <footer className="hidden lg:flex h-8 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0c121e] border-t border-slate-200/80 dark:border-slate-800/80 items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 select-none shrink-0 z-20">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              PostEx V3 Engine Ready
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              End-to-End Encrypted
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+            <span>Operational Cities: {operationalCitiesCount}+</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span>&copy; 2026 Zaynahs POS Logistics Ecosystem</span>
+            <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+            <a 
+              href="https://dispatcher.zaynahspos.com" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+            >
+              dispatcher.zaynahspos.com
+            </a>
+          </div>
+        </footer>
+
+      </div>
+
+      {/* ========================================================
+          3. MOBILE NATIVE BOTTOM NAVIGATION BAR (Apple iOS Style)
+          ======================================================== */}
+      <nav 
+        aria-label="Mobile Navigation"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#090d16]/95 border-t border-slate-200 dark:border-slate-800/90 flex pb-[max(env(safe-area-inset-bottom),8px)] h-[calc(56px+max(env(safe-area-inset-bottom),8px))] shadow-[0_-8px_25px_rgba(0,0,0,0.12)] transition-colors"
+      >
+        {mobileBottomTabs.map(tab => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-1/5 flex-1 min-w-0 flex flex-col items-center justify-center py-1 gap-0.5 relative transition-all active:scale-95 cursor-pointer ${
+                isActive
+                  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              {/* Active Pill Bar */}
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              )}
+              
+              <tab.Icon
+                size={20}
+                className={isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105 transition-transform' : 'text-slate-600 dark:text-slate-400'}
+              />
+              
+              <span className={`text-[10px] leading-tight truncate px-0.5 max-w-full ${
+                isActive ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-600 dark:text-slate-400'
+              }`}>
+                {tab.mobileLabel}
+              </span>
+
+              {/* Notification Badge */}
+              {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
+                <span className="absolute top-1 right-[calc(50%-16px)] min-w-[15px] h-3.5 px-1 bg-emerald-500 text-slate-950 text-[9px] rounded-full font-black flex items-center justify-center leading-none shadow-xs">
+                  {tab.badge > 99 ? '99+' : tab.badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* ========================================================
+          4. MOBILE FULL-SCREEN DRAWER (When hamburger clicked)
+          ======================================================== */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 transition-opacity animate-in fade-in"
+          />
+
+          {/* Drawer Menu */}
+          <div className="relative w-72 max-w-[80vw] bg-white dark:bg-[#0c121e] h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <img 
+                  src="/favicon-96x96.png?v=20261014" 
+                  className="w-8 h-8 rounded-lg object-contain" 
+                  alt="Logo" 
+                />
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Zaynahs Dispatcher</h2>
+                  <p className="text-[10px] text-emerald-500 font-semibold">PostEx Logistics AI</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              <div className="space-y-1">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id)
+                      setMobileMenuOpen(false)
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer ${
+                      activeTab === tab.id
+                        ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 font-bold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <tab.Icon size={18} className={activeTab === tab.id ? 'text-emerald-400' : 'text-slate-400'} />
+                      <span>{tab.label}</span>
+                    </div>
+                    {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
+                      <span className="text-[10px] bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full font-bold">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span>Theme</span>
+                <button onClick={onToggleTheme} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer flex items-center gap-1">
+                  {theme === 'dark' ? <><SunIcon size={14} className="text-amber-400" /> Light</> : <><MoonIcon size={14} className="text-indigo-400" /> Dark</>}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  onLogout()
+                }}
+                className="w-full py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold hover:bg-rose-500/20 transition cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
+}

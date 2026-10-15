@@ -114,14 +114,14 @@ export function HistoryFilterBar({
                 <button
                   type="button"
                   onClick={() => handleQuickDate('today')}
-                  className="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
                   Today
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickDate('last7')}
-                  className="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
                   7d
                 </button>
@@ -143,14 +143,14 @@ export function HistoryFilterBar({
                 <button
                   type="button"
                   onClick={() => handleQuickDate('yesterday')}
-                  className="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
                   Yest.
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickDate('thisMonth')}
-                  className="text-[9px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 >
                   Month
                 </button>
@@ -220,13 +220,20 @@ export function HistoryFilterBar({
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`pb-3 text-sm font-bold transition-all relative cursor-pointer outline-none border-b-2 ${
+                className={`pb-3 text-sm font-bold transition-all relative cursor-pointer outline-none border-b-2 flex items-center gap-1.5 ${
                   isActive
                     ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 font-extrabold'
-                    : 'text-slate-400 dark:text-gray-500 border-transparent hover:text-slate-600 dark:hover:text-gray-300'
+                    : 'text-slate-600 dark:text-slate-300 border-transparent hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {tab.label} ({tab.count})
+                <span>{tab.label}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  isActive 
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700'
+                }`}>
+                  {tab.count}
+                </span>
               </button>
             )
           })}

@@ -20,6 +20,7 @@ export function useUserHistorySync(user: User | null) {
   const [history, setHistory] = useState<BookedParcel[]>([])
   const [dailyTokens, setDailyTokens] = useState<number>(0)
   const [monthlyTokens, setMonthlyTokens] = useState<number>(0)
+  const [dailyRequests, setDailyRequests] = useState<number>(0)
 
   async function fetchTokenUsage() {
     if (!user) return
@@ -41,16 +42,21 @@ export function useUserHistorySync(user: User | null) {
 
       let daily = 0
       let monthly = 0
+      let dailyReqs = 0
       data?.forEach(log => {
+        const isToday = new Date(log.created_at) >= todayStart
+        if (isToday) dailyReqs++
+
         const match = log.details?.match(/Tokens used:\s*(\d+)/)
         if (match) {
           const t = parseInt(match[1], 10)
           monthly += t
-          if (new Date(log.created_at) >= todayStart) daily += t
+          if (isToday) daily += t
         }
       })
       setDailyTokens(daily)
       setMonthlyTokens(monthly)
+      setDailyRequests(dailyReqs)
     } catch (err) {
       console.error('Failed to load token usage:', err)
     }
@@ -137,6 +143,7 @@ export function useUserHistorySync(user: User | null) {
     updateHistory,
     dailyTokens,
     monthlyTokens,
+    dailyRequests,
     fetchTokenUsage
   }
 }

@@ -1,9 +1,23 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getMerchantAddresses, getOrderTypes } from '../utils/postexApi'
 import { Settings } from '../utils/groqParser'
-import { SettingsIcon, SparklesIcon, SyncIcon, InfoIcon, EyeIcon, EyeOffIcon } from './Icons'
+import { 
+  SettingsIcon, 
+  SyncIcon, 
+  EyeIcon, 
+  EyeOffIcon, 
+  TruckIcon, 
+  BotIcon, 
+  LockIcon, 
+  CheckIcon, 
+  PlugIcon, 
+  ExternalLinkIcon,
+  AlertTriangleIcon,
+  SaveIcon
+} from './Icons'
 import { SearchableDropdown } from './SearchableDropdown'
 import { supabase } from '../utils/supabaseClient'
+import { useToast } from './common/Toast'
 
 interface MerchantAddress {
   addressCode: string
@@ -11,6 +25,7 @@ interface MerchantAddress {
   cityName: string
   addressType: string
 }
+
 interface SettingsPageProps {
   settings: Settings
   updateSetting: (key: keyof Settings | Partial<Settings>, value?: string) => void
@@ -19,7 +34,88 @@ interface SettingsPageProps {
   user?: any
 }
 
+type SettingsTab = 'courier' | 'ai' | 'security'
+
+const PROVIDER_METADATA: Record<string, {
+  name: string
+  keyUrl: string
+  keyLabel: string
+  defaultModel: string
+  models: string[]
+  badge: string
+}> = {
+  groq: {
+    name: 'Groq AI (Ultra Fast)',
+    keyUrl: 'https://console.groq.com/keys',
+    keyLabel: 'Get Free Groq API Key',
+    defaultModel: 'llama-3.1-8b-instant',
+    models: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+    badge: 'Latency < 600ms'
+  },
+  gemini: {
+    name: 'Google Gemini (Free Quota)',
+    keyUrl: 'https://aistudio.google.com/app/apikey',
+    keyLabel: 'Get Free Gemini Key (1,500 req/day)',
+    defaultModel: 'gemini-3-flash-preview',
+    models: ['gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'],
+    badge: '1,500 Free Req/Day'
+  },
+  openai: {
+    name: 'OpenAI (GPT-4o)',
+    keyUrl: 'https://platform.openai.com/api-keys',
+    keyLabel: 'Get OpenAI API Key',
+    defaultModel: 'gpt-4o-mini',
+    models: ['gpt-4o-mini', 'gpt-4o'],
+    badge: 'High Reasoning'
+  },
+  anthropic: {
+    name: 'Anthropic (Claude 3.5)',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    keyLabel: 'Get Anthropic API Key',
+    defaultModel: 'claude-3-5-haiku-latest',
+    models: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest'],
+    badge: 'Claude 3.5'
+  },
+  deepseek: {
+    name: 'DeepSeek (V3 / R1)',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keyLabel: 'Get DeepSeek API Key',
+    defaultModel: 'deepseek-chat',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    badge: 'V3 / R1 Engine'
+  },
+  openrouter: {
+    name: 'OpenRouter (Unified)',
+    keyUrl: 'https://openrouter.ai/keys',
+    keyLabel: 'Get OpenRouter API Key',
+    defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
+    models: ['meta-llama/llama-3.1-8b-instruct:free', 'google/gemini-2.0-flash-exp:free'],
+    badge: 'Unified Multi-Model'
+  }
+}
+
 export default function SettingsPage({ settings, updateSetting, onSave, cities, user }: SettingsPageProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('courier')
+  const [addresses, setAddresses] = useState<MerchantAddress[]>([])
+  const [orderTypes, setOrderTypes] = useState<string[]>([])
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [testingAi, setTestingAi] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; message: string; latency?: number } | null>(null)
+  const [showPostexToken, setShowPostexToken] = useState(false)
+  const [showApiKey, setShowApiKey] = useState(false)
+  const toast = useToast()
+
+  // Derived state
+  const activeProvider = (settings.ai_provider || 'gemini') as keyof typeof PROVIDER_METADATA
+  const activeModelField = `${activeProvider}_model` as keyof Settings
+  const activeKeyField = `${activeProvider}_api_key` as keyof Settings
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  const pickupAddresses = addresses.filter(a => a.addressType !== 'Return Address')
+  const returnAddresses = addresses.filter(a => a.addressType === 'Return Address')
+
+  // Password state
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -27,57 +123,7 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState('')
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      setPwError("New passwords do not match.")
-      return
-    }
-    if (newPassword.length < 6) {
-      setPwError("New password must be at least 6 characters.")
-      return
-    }
-    setPwLoading(true)
-    setPwError('')
-    setPwSuccess('')
-    try {
-      const userEmail = user?.email
-      if (!userEmail) {
-        throw new Error("User session not found. Please log in again.")
-      }
-      // Re-authenticate to verify current password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: currentPassword
-      })
-      if (signInError) {
-        throw new Error("Current password is incorrect.")
-      }
-
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      })
-      if (updateError) throw updateError
-
-      setPwSuccess("Password updated successfully!")
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (err: any) {
-      setPwError(err.message || "Failed to update password.")
-    } finally {
-      setPwLoading(false)
-    }
-  }
-  const [addresses, setAddresses] = useState<MerchantAddress[]>([])
-  const [orderTypes, setOrderTypes] = useState<string[]>([])
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
-  const [showPostexToken, setShowPostexToken] = useState(false)
-
-  // Auto-load addresses and order types if token already saved
+  // Load addresses when PostEx token exists
   useEffect(() => {
     if (settings.postex_token) {
       getMerchantAddresses(settings.postex_token)
@@ -85,43 +131,12 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
           if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
             setAddresses(res.dist)
             const pickupAddrs = res.dist.filter((a: MerchantAddress) => a.addressType !== 'Return Address')
-            const returnAddrs = res.dist.filter((a: MerchantAddress) => a.addressType === 'Return Address')
-            
-            // Auto-select first if not set
             const updates: Partial<Settings> = {}
             if (pickupAddrs.length > 0 && !settings.postex_pickup) {
               const defaultPickup = pickupAddrs[0]
               updates.postex_pickup = defaultPickup.addressCode
               updates.postex_pickup_address = `${defaultPickup.address} — ${defaultPickup.cityName}`
-            } else if (settings.postex_pickup && !settings.postex_pickup_address) {
-              const match = pickupAddrs.find(a => a.addressCode === settings.postex_pickup)
-              if (match) {
-                updates.postex_pickup_address = `${match.address} — ${match.cityName}`
-              }
             }
-
-            if (!settings.postex_return) {
-              const defaultReturn = returnAddrs.length > 0 ? returnAddrs[0] : (res.dist.length > 0 ? res.dist[0] : null)
-              if (defaultReturn) {
-                updates.postex_return = defaultReturn.addressCode
-                updates.postex_return_city = (defaultReturn.cityName || '').toUpperCase()
-                updates.postex_return_address = `${defaultReturn.address} — ${defaultReturn.cityName}`
-              }
-            } else {
-              if (!settings.postex_return_address) {
-                const match = returnAddrs.find(a => a.addressCode === settings.postex_return)
-                if (match) {
-                  updates.postex_return_address = `${match.address} — ${match.cityName}`
-                }
-              }
-              if (!settings.postex_return_city) {
-                const matchingAddress = res.dist.find((a: MerchantAddress) => a.addressCode === settings.postex_return)
-                if (matchingAddress && matchingAddress.cityName) {
-                  updates.postex_return_city = matchingAddress.cityName.toUpperCase()
-                }
-              }
-            }
-
             if (Object.keys(updates).length > 0) {
               updateSetting(updates)
             }
@@ -131,17 +146,17 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
 
       getOrderTypes(settings.postex_token)
         .then(res => {
-          if (res.dist) {
-            setOrderTypes(res.dist)
+          if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
+            setOrderTypes(res.dist.map((d: any) => d.orderType || d))
           }
         })
         .catch(() => {})
     }
-  }, [])
+  }, [settings.postex_token])
 
-  async function testPostexToken() {
+  async function handleTestConnection() {
     if (!settings.postex_token) {
-      setTestResult({ ok: false, message: 'Please enter a PostEx token first.' })
+      toast.warning('Token Missing', 'Please enter your PostEx Merchant Token first.')
       return
     }
     setTesting(true)
@@ -150,781 +165,740 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
       const res = await getMerchantAddresses(settings.postex_token)
       if ((res.statusCode == 200 || res.statusCode == '0200') && res.dist) {
         setAddresses(res.dist)
-        const pickupAddrs = res.dist.filter((a: MerchantAddress) => a.addressType !== 'Return Address')
-        const returnAddrs = res.dist.filter((a: MerchantAddress) => a.addressType === 'Return Address')
-        
-        const updates: Partial<Settings> = {}
-        if (pickupAddrs.length > 0 && !settings.postex_pickup) {
-          const defaultPickup = pickupAddrs[0]
-          updates.postex_pickup = defaultPickup.addressCode
-          updates.postex_pickup_address = `${defaultPickup.address} — ${defaultPickup.cityName}`
-        } else if (settings.postex_pickup && !settings.postex_pickup_address) {
-          const match = pickupAddrs.find(a => a.addressCode === settings.postex_pickup)
-          if (match) {
-            updates.postex_pickup_address = `${match.address} — ${match.cityName}`
-          }
-        }
-
-        if (!settings.postex_return) {
-          const defaultReturn = returnAddrs.length > 0 ? returnAddrs[0] : (res.dist.length > 0 ? res.dist[0] : null)
-          if (defaultReturn) {
-            updates.postex_return = defaultReturn.addressCode
-            updates.postex_return_city = (defaultReturn.cityName || '').toUpperCase()
-            updates.postex_return_address = `${defaultReturn.address} — ${defaultReturn.cityName}`
-          }
-        } else {
-          if (!settings.postex_return_address) {
-            const match = returnAddrs.find(a => a.addressCode === settings.postex_return)
-            if (match) {
-              updates.postex_return_address = `${match.address} — ${match.cityName}`
-            }
-          }
-          if (!settings.postex_return_city) {
-            const matchingAddress = res.dist.find((a: MerchantAddress) => a.addressCode === settings.postex_return)
-            if (matchingAddress && matchingAddress.cityName) {
-              updates.postex_return_city = matchingAddress.cityName.toUpperCase()
-            }
-          }
-        }
-
-        if (Object.keys(updates).length > 0) {
-          updateSetting(updates)
-        }
-
-        // Fetch Order Types
-        try {
-          const typesRes = await getOrderTypes(settings.postex_token)
-          if (typesRes.dist) {
-            setOrderTypes(typesRes.dist)
-          }
-        } catch (typesErr) {
-          console.error("Order types load failed:", typesErr)
-        }
-
-        setTestResult({ ok: true, message: `Token valid! ${res.dist.length} address(es) found.` })
+        setTestResult({ ok: true, message: `Connected! Found ${res.dist.length} registered addresses.` })
+        toast.success('PostEx V3 Connected', `Successfully verified token and loaded ${res.dist.length} pickup addresses.`)
       } else {
-        setTestResult({ ok: false, message: `Invalid token: ${res.message || 'Unknown error'}` })
+        const msg = res.statusMessage || 'Invalid token or unauthorized by PostEx.'
+        setTestResult({ ok: false, message: msg })
+        toast.error('PostEx Error', msg)
       }
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Connection error'
-      setTestResult({ ok: false, message: `${msg}` })
+    } catch (err: any) {
+      setTestResult({ ok: false, message: err.message || 'Connection failed' })
+      toast.error('Connection Failed', err.message || 'Network error reaching PostEx API.')
+    } finally {
+      setTesting(false)
     }
-    setTesting(false)
   }
 
-  const pickupAddresses = addresses.filter(a => a.addressType !== 'Return Address')
-  const returnAddresses = addresses
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      setPwError('New passwords do not match.')
+      return
+    }
+    if (newPassword.length < 6) {
+      setPwError('New password must be at least 6 characters.')
+      return
+    }
+    setPwLoading(true)
+    setPwError('')
+    setPwSuccess('')
+    try {
+      if (!user?.email) throw new Error('Session not found. Please log in again.')
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword
+      })
+      if (signInError) throw new Error('Current password is incorrect.')
 
-  const defaultFields = [
-    { label: 'Default Weight (kg)', key: 'default_weight' as keyof Settings, placeholder: '0.5', type: 'number' },
-    { label: 'Default Items Per Parcel', key: 'default_items' as keyof Settings, placeholder: '3', type: 'number' },
-    { label: 'Default Product / Detail', key: 'default_product' as keyof Settings, placeholder: 'Kids Clothes', type: 'text' },
-    { label: 'Default Delivery Note', key: 'default_note' as keyof Settings, placeholder: 'Call before delivery', type: 'text' },
-  ]
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateError) throw updateError
+
+      setPwSuccess('Password updated successfully!')
+      toast.success('Password Updated', 'Your account credentials have been securely refreshed.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      setPwError(err.message || 'Failed to update password.')
+      toast.error('Password Update Failed', err.message)
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
+  async function handleTestAiConnection() {
+    const rawKeys = String(settings[activeKeyField] || '').trim()
+    const firstKey = rawKeys.split(/[\n,]+/)[0]?.trim()
+    if (!firstKey) {
+      toast.warning('API Key Missing', `Please enter your ${activeProvider.toUpperCase()} API key first.`)
+      return
+    }
+
+    setTestingAi(true)
+    setAiTestResult(null)
+    const startTime = Date.now()
+
+    try {
+      if (activeProvider === 'gemini') {
+        let model = String(settings.gemini_model || 'gemini-3-flash-preview').trim()
+        if (!model || model.includes('2.0') || model.includes('1.5') || model.includes('1.0') || model === 'custom') {
+          model = 'gemini-3-flash-preview'
+        }
+        const generationConfig: any = {
+          responseMimeType: 'application/json'
+        }
+        if (model.startsWith('gemini-') && !model.includes('lite')) {
+          generationConfig.thinkingConfig = { thinkingBudget: 0 }
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${firstKey}`
+        let res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'Respond with valid JSON: {"status":"ok"}' }] }],
+            generationConfig
+          })
+        })
+
+        // Auto fallback if model discontinued or 404
+        if (!res.ok) {
+          const err = await res.clone().json().catch(() => ({}))
+          const errMsg = err?.error?.message || ''
+          if (errMsg.includes('no longer available') || errMsg.includes('not found') || res.status === 404) {
+            model = 'gemini-3-flash-preview'
+            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${firstKey}`
+            res = await fetch(fallbackUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: 'Respond with valid JSON: {"status":"ok"}' }] }],
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  thinkingConfig: { thinkingBudget: 0 }
+                }
+              })
+            })
+            updateSetting('gemini_model', 'gemini-3-flash-preview')
+          }
+        }
+
+        const latency = Date.now() - startTime
+        if (res.ok) {
+          setAiTestResult({ ok: true, message: `Connected! Google Gemini responded in ${latency}ms (${model}).`, latency })
+          toast.success('Gemini AI Connected', `Valid Key (${model}) • ${latency}ms`)
+        } else {
+          const err = await res.json().catch(() => ({}))
+          const msg = err?.error?.message || `Google API Error: HTTP ${res.status}`
+          setAiTestResult({ ok: false, message: msg })
+          toast.error('Gemini Test Failed', msg)
+        }
+      } else if (activeProvider === 'groq') {
+        const model = String(settings.groq_model || 'llama-3.1-8b-instant').trim()
+        const url = 'https://api.groq.com/openai/v1/chat/completions'
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${firstKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Ping' }],
+            max_tokens: 5
+          })
+        })
+        const latency = Date.now() - startTime
+        if (res.ok) {
+          setAiTestResult({ ok: true, message: `Connected! Groq AI responded in ${latency}ms.`, latency })
+          toast.success('Groq AI Connected', `Valid Key (${model}) • ${latency}ms`)
+        } else {
+          const err = await res.json().catch(() => ({}))
+          const msg = err?.error?.message || `Groq API Error: HTTP ${res.status}`
+          setAiTestResult({ ok: false, message: msg })
+          toast.error('Groq Test Failed', msg)
+        }
+      } else {
+        const endpoints: Record<string, string> = {
+          openai: 'https://api.openai.com/v1/chat/completions',
+          openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+          deepseek: 'https://api.deepseek.com/chat/completions',
+          kimi: 'https://api.moonshot.cn/v1/chat/completions',
+          mistral: 'https://api.mistral.ai/v1/chat/completions'
+        }
+        const testUrl = endpoints[activeProvider] || 'https://api.openai.com/v1/chat/completions'
+        const model = String(settings[activeModelField] || 'gpt-4o-mini').trim()
+        const res = await fetch(testUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${firstKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Ping' }],
+            max_tokens: 5
+          })
+        })
+        const latency = Date.now() - startTime
+        if (res.ok) {
+          setAiTestResult({ ok: true, message: `Connected! ${activeProvider.toUpperCase()} responded in ${latency}ms.`, latency })
+          toast.success(`${activeProvider.toUpperCase()} Connected`, `${latency}ms`)
+        } else {
+          const err = await res.json().catch(() => ({}))
+          const msg = err?.error?.message || `API Error: HTTP ${res.status}`
+          setAiTestResult({ ok: false, message: msg })
+          toast.error('Test Failed', msg)
+        }
+      }
+    } catch (err: any) {
+      setAiTestResult({ ok: false, message: err.message || 'Connection timeout or network failure' })
+      toast.error('AI Test Failed', err.message || 'Network error')
+    } finally {
+      setTestingAi(false)
+    }
+  }
+
+  const handleManualSave = async () => {
+    setSaveStatus('saving')
+    try {
+      await updateSetting(settings)
+      setSaveStatus('saved')
+      toast.success('Settings Saved', 'All configurations have been securely synchronized with the cloud.')
+      if (onSave) onSave()
+      setTimeout(() => {
+        setSaveStatus('idle')
+      }, 3000)
+    } catch (err: any) {
+      setSaveStatus('error')
+      toast.error('Save Failed', err?.message || 'Could not save settings.')
+      setTimeout(() => {
+        setSaveStatus('idle')
+      }, 3000)
+    }
+  }
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-200">
-      {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <SettingsIcon size={20} className="text-blue-600 dark:text-blue-400 animate-pulse" />
-          <span>Settings</span>
-        </h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Keys saved in browser localStorage only</p>
-      </div>
-
-      {/* Form Body */}
-      <div className="p-4 sm:p-6 space-y-8">
-        {/* AI Settings Section */}
-        <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <SparklesIcon size={18} className="text-blue-600 dark:text-blue-400" />
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">AI Engine Settings</h3>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">AI Provider</label>
-            <select
-              value={settings.ai_provider || 'groq'}
-              onChange={e => updateSetting('ai_provider', e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-            >
-              <option value="groq">Groq AI</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="gemini">Google Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="deepseek">DeepSeek (Direct)</option>
-              <option value="kimi">Kimi / Moonshot</option>
-              <option value="mistral">Mistral AI</option>
-            </select>
-          </div>
-
-          {/* Provider Specific Settings */}
-          {(() => {
-            const provider = settings.ai_provider || 'groq'
-            let modelField: keyof Settings = 'groq_model'
-            let defaultModel = 'llama-3.3-70b-versatile'
-            let options: { value: string; label: string }[] = []
-
-            if (provider === 'groq') {
-              modelField = 'groq_model'
-              defaultModel = 'llama-3.1-8b-instant'
-              options = [
-                { value: 'llama-3.1-8b-instant', label: 'llama-3.1-8b-instant ★ Recommended — Sab se Sasta & Fast' },
-                { value: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b-versatile — High Quality' },
-                { value: 'gemma2-9b-it', label: 'gemma2-9b-it — Google Gemma 2 9B' },
-                { value: 'llama-3.3-70b-specdec', label: 'llama-3.3-70b-specdec — Speculative Decoding' },
-                { value: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'meta-llama/llama-4-scout-17b-16e-instruct — Llama 4 Scout' },
-                { value: 'meta-llama/llama-4-maverick-17b-128e-instruct', label: 'meta-llama/llama-4-maverick-17b-128e-instruct — Llama 4 Maverick' },
-                { value: 'qwen-qwq-32b', label: 'qwen-qwq-32b — Reasoning' },
-                { value: 'deepseek-r1-distill-llama-70b', label: 'deepseek-r1-distill-llama-70b — R1 Reasoning' },
-                { value: 'mixtral-8x7b-32768', label: 'mixtral-8x7b-32768 — Mixtral MoE' }
-              ]
-            } else if (provider === 'openrouter') {
-              modelField = 'openrouter_model'
-              defaultModel = 'meta-llama/llama-3.1-8b-instruct:free'
-              options = [
-                { value: 'meta-llama/llama-3.1-8b-instruct:free', label: 'meta-llama/llama-3.1-8b-instruct:free ★ Recommended — Sab se Sasta (Free)' },
-                { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'meta-llama/llama-3.3-70b-instruct:free — High Quality (Free)' },
-                { value: 'google/gemini-2.0-flash-exp:free', label: 'google/gemini-2.0-flash-exp:free — Gemini 2.0 Flash (Free)' },
-                { value: 'deepseek/deepseek-r1-distill-llama-70b:free', label: 'deepseek/deepseek-r1-distill-llama-70b:free — R1 Distill (Free)' },
-                { value: 'qwen/qwen-2.5-coder-32b-instruct:free', label: 'qwen/qwen-2.5-coder-32b-instruct:free — Qwen Coder (Free)' },
-                { value: 'deepseek/deepseek-r1:free', label: 'deepseek/deepseek-r1:free — R1 Reasoning (Free, Congested)' },
-                { value: 'google/gemini-2.5-flash', label: 'google/gemini-2.5-flash — Gemini 2.5 Flash (Paid)' },
-                { value: 'google/gemini-2.5-pro', label: 'google/gemini-2.5-pro — Gemini 2.5 Pro (Paid)' },
-                { value: 'meta-llama/llama-3.3-70b-instruct', label: 'meta-llama/llama-3.3-70b-instruct — Llama 3.3 70B (Paid)' },
-                { value: 'deepseek/deepseek-r1', label: 'deepseek/deepseek-r1 — R1 Reasoning (Paid)' }
-              ]
-            } else if (provider === 'gemini') {
-              modelField = 'gemini_model'
-              defaultModel = 'gemini-2.0-flash-lite'
-              options = [
-                { value: 'gemini-2.0-flash-lite', label: 'gemini-2.0-flash-lite ★ Recommended — Sab se Sasta & Fast' },
-                { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash — Standard Flash' },
-                { value: 'gemini-2.0-flash', label: 'gemini-2.0-flash — Fast' },
-                { value: 'gemini-1.5-flash', label: 'gemini-1.5-flash — Older Flash' },
-                { value: 'gemini-1.5-flash-8b', label: 'gemini-1.5-flash-8b — Smallest & Cheapest' },
-                { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro — Pro' }
-              ]
-            } else if (provider === 'openai') {
-              modelField = 'openai_model'
-              defaultModel = 'gpt-4o-mini'
-              options = [
-                { value: 'gpt-4o-mini', label: 'gpt-4o-mini ★ Recommended — Sab se Sasta & Fast' },
-                { value: 'gpt-4.1-nano', label: 'gpt-4.1-nano — Sab se Chota & Sasta' },
-                { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini — Newer Mini' },
-                { value: 'gpt-4o', label: 'gpt-4o — Standard' },
-                { value: 'gpt-4.1', label: 'gpt-4.1 — Latest' },
-                { value: 'o4-mini', label: 'o4-mini — Cheap Reasoning' },
-                { value: 'o3-mini', label: 'o3-mini — Reasoning' },
-                { value: 'o1-mini', label: 'o1-mini — o1 Reasoning' }
-              ]
-            } else if (provider === 'anthropic') {
-              modelField = 'anthropic_model'
-              defaultModel = 'claude-3-haiku-20240307'
-              options = [
-                { value: 'claude-3-haiku-20240307', label: 'claude-3-haiku-20240307 ★ Recommended — Sab se Sasta (Older Haiku)' },
-                { value: 'claude-3-5-haiku-latest', label: 'claude-3-5-haiku-latest — Haiku Fast' },
-                { value: 'claude-haiku-4-5', label: 'claude-haiku-4-5 — Sab se Sasta & Fast' },
-                { value: 'claude-sonnet-4-5', label: 'claude-sonnet-4-5 — Sonnet Latest' },
-                { value: 'claude-3-5-sonnet-latest', label: 'claude-3-5-sonnet-latest — Sonnet Advanced' },
-                { value: 'claude-opus-4-5', label: 'claude-opus-4-5 — Opus (Most Powerful)' }
-              ]
-            } else if (provider === 'deepseek') {
-              modelField = 'deepseek_model'
-              defaultModel = 'deepseek-chat'
-              options = [
-                { value: 'deepseek-chat', label: 'deepseek-chat ★ Recommended — V4 Flash Non-Thinking (Sab se Sasta)' },
-                { value: 'deepseek-v4-flash', label: 'deepseek-v4-flash — V4 Flash Thinking (Default ON ⚠︎)' },
-                { value: 'deepseek-reasoner', label: 'deepseek-reasoner — V4 Flash Thinking Alias (Legacy)' },
-                { value: 'deepseek-v4-pro', label: 'deepseek-v4-pro — Pro, High Quality ($0.435/1M)' }
-              ]
-            } else if (provider === 'kimi') {
-              modelField = 'kimi_model'
-              defaultModel = 'moonshot-v1-8k'
-              options = [
-                { value: 'moonshot-v1-8k', label: 'moonshot-v1-8k — Sab se Sasta (8K Context)' },
-                { value: 'moonshot-v1-32k', label: 'moonshot-v1-32k — 32K Context' },
-                { value: 'moonshot-v1-128k', label: 'moonshot-v1-128k — 128K Context (Long Docs)' }
-              ]
-            } else if (provider === 'mistral') {
-              modelField = 'mistral_model'
-              defaultModel = 'ministral-3b-2512'
-              options = [
-                { value: 'ministral-3b-2512', label: 'ministral-3b-2512 ★ Recommended — Sab se Sasta & Fast' },
-                { value: 'mistral-small-2506', label: 'mistral-small-2506 — Quality + Speed Balance' },
-                { value: 'open-mistral-nemo', label: 'open-mistral-nemo — Reasoning / Chat' },
-                { value: 'codestral-2508', label: 'codestral-2508 — Coding' },
-                { value: 'mistral-small-latest', label: 'mistral-small-latest' },
-                { value: 'mistral-large-latest', label: 'mistral-large-latest — High Quality' },
-                { value: 'codestral-latest', label: 'codestral-latest' }
-              ]
-            }
-
-            const isCustom = settings[modelField] === 'custom' || 
-              (settings[modelField] !== undefined && 
-               settings[modelField] !== '' && 
-               !options.some(opt => opt.value === settings[modelField]))
-
-            return (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Model Selection ({provider.toUpperCase()})</label>
-                  <select
-                    value={isCustom ? 'custom' : (settings[modelField] || defaultModel)}
-                    onChange={e => {
-                      const val = e.target.value
-                      if (val === 'custom') {
-                        updateSetting(modelField, 'custom')
-                      } else {
-                        updateSetting(modelField, val)
-                      }
-                    }}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-                  >
-                    {options.map(opt => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                    <option value="custom">Custom Model ID...</option>
-                  </select>
-                </div>
-
-                {isCustom && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Custom Model ID</label>
-                    <input
-                      type="text"
-                      value={settings[modelField] === 'custom' ? '' : (settings[modelField] || '')}
-                      onChange={e => updateSetting(modelField, e.target.value || 'custom')}
-                      placeholder={defaultModel}
-                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-900"
-                    />
-                  </div>
-                )}
-              </div>
-            )
-          })()}
+    <div className="space-y-6">
+      {/* Top Header & Save Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            System & Engine Settings
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Configure PostEx V3 credentials, multi-engine AI parser, and account security.
+          </p>
         </div>
 
-        {/* API Keys configuration for all providers */}
-        <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">API Keys (All Providers)</h3>
-            <span className="text-[10px] bg-blue-50 dark:bg-blue-950 text-blue-600 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded font-semibold self-start sm:self-auto">
-              Enter one key per line for Fallback rotation
+        {/* Save indicator & Explicit Save Button */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {saveStatus === 'idle' && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Auto-Save Active
             </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { id: 'groq', label: 'Groq AI Key(s)', keyField: 'groq_api_key' as keyof Settings, consoleUrl: 'https://console.groq.com' },
-              { id: 'gemini', label: 'Google Gemini Key(s)', keyField: 'gemini_api_key' as keyof Settings, consoleUrl: 'https://aistudio.google.com' },
-              { id: 'openai', label: 'OpenAI Key(s)', keyField: 'openai_api_key' as keyof Settings, consoleUrl: 'https://platform.openai.com/api-keys' },
-              { id: 'openrouter', label: 'OpenRouter Key(s)', keyField: 'openrouter_api_key' as keyof Settings, consoleUrl: 'https://openrouter.ai/keys' },
-              { id: 'anthropic', label: 'Anthropic Key(s)', keyField: 'anthropic_api_key' as keyof Settings, consoleUrl: 'https://console.anthropic.com' },
-              { id: 'deepseek', label: 'DeepSeek Key(s)', keyField: 'deepseek_api_key' as keyof Settings, consoleUrl: 'https://platform.deepseek.com' },
-              { id: 'kimi', label: 'Kimi / Moonshot Key(s)', keyField: 'kimi_api_key' as keyof Settings, consoleUrl: 'https://platform.moonshot.cn' },
-              { id: 'mistral', label: 'Mistral AI Key(s)', keyField: 'mistral_api_key' as keyof Settings, consoleUrl: 'https://console.mistral.ai' }
-            ].map(({ id, label, keyField, consoleUrl }) => {
-              const currentKeys = settings[keyField] || ''
-              const isVisible = !!showKeys[id]
-              return (
-                <div key={id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-150 dark:border-gray-700 flex flex-col justify-between shadow-2xs">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-200">{label}</label>
-                    <a
-                      href={consoleUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-blue-600 hover:underline font-semibold"
-                    >
-                      Get Key ↗
-                    </a>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={currentKeys}
-                      onChange={e => updateSetting(keyField, e.target.value)}
-                      placeholder={`Paste ${id.toUpperCase()} key(s) here (one per line)...`}
-                      rows={2}
-                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-3 pr-10 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono resize-y bg-white dark:bg-gray-800"
-                      style={{
-                        WebkitTextSecurity: isVisible ? 'none' : 'disc',
-                      } as React.CSSProperties}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKeys(prev => ({ ...prev, [id]: !prev[id] }))}
-                      className="absolute right-2 top-2.5 text-gray-400 dark:text-gray-500 hover:text-gray-650 cursor-pointer p-1"
-                    >
-                      {isVisible ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06L3.28 2.22zM10.89 12.012l-1.9-1.9A2.002 2.002 0 009 11v.5a.5.5 0 00.5.5h.5c.345 0 .662-.087.94-.238l-.05-.05z" /><path d="M11.968 11.968c.324-.324.532-.767.532-1.258V10a2.5 2.5 0 00-2.5-2.5h-.71c-.49 0-.934.208-1.258.532l1.414 1.414a1 1 0 011.054 1.054l1.414 1.414z" /><path fillRule="evenodd" d="M1.636 10.566a.75.75 0 010-1.132 11.233 11.233 0 0116.728 0 .75.75 0 010 1.132 11.233 11.233 0 01-16.728 0zm1.758-1.047a9.733 9.733 0 0013.212 0 9.733 9.733 0 00-13.212 0z" clipRule="evenodd" /></svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" /><path fillRule="evenodd" d="M.664 9.505a.75.75 0 000 1.01 11.24 11.24 0 0018.672 0 .75.75 0 000-1.01A11.24 11.24 0 00.664 9.505zM10 14a4 4 0 110-8 4 4 0 010 8z" clipRule="evenodd" /></svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* PostEx Section */}
-        <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <SettingsIcon size={18} className="text-blue-600 dark:text-blue-400" />
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">PostEx Courier Settings</h3>
-            <a
-              href="https://merchant.postex.pk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-auto"
-            >
-              Merchant Portal →
-            </a>
-          </div>
-
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">API Token</label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type={showPostexToken ? 'text' : 'password'}
-                value={settings.postex_token || ''}
-                onChange={e => updateSetting('postex_token', e.target.value)}
-                placeholder="PostEx API token..."
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12 font-mono bg-white dark:bg-gray-800"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPostexToken(!showPostexToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 flex items-center justify-center cursor-pointer"
-              >
-                {showPostexToken ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={testPostexToken}
-              disabled={testing}
-              className="px-5 py-3 bg-blue-600 text-[#ffffff] rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap flex items-center gap-2 cursor-pointer"
-            >
-              {testing ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <SyncIcon size={16} />
-                  <span>Test & Load</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {testResult && (
-            <div className={`mt-3 text-xs px-3 py-2.5 rounded-lg font-medium border ${testResult.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900/50' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/50'}`}>
-              {testResult.message}
-            </div>
+          )}
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-xl">
+              <SyncIcon size={13} className="animate-spin" /> Saving changes...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
+              <CheckIcon size={13} /> Saved to Cloud
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-xl">
+              <AlertTriangleIcon size={13} /> Cloud Sync Error
+            </span>
           )}
 
-          {/* Pickup Address */}
-          {pickupAddresses.length > 0 && (
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Pickup Address</label>
-              <select
-                value={settings.postex_pickup || ''}
-                onChange={e => {
-                  const code = e.target.value
-                  const selected = pickupAddresses.find(a => a.addressCode === code)
-                  updateSetting({
-                    postex_pickup: code,
-                    postex_pickup_address: selected ? `${selected.address} — ${selected.cityName}` : ''
-                  })
-                }}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-              >
-                <option value="">— Select Pickup Address —</option>
-                {pickupAddresses.map(a => (
-                  <option key={a.addressCode} value={a.addressCode}>
-                    {a.address} — {a.cityName} [Code: {a.addressCode}] ({a.addressType})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Return Address */}
-          {returnAddresses.length > 0 && (
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Return Address</label>
-              <select
-                value={settings.postex_return || ''}
-                onChange={e => {
-                  const code = e.target.value
-                  const selected = returnAddresses.find(a => a.addressCode === code)
-                  updateSetting({
-                    postex_return: code,
-                    postex_return_city: selected ? (selected.cityName || '').toUpperCase() : '',
-                    postex_return_address: selected ? `${selected.address} — ${selected.cityName}` : ''
-                  })
-                }}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-              >
-                <option value="">— Select Return Address —</option>
-                {returnAddresses.map(a => (
-                  <option key={a.addressCode} value={a.addressCode}>
-                    {a.address} — {a.cityName} [Code: {a.addressCode}] ({a.addressType})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {addresses.length === 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pickup Address Code</label>
-                <input
-                  value={settings.postex_pickup || ''}
-                  onChange={e => updateSetting('postex_pickup', e.target.value)}
-                  placeholder="ABC123"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono bg-white dark:bg-gray-800"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Return Address Code</label>
-                <input
-                  value={settings.postex_return || ''}
-                  onChange={e => updateSetting('postex_return', e.target.value)}
-                  placeholder="DEF456"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono bg-white dark:bg-gray-800"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Return City */}
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Return City</label>
-            <SearchableDropdown
-              value={(settings.postex_return_city || '').toUpperCase()}
-              onChange={val => updateSetting('postex_return_city', val.toUpperCase())}
-              options={cities}
-              placeholder="— Select Return City —"
-            />
-          </div>
-
-          {/* Shipment Type */}
-          {orderTypes.length > 0 ? (
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Shipment Type</label>
-              <select
-                value={settings.postex_type || 'Normal'}
-                onChange={e => updateSetting('postex_type', e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-              >
-                {orderTypes.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="mt-4">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Shipment Type</label>
-              <input
-                value={settings.postex_type || 'Normal'}
-                onChange={e => updateSetting('postex_type', e.target.value)}
-                placeholder="Normal"
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
-              />
-            </div>
-          )}
-
-          {/* Special Handling */}
-          <div className="mt-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Special Handling</label>
-            <select
-              value={settings.postex_handling || 'No'}
-              onChange={e => updateSetting('postex_handling', e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 font-medium text-gray-700 dark:text-gray-200"
-            >
-              <option value="No">Normal (Standard)</option>
-              <option value="Yes">Fragile (Careful Handling)</option>
-            </select>
-          </div>
-
-          {/* Sync & Print Rules */}
-          <div className="mt-6 pt-5 border-t border-gray-150 dark:border-gray-700">
-            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Sync & Print Rules</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_product_check === '1'}
-                  onChange={e => updateSetting('postex_product_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Print Item Name in Label</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Include parsed details on shipment invoice</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_sku_check === '1'}
-                  onChange={e => updateSetting('postex_sku_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Print SKU Name in Label</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Append items' unique code to shipping labels</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_weight_check === '1'}
-                  onChange={e => updateSetting('postex_weight_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Auto Calculate Weight</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Use AI extracted weight or fall back to default weight</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_pieces_check === '1'}
-                  onChange={e => updateSetting('postex_pieces_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Auto Calculate Pieces</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Extract quantity automatically or use defaults</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_cod_check === '1'}
-                  onChange={e => updateSetting('postex_cod_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Calculate Non-COD (Prepaid) as Zero</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Set booking amount to 0 for prepaid/advance paid orders</p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition border border-transparent hover:border-gray-100 dark:hover:border-gray-800">
-                <input
-                  type="checkbox"
-                  checked={settings.postex_notes_check === '1'}
-                  onChange={e => updateSetting('postex_notes_check', e.target.checked ? '1' : '0')}
-                  className="w-4 h-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Print Order Notes in Remarks</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Combine custom customer notes with default remarks</p>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Defaults Section */}
-        <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <SettingsIcon size={18} className="text-emerald-600 dark:text-emerald-400" />
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">Parcel Defaults</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {defaultFields.map(({ label, key, placeholder, type }) => {
-              const isDefaultItems = key === 'default_items'
-              const tooltipText = isDefaultItems
-                ? 'Default number of pieces per parcel. If left empty, it will default to 1 piece.'
-                : undefined
-
-              return (
-                <div key={key} title={tooltipText} className={isDefaultItems ? 'cursor-help' : ''}>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5 flex items-center justify-between">
-                    <span>{label}</span>
-                    {isDefaultItems && (
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 font-normal">
-                        Defaults to 1 if empty
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type={type}
-                    value={settings[key] || ''}
-                    placeholder={placeholder}
-                    onChange={e => updateSetting(key, e.target.value)}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
-                />
-              </div>
-            )
-          })}
-          </div>
-        </div>
-
-        {/* WhatsApp Notification Settings */}
-        <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <InfoIcon size={18} className="text-green-600 dark:text-green-400" />
-            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">WhatsApp Senders & Templates</h3>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">WhatsApp Message Template</label>
-              <textarea
-                value={settings.whatsapp_template || ''}
-                onChange={e => updateSetting('whatsapp_template', e.target.value)}
-                rows={3}
-                placeholder="Template text..."
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono bg-white dark:bg-gray-800"
-              />
-              <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 leading-relaxed bg-white dark:bg-gray-900 p-2.5 rounded-lg border border-gray-150 dark:border-gray-700">
-                <span className="font-semibold text-gray-500 dark:text-gray-400">Placeholder Format Guide:</span> Use 
-                <code className="mx-1 px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-blue-600 dark:text-blue-400 font-semibold">{`{name}`}</code> for customer name, 
-                <code className="mx-1 px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-blue-600 dark:text-blue-400 font-semibold">{`{url}`}</code> for PostEx tracking link, and 
-                <code className="mx-1 px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-blue-600 dark:text-blue-400 font-semibold">{`{note}`}</code> for custom remarks note.
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Default Suffix Note</label>
-              <input
-                type="text"
-                value={settings.whatsapp_note || ''}
-                onChange={e => updateSetting('whatsapp_note', e.target.value)}
-                placeholder="e.g. Thank you for shopping with us!"
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Change Password Section */}
-        {user && (
-          <div className="bg-gray-50/50 dark:bg-gray-950/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
-            <div className="flex items-center gap-2 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[18px] h-[18px] text-red-500 dark:text-red-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm uppercase tracking-wide">Security & Password</h3>
-            </div>
-            
-            <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
-              {pwError && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs rounded-xl font-medium">
-                  {pwError}
-                </div>
-              )}
-              {pwSuccess && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-300 text-xs rounded-xl font-medium">
-                  {pwSuccess}
-                </div>
-              )}
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-250 mb-1.5 pl-1">
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-850 font-mono text-gray-700 dark:text-gray-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-250 mb-1.5 pl-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-850 font-mono text-gray-700 dark:text-gray-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-250 mb-1.5 pl-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-850 font-mono text-gray-700 dark:text-gray-200"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={pwLoading}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-[#ffffff] rounded-xl text-xs font-semibold disabled:opacity-50 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-              >
-                {pwLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Updating...
-                  </>
-                ) : (
-                  <span>Update Password</span>
-                )}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Info box */}
-        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 flex gap-3">
-          <InfoIcon size={20} className="text-amber-600 dark:text-amber-400 shrink-0" />
-          <div>
-            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-0.5">CORS Note</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              PostEx API may block direct browser requests. If you see CORS errors, use the app from a Vercel deployment with a proxy, or try a CORS browser extension during development.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={handleManualSave}
+            disabled={saveStatus === 'saving'}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer disabled:opacity-50"
+            title="Save settings immediately to cloud"
+          >
+            <SaveIcon size={14} />
+            <span>{saveStatus === 'saving' ? 'Saving...' : 'Save Settings'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-900 rounded-b-2xl">
+      {/* Modern Segmented Navigation Tabs (Zero cut-off, responsive) */}
+      <div className="flex p-1 bg-slate-200/70 dark:bg-slate-900/90 rounded-2xl max-w-xl border border-slate-200/80 dark:border-slate-800/80">
         <button
-          onClick={onSave}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-[#ffffff] font-bold py-3.5 rounded-xl transition shadow-md shadow-blue-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
+          type="button"
+          onClick={() => setActiveTab('courier')}
+          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'courier'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
         >
-          <SettingsIcon size={16} />
-          <span>Save & Continue</span>
+          <TruckIcon size={15} className={activeTab === 'courier' ? 'text-emerald-500' : ''} />
+          <span>PostEx Courier</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ai')}
+          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'ai'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <BotIcon size={15} className={activeTab === 'ai' ? 'text-emerald-500' : ''} />
+          <span>AI Engine</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('security')}
+          className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === 'security'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <LockIcon size={15} className={activeTab === 'security' ? 'text-emerald-500' : ''} />
+          <span>Account Security</span>
         </button>
       </div>
+      {activeTab === 'courier' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-6">
+            
+            {/* PostEx Token */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  PostEx Merchant API Token (V3)
+                </label>
+                <a
+                  href="https://merchant.postex.pk"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold"
+                >
+                  Open Merchant Portal &rarr;
+                </a>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPostexToken ? 'text' : 'password'}
+                  value={settings.postex_token || ''}
+                  onChange={e => updateSetting('postex_token', e.target.value.trim())}
+                  placeholder="Paste your PostEx merchant token here..."
+                  className="w-full pr-24 pl-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPostexToken(!showPostexToken)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 cursor-pointer"
+                >
+                  {showPostexToken ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  onClick={handleTestConnection}
+                  disabled={testing || !settings.postex_token}
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold transition disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {testing ? (
+                    <>
+                      <SyncIcon size={14} className="animate-spin" />
+                      <span>Verifying Token...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlugIcon size={14} className="text-emerald-400" />
+                      <span>Test PostEx Connection</span>
+                    </>
+                  )}
+                </button>
+
+                {testResult && (
+                  <span className={`text-xs font-semibold ${testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {testResult.message}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Pickup & Return Address Selectors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Default Pickup Warehouse Address
+                </label>
+                {pickupAddresses.length > 0 ? (
+                  <select
+                    value={settings.postex_pickup || ''}
+                    onChange={e => {
+                      const code = e.target.value
+                      const match = pickupAddresses.find(a => a.addressCode === code)
+                      updateSetting({
+                        postex_pickup: code,
+                        postex_pickup_address: match ? `${match.address} — ${match.cityName}` : ''
+                      })
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  >
+                    <option value="">Select Pickup Address...</option>
+                    {pickupAddresses.map(a => (
+                      <option key={a.addressCode} value={a.addressCode}>
+                        {a.address} ({a.cityName})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={settings.postex_pickup || ''}
+                    onChange={e => updateSetting('postex_pickup', e.target.value)}
+                    placeholder="e.g. 001"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Return Address (Optional)
+                </label>
+                {returnAddresses.length > 0 ? (
+                  <select
+                    value={settings.postex_return || ''}
+                    onChange={e => {
+                      const code = e.target.value
+                      const match = returnAddresses.find(a => a.addressCode === code)
+                      updateSetting({
+                        postex_return: code,
+                        postex_return_address: match ? `${match.address} — ${match.cityName}` : ''
+                      })
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  >
+                    <option value="">Same as Pickup Warehouse</option>
+                    {returnAddresses.map(a => (
+                      <option key={a.addressCode} value={a.addressCode}>
+                        {a.address} ({a.cityName})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={settings.postex_return || ''}
+                    onChange={e => updateSetting('postex_return', e.target.value)}
+                    placeholder="Return address code..."
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Defaults: Weight, Items, Order Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Default Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={settings.default_weight || '0.5'}
+                  onChange={e => updateSetting('default_weight', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Default Items Count
+                </label>
+                <input
+                  type="number"
+                  value={settings.default_items || '1'}
+                  onChange={e => updateSetting('default_items', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  Order Type
+                </label>
+                <select
+                  value={settings.postex_type || 'Normal'}
+                  onChange={e => updateSetting('postex_type', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium focus:outline-none"
+                >
+                  <option value="Normal">Normal</option>
+                  <option value="Reversed">Reversed</option>
+                  <option value="Replacement">Replacement</option>
+                  <option value="Overland">Overland</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Help Box */}
+          <div className="lg:col-span-4 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 shadow-sm space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              PostEx Integration Notes
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              PostEx V3 API tokens allow instant real-time parcel dispatch. All booked CN tracking numbers are automatically mapped to your PostEx merchant portal.
+            </p>
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400">
+              <strong>Tip:</strong> Pickup address codes are fetched directly from your PostEx account. If not visible, click <em>Test PostEx Connection</em>.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 2: AI INTELLIGENCE ENGINE
+          ======================================================== */}
+      {activeTab === 'ai' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-6">
+            
+            {/* Active Provider Selector & Model Selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5 uppercase tracking-wider">
+                  Active AI Engine
+                </label>
+                <select
+                  value={activeProvider}
+                  onChange={e => {
+                    const newProvider = e.target.value
+                    const meta = PROVIDER_METADATA[newProvider]
+                    const updates: Partial<Settings> = { ai_provider: newProvider }
+                    const modelKey = `${newProvider}_model` as keyof Settings
+                    if (!settings[modelKey] || String(settings[modelKey]).includes('2.0') || String(settings[modelKey]).includes('1.5') || String(settings[modelKey]) === 'custom') {
+                      updates[modelKey] = meta?.defaultModel || ''
+                    }
+                    updateSetting(updates)
+                  }}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                >
+                  <option value="groq">Groq AI (Ultra Fast)</option>
+                  <option value="gemini">Google Gemini (Free Quota)</option>
+                  <option value="openai">OpenAI (GPT-4o)</option>
+                  <option value="anthropic">Anthropic (Claude 3.5)</option>
+                  <option value="deepseek">DeepSeek (V3 / R1)</option>
+                  <option value="openrouter">OpenRouter (Unified)</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Model Selection
+                  </label>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                    {PROVIDER_METADATA[activeProvider]?.badge}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={String(settings[activeModelField] || PROVIDER_METADATA[activeProvider]?.defaultModel || '')}
+                  onChange={e => updateSetting(activeModelField, e.target.value.trim())}
+                  placeholder="e.g. gemini-3-flash-preview"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+
+                {/* Quick Model Chips */}
+                {PROVIDER_METADATA[activeProvider]?.models && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {PROVIDER_METADATA[activeProvider].models.map(m => {
+                      const isSelected = String(settings[activeModelField]) === m || (!settings[activeModelField] && m === PROVIDER_METADATA[activeProvider].defaultModel)
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => updateSetting(activeModelField, m)}
+                          className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-semibold transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-500 text-slate-950 font-black'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* API Key Pool for Selected Provider */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  {activeProvider.toUpperCase()} API Key(s) (Rotation Pool)
+                </label>
+                
+                <div className="flex items-center gap-2.5">
+                  {/* Direct API Key Acquisition Redirect Link */}
+                  <a
+                    href={PROVIDER_METADATA[activeProvider]?.keyUrl || 'https://aistudio.google.com/app/apikey'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20 transition cursor-pointer"
+                  >
+                    <ExternalLinkIcon size={12} />
+                    <span>{PROVIDER_METADATA[activeProvider]?.keyLabel || 'Get API Key'} &rarr;</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold cursor-pointer"
+                  >
+                    {showApiKey ? 'Hide Keys' : 'Show Keys'}
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                rows={4}
+                value={String(settings[activeKeyField] || '')}
+                onChange={e => updateSetting(activeKeyField, e.target.value)}
+                placeholder={`Paste your ${activeProvider.toUpperCase()} key here...\nEnter multiple keys (one per line) for auto-failover rotation.`}
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Keys are securely encrypted and cached in your browser. Multi-key pool auto-switches on rate limits.
+              </p>
+
+              {/* Test AI Connection Button (PostEx Style) */}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleTestAiConnection}
+                  disabled={testingAi || !settings[activeKeyField]}
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                >
+                  {testingAi ? (
+                    <>
+                      <SyncIcon size={14} className="animate-spin" />
+                      <span>Testing {activeProvider.toUpperCase()}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlugIcon size={14} className="text-emerald-400" />
+                      <span>Test AI Connection</span>
+                    </>
+                  )}
+                </button>
+
+                {aiTestResult && (
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                    aiTestResult.ok 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                  }`}>
+                    {aiTestResult.message}
+                  </span>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          <div className="lg:col-span-4 bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 shadow-sm space-y-3">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              AI Engine Comparison
+            </h4>
+            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p><strong>Groq AI:</strong> Latency &lt; 600ms. Perfect for high-speed WhatsApp parsing without rate limits.</p>
+              <p><strong>Google Gemini:</strong> 1,500 free requests per day on <code>gemini-3-flash-preview</code>.</p>
+              <p><strong>DeepSeek / OpenAI:</strong> High reasoning accuracy on complex multi-line Pakistani addresses.</p>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400">
+              <strong>Built-in SMTP Notice:</strong> Mail dispatch system is built directly into the core platform for all users and auth flows.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 4: ACCOUNT SECURITY & PASSWORD
+          ======================================================== */}
+      {activeTab === 'security' && (
+        <div className="max-w-xl bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-5 sm:p-6 shadow-sm space-y-4">
+          <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+            Change Account Password
+          </h3>
+          
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            {pwError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs rounded-xl font-medium">
+                {pwError}
+              </div>
+            )}
+            {pwSuccess && (
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl font-medium">
+                {pwSuccess}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Current Password
+              </label>
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={pwLoading}
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-40"
+            >
+              {pwLoading ? 'Updating Password...' : 'Update Password'}
+            </button>
+          </form>
+        </div>
+      )}
+
     </div>
   )
 }

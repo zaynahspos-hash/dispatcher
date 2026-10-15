@@ -1,7 +1,24 @@
 import https from 'node:https';
+import fs from 'node:fs';
 
-const SUPABASE_PROJECT_REF = 'xhwqasbnsfjyxvzwueoo';
-const SUPABASE_TOKEN = 'sbp_fccc05a3d4aec534fe8f5cfb0137035d0acf5565';
+// Auto-load .env.local
+if (fs.existsSync('.env.local')) {
+  const envContent = fs.readFileSync('.env.local', 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+    if (match) {
+      const key = match[1];
+      let value = match[2] || '';
+      value = value.trim().replace(/^['"]|['"]$/g, '');
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
+
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'xhwqasbnsfjyxvzwueoo';
+const SUPABASE_TOKEN = process.argv[2] || process.env.SUPABASE_TOKEN || 'sbp_fccc05a3d4aec534fe8f5cfb0137035d0acf5565';
 const LOGO_URL = 'https://dispatcher.zaynahspos.com/apple-touch-icon.png';
 const APP_URL = 'https://dispatcher.zaynahspos.com';
 
@@ -241,6 +258,8 @@ const reauthenticationContent = createEmailTemplate({
 
 // Payload for Supabase Management API
 const payload = {
+  site_url: 'https://dispatcher.zaynahspos.com',
+  uri_allow_list: 'https://dispatcher.zaynahspos.com/**,https://dispatcher.zaynahspos.com,http://localhost:5173/**,http://localhost:5173',
   mailer_subjects_confirmation: 'Verify your Zaynahs Dispatcher account',
   mailer_subjects_recovery: 'Reset your Zaynahs Dispatcher password',
   mailer_subjects_magic_link: 'Sign in to Zaynahs Courier Dispatcher',
@@ -256,10 +275,25 @@ const payload = {
   mailer_templates_reauthentication_content: reauthenticationContent
 };
 
+// Export templates to local directory for inspection or manual dashboard paste
+try {
+  const templatesDir = 'supabase/email-templates';
+  if (!fs.existsSync(templatesDir)) fs.mkdirSync(templatesDir, { recursive: true });
+  fs.writeFileSync(`${templatesDir}/recovery.html`, recoveryContent, 'utf-8');
+  fs.writeFileSync(`${templatesDir}/confirmation.html`, confirmationContent, 'utf-8');
+  fs.writeFileSync(`${templatesDir}/magic_link.html`, magicLinkContent, 'utf-8');
+  fs.writeFileSync(`${templatesDir}/invite.html`, inviteContent, 'utf-8');
+  fs.writeFileSync(`${templatesDir}/email_change.html`, emailChangeContent, 'utf-8');
+  fs.writeFileSync(`${templatesDir}/reauthentication.html`, reauthenticationContent, 'utf-8');
+  console.log('Saved 6 branded email templates to supabase/email-templates/');
+} catch (e) {
+  console.warn('Could not save local email templates:', e.message);
+}
+
 // If SMTP settings are provided via env or arguments, attach them to enable custom SMTP & bypass free tier restriction
 const smtpHost = process.env.SMTP_HOST;
 const smtpUser = process.env.SMTP_USER;
-const smtpPass = process.env.SMTP_PASS;
+const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : undefined;
 const smtpPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465;
 const smtpAdminEmail = process.env.SMTP_ADMIN_EMAIL || smtpUser;
 const smtpSenderName = process.env.SMTP_SENDER_NAME || 'Zaynahs Courier Dispatcher';

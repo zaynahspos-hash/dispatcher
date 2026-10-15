@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { parseParcelText, Parcel, Settings } from '../utils/groqParser'
 import { BookingResult } from '../components/BookingResults'
 import { BookedParcel } from '../components/BookedHistory'
@@ -33,11 +33,65 @@ export function useParcelOperations({
   setActiveTab,
   fetchTokenUsage,
 }: UseParcelOperationsProps) {
-  const [parcels, setParcels] = useState<Parcel[]>([])
+  const [parcels, setParcels] = useState<Parcel[]>(() => {
+    try {
+      const userKey = user?.id ? `zaynah_staged_parcels_${user.id}` : 'zaynah_staged_parcels_guest'
+      const stored = localStorage.getItem(userKey) || localStorage.getItem('zaynah_staged_parcels_guest') || localStorage.getItem('staged_parcels_backup')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+        }
+      }
+    } catch (err) {
+      console.error('Error loading initial staged parcels:', err)
+    }
+    return []
+  })
   const [results, setResults] = useState<BookingResult[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [loadingLabels, setLoadingLabels] = useState(false)
+
+  const isLoadedRef = useRef(false)
+
+  // Sync staged parcels with localStorage so they survive page refreshes
+  useEffect(() => {
+    try {
+      const userKey = user?.id ? `zaynah_staged_parcels_${user.id}` : 'zaynah_staged_parcels_guest'
+      if (parcels && parcels.length > 0) {
+        const serialized = JSON.stringify(parcels)
+        localStorage.setItem(userKey, serialized)
+        localStorage.setItem('zaynah_staged_parcels_guest', serialized)
+        localStorage.setItem('staged_parcels_backup', serialized)
+      } else if (isLoadedRef.current) {
+        localStorage.removeItem(userKey)
+        localStorage.removeItem('zaynah_staged_parcels_guest')
+        localStorage.removeItem('staged_parcels_backup')
+      }
+      isLoadedRef.current = true
+    } catch (err) {
+      console.error('Error syncing staged parcels to localStorage:', err)
+    }
+  }, [parcels, user])
+
+  // Sync when user auth loads or switches
+  useEffect(() => {
+    if (user?.id) {
+      const userKey = `zaynah_staged_parcels_${user.id}`
+      const stored = localStorage.getItem(userKey) || localStorage.getItem('zaynah_staged_parcels_guest') || localStorage.getItem('staged_parcels_backup')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0 && parcels.length === 0) {
+            setParcels(parsed)
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  }, [user])
 
   function splitTextByOrders(text: string): string[] {
     const phoneRegex = /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/g;
@@ -153,6 +207,7 @@ export function useParcelOperations({
               weight: parcel.weight,
               detail: parcel.detail,
               note: parcel.note,
+              orderType: parcel.orderType || 'Normal',
               tracking: res.dist.trackingNumber,
               bookingDate: new Date().toISOString(),
               status: 'UNBOOKED'

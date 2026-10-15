@@ -25,7 +25,7 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
   }
 
   return (
-    <div className="mb-4 p-3.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 text-slate-900 dark:text-gray-100 rounded-2xl shadow-sm flex items-center justify-between gap-3 transition-all duration-300">
+    <div className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 text-slate-900 dark:text-gray-100 rounded-2xl shadow-sm flex items-center justify-between gap-3 transition-all duration-300">
       <div className="flex items-center gap-2.5 min-w-0">
         <img 
           src="/favicon-96x96.png?v=20261014" 
@@ -34,10 +34,10 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
           alt="App Logo" 
         />
         <div className="min-w-0">
-          <h4 className="text-xs sm:text-sm font-bold text-blue-900 dark:text-blue-400 leading-snug">
+          <h4 className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-300 leading-snug">
             Install Zaynahs Courier App
           </h4>
-          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-gray-300 leading-tight">
+          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-emerald-100/70 leading-tight">
             Apne phone par full-screen use karne ke liye app install karein.
           </p>
         </div>
@@ -46,14 +46,14 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
         {isInstallable ? (
           <button
             onClick={onInstall}
-            className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
+            className="text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
           >
             Install
           </button>
         ) : isIOS ? (
           <button
             onClick={onOpenIOSGuide}
-            className="text-[10px] sm:text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
+            className="text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
           >
             iOS Guide
           </button>

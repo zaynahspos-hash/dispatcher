@@ -211,7 +211,7 @@ export default function AdminPanel() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <svg className="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -292,26 +292,26 @@ export default function AdminPanel() {
     <div className="w-full space-y-6">
       
       {/* Overview stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Total Merchants</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-2">{totalUsers}</span>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Merchants</span>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1.5">{totalUsers}</span>
         </div>
-        <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Active Today</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-2">{activeUsersTodayCount}</span>
+        <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active Today</span>
+          <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1.5">{activeUsersTodayCount}</span>
         </div>
-        <div className="bg-gradient-to-br from-purple-500/10 to-fuchsia-500/5 dark:from-purple-900/20 dark:to-fuchsia-900/20 border border-purple-100 dark:border-purple-900/50 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600">Total AI Parses</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-2">{totalAIparses}</span>
+        <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-500">Total AI Parses</span>
+          <span className="text-2xl font-black font-mono text-cyan-600 dark:text-cyan-400 mt-1.5">{totalAIparses}</span>
         </div>
-        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-100 dark:border-amber-900/50 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600">Total Booked</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-2">{totalBookings}</span>
+        <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">Total Booked</span>
+          <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1.5">{totalBookings}</span>
         </div>
-        <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/5 dark:from-rose-900/20 dark:to-pink-900/20 border border-rose-100 dark:border-rose-900/50 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600">Total Customers</span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white mt-2">{totalCustomers}</span>
+        <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500">Total Customers</span>
+          <span className="text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-1.5">{totalCustomers}</span>
         </div>
       </div>
 
@@ -321,7 +321,7 @@ export default function AdminPanel() {
           onClick={() => setAdminTab('merchants')}
           className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             adminTab === 'merchants'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              ? 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400'
               : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-650 dark:hover:text-gray-300'
           }`}
         >
@@ -331,7 +331,7 @@ export default function AdminPanel() {
           onClick={() => setAdminTab('customers')}
           className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             adminTab === 'customers'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              ? 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400'
               : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-650 dark:hover:text-gray-300'
           }`}
         >
@@ -364,7 +364,7 @@ export default function AdminPanel() {
                   value={filterEmail}
                   onChange={e => setFilterEmail(e.target.value)}
                   placeholder="Search email address..."
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800"
                 />
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-2.5">
                   <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
@@ -385,7 +385,7 @@ export default function AdminPanel() {
                       key={u.id}
                       onClick={() => handleSelectUser(u)}
                       className={`w-full text-left p-3.5 flex items-center justify-between transition-colors cursor-pointer ${
-                        isSelected ? 'bg-blue-50/70 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 pl-2.5' : 'hover:bg-slate-50 dark:hover:bg-gray-800'
+                        isSelected ? 'bg-emerald-50/70 dark:bg-emerald-900/30 border-l-4 border-emerald-500 dark:border-emerald-400 pl-2.5' : 'hover:bg-slate-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       <div className="min-w-0 pr-2">
@@ -572,15 +572,15 @@ export default function AdminPanel() {
                     <div>
                       <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">📍 Pickup & Return Addresses</h4>
                       <div className="space-y-2.5">
-                        <div className="p-3 bg-blue-50/60 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
-                          <p className="text-[9px] text-blue-500 dark:text-blue-400 font-bold uppercase mb-1">Pickup Address</p>
+                        <div className="p-3 bg-emerald-50/60 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl">
+                          <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase mb-1">Pickup Address</p>
                           <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 leading-relaxed">
                             {selectedUser.settings?.settings?.postex_pickup
                               ? `Code: ${selectedUser.settings.settings.postex_pickup}`
                               : <span className="italic text-gray-400 dark:text-gray-500 font-normal">Not configured</span>}
                           </p>
                           {(selectedUser.settings?.settings?.postex_pickup_address || selectedUser.settings?.settings?.senderAddress) && (
-                            <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-1 font-mono bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/20">
+                            <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-1 font-mono bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded border border-emerald-100 dark:border-emerald-900/20">
                               {selectedUser.settings.settings.postex_pickup_address || selectedUser.settings.settings.senderAddress}
                             </p>
                           )}
@@ -709,7 +709,7 @@ export default function AdminPanel() {
                                   l.action === 'order_booked'
                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                                     : l.action === 'order_parsed'
-                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                                     : l.action === 'order_cancelled'
                                     ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                                     : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
@@ -747,7 +747,7 @@ export default function AdminPanel() {
                                 onClick={() => setLogsPage(p)}
                                 className={`w-6 h-6 text-[10px] font-bold rounded-md transition cursor-pointer ${
                                   p === logsPage
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-emerald-600 text-white'
                                     : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                               >
@@ -808,7 +808,7 @@ export default function AdminPanel() {
                 value={filterCustomer}
                 onChange={e => setFilterCustomer(e.target.value)}
                 placeholder="Search by customer name or phone number..."
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800"
               />
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3 top-3.5">
                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
@@ -823,7 +823,7 @@ export default function AdminPanel() {
                 <select
                   value={filterMerchant}
                   onChange={e => setFilterMerchant(e.target.value)}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
                 >
                   <option value="all">All Merchants</option>
                   {users.map(u => (
@@ -839,7 +839,7 @@ export default function AdminPanel() {
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
                 />
               </div>
 
@@ -850,7 +850,7 @@ export default function AdminPanel() {
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800 font-medium text-gray-700 dark:text-gray-200 h-9"
                 />
               </div>
 

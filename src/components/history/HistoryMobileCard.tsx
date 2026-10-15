@@ -49,7 +49,7 @@ export function HistoryMobileCard({
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex flex-col gap-3 hover:border-blue-400 transition">
+    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex flex-col gap-3 hover:border-emerald-500 transition">
       {/* Top Row: Checkbox, Name, Status Badge, Sync */}
       <div className="flex items-start justify-between border-b border-gray-200/50 dark:border-gray-700/50 pb-2">
         <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export function HistoryMobileCard({
             type="checkbox"
             checked={isSelected}
             onChange={e => onToggleSelect(parcel.tracking, e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+            className="w-4 h-4 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500"
           />
           <div>
             {isEditing ? (
@@ -66,7 +66,7 @@ export function HistoryMobileCard({
                   type="text"
                   value={editingName}
                   onChange={e => setEditingName(e.target.value)}
-                  className="px-2 py-1 text-xs border rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-blue-500 w-full max-w-[120px]"
+                  className="px-2 py-1 text-xs border rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-emerald-500 w-full max-w-[120px]"
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === 'Enter') handleCommitName()
@@ -97,7 +97,7 @@ export function HistoryMobileCard({
                     setEditingName(parcel.name)
                     setIsEditing(true)
                   }}
-                  className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:text-blue-400 transition cursor-pointer"
+                  className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:text-emerald-400 transition cursor-pointer"
                   title="Edit Name"
                 >
                   ✏️
@@ -126,11 +126,11 @@ export function HistoryMobileCard({
             type="button"
             onClick={() => onSyncStatus(parcel.tracking)}
             disabled={isSyncing}
-            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:text-blue-400 transition disabled:opacity-50 cursor-pointer text-xs flex items-center justify-center"
+            className="text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:text-emerald-400 transition disabled:opacity-50 cursor-pointer text-xs flex items-center justify-center"
             title="Sync Status"
           >
             {isSyncing ? (
-              <svg className="animate-spin h-3.5 w-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -149,7 +149,7 @@ export function HistoryMobileCard({
             href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 hover:underline font-bold font-mono"
+            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono"
           >
             {parcel.tracking}
           </a>

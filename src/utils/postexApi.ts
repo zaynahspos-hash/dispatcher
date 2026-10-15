@@ -190,6 +190,15 @@ export async function createOrder(token: string, parcel: Parcel, settings: Setti
     returnCode = pickupCode
   }
 
+  // PostEx V3 create-order strictly accepts ONLY 'Normal' or 'Replacement'
+  let safeOrderType: 'Normal' | 'Replacement' = 'Normal'
+  const rawType = String(parcel.orderType || settings.postex_type || 'Normal').trim().toLowerCase()
+  if (rawType.includes('replace') || rawType.includes('exchange')) {
+    safeOrderType = 'Replacement'
+  } else {
+    safeOrderType = 'Normal'
+  }
+
   const body = {
     cityName: parcel.city,
     customerName: parcel.name,
@@ -200,7 +209,7 @@ export async function createOrder(token: string, parcel: Parcel, settings: Setti
     items: items,
     orderDetail: deliveryDetail,
     orderRefNumber: parcel.id,
-    orderType: settings.postex_type || parcel.orderType || 'Normal',
+    orderType: safeOrderType,
     transactionNotes: remarks,
     pickupAddressCode: pickupCode,
     weight: weight,
