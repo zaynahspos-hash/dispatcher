@@ -5,11 +5,8 @@ const { Pool } = pg;
 let pool;
 function getPool() {
   if (!pool) {
-    const dbPassword = process.env.SUPABASE_DB_PASSWORD;
+    const dbPassword = process.env.SUPABASE_DB_PASSWORD || 'Zd!q)m0ba+FhWCFjd$wH!t&9#';
     const projectRef = process.env.SUPABASE_PROJECT_REF || 'xhwqasbnsfjyxvzwueoo';
-    if (!dbPassword) {
-      throw new Error('SUPABASE_DB_PASSWORD environment variable is missing.');
-    }
     pool = new Pool({
       connectionString: `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`,
       ssl: { rejectUnauthorized: false },

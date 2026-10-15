@@ -92,9 +92,11 @@ export default async function handler(req, res) {
       await db.query(
         `INSERT INTO auth.users (
            id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-           raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+           raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+           confirmation_token, recovery_token, email_change, email_change_token_new,
+           email_change_token_current, phone_change, phone_change_token
          ) VALUES (
-           $1,
+           $1::uuid,
            '00000000-0000-0000-0000-000000000000',
            'authenticated',
            'authenticated',
@@ -104,7 +106,8 @@ export default async function handler(req, res) {
            '{"provider":"email","providers":["email"]}'::jsonb,
            jsonb_build_object('role', $4::text),
            NOW(),
-           NOW()
+           NOW(),
+           '', '', '', '', '', '', ''
          )`,
         [userId, cleanEmail, cleanPassword, role]
       );
@@ -115,17 +118,16 @@ export default async function handler(req, res) {
       `INSERT INTO auth.identities (
          id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
        ) VALUES (
-         $1,
-         $1,
-         jsonb_build_object('sub', $1::text, 'email', $2::text),
+         gen_random_uuid(),
+         $1::uuid,
+         jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true, 'phone_verified', false),
          'email',
-         $2,
+         $1::text,
          NOW(),
          NOW(),
          NOW()
-       ) ON CONFLICT (provider, provider_id) DO UPDATE
-       SET user_id = EXCLUDED.user_id,
-           updated_at = NOW()`,
+       ) ON CONFLICT (provider_id, provider) DO UPDATE
+       SET updated_at = NOW()`,
       [userId, cleanEmail]
     );
 
