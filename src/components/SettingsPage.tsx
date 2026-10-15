@@ -848,26 +848,92 @@ export default function SettingsPage({ settings, updateSetting, onSave, cities, 
           ======================================================== */}
       {activeTab === 'security' && (
         <div className="max-w-xl space-y-4">
-          {/* User Account Profile Card with Avatar */}
+          {/* User Account Profile Card with Avatar & Upload */}
           {user && (
-            <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-4 sm:p-5 shadow-sm flex items-center gap-3.5">
-              <UserAvatar email={user.email} size="lg" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
-                    {user.email?.split('@')[0]}
-                  </h3>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase tracking-wider">
-                    Merchant Account
-                  </span>
+            <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-4 sm:p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-3.5">
+                <div className="relative group shrink-0">
+                  <UserAvatar email={user.email} avatarUrl={settings.avatar_url} size="lg" />
+                  <label
+                    htmlFor="avatar-file-input"
+                    className="absolute inset-0 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer text-[10px] font-bold"
+                    title="Change Profile Photo"
+                  >
+                    Edit
+                  </label>
+                  <input
+                    id="avatar-file-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 2 * 1024 * 1024) {
+                        toast.error('Image is too large. Please select an image under 2MB.')
+                        return
+                      }
+                      const reader = new FileReader()
+                      reader.onload = (loadEvt) => {
+                        const img = new Image()
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas')
+                          const size = 160
+                          canvas.width = size
+                          canvas.height = size
+                          const ctx = canvas.getContext('2d')
+                          if (ctx) {
+                            const minDim = Math.min(img.width, img.height)
+                            const sx = (img.width - minDim) / 2
+                            const sy = (img.height - minDim) / 2
+                            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+                            updateSetting('avatar_url', dataUrl)
+                            toast.success('Profile avatar updated successfully!')
+                          }
+                        }
+                        img.src = loadEvt.target?.result as string
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                  />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
-                  {user.email}
-                </p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                  Avatar synced with Gmail / Gravatar
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                      {user.email?.split('@')[0]}
+                    </h3>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase tracking-wider">
+                      Merchant Account
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                    {user.email}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <label
+                      htmlFor="avatar-file-input"
+                      className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2"
+                    >
+                      {settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
+                    </label>
+                    {settings.avatar_url && (
+                      <>
+                        <span className="text-slate-300 dark:text-slate-700">•</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSetting('avatar_url', '')
+                            toast.info('Custom photo removed. Synced with Gravatar/Gmail.')
+                          }}
+                          className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}

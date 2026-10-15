@@ -110,6 +110,25 @@ export default async function handler(req, res) {
       );
     }
 
+    // CRITICAL: Ensure identity exists in auth.identities so GoTrue Auth can authenticate
+    await db.query(
+      `INSERT INTO auth.identities (
+         id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+       ) VALUES (
+         $1,
+         $1,
+         jsonb_build_object('sub', $1::text, 'email', $2::text),
+         'email',
+         $2,
+         NOW(),
+         NOW(),
+         NOW()
+       ) ON CONFLICT (provider, provider_id) DO UPDATE
+       SET user_id = EXCLUDED.user_id,
+           updated_at = NOW()`,
+      [userId, cleanEmail]
+    );
+
     // Ensure sync into public.users and public.user_settings
     await db.query(
       `INSERT INTO public.users (id, email, role, created_at, updated_at)

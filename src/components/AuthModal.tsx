@@ -126,34 +126,67 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        let registerSuccess = false
-        try {
-          const res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email.trim(), password })
-          })
-          const regJson = await res.json()
-          if (res.ok && regJson.success) {
-            registerSuccess = true
-          }
-        } catch {
-          // Fallback
-        }
+        const cleanEmail = email.trim().toLowerCase()
 
-        if (!registerSuccess) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-          })
-          if (signUpError && signUpError.status !== 429) {
-            throw signUpError
+        // 1. First attempt direct Supabase sign up (auto-confirms and returns session immediately)
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+        })
+
+        if (!signUpError && signUpData?.user) {
+          if (signUpData.session) {
+            await ensureUserProfile(signUpData.user)
+            localStorage.setItem('has_logged_in', 'true')
+            setSuccessMsg('Account created successfully! Logging you in...')
+            setTimeout(() => {
+              onSuccess()
+              onClose()
+            }, 600)
+            return
           }
         }
 
-        // Instantly sign in
+        // 2. If email is already registered, attempt auto sign-in or advise user
+        if (signUpError) {
+          const errText = (signUpError.message || '').toLowerCase()
+          if (errText.includes('already registered') || errText.includes('already exists') || signUpData?.user?.identities?.length === 0) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            })
+            if (!signInError && signInData?.user) {
+              await ensureUserProfile(signInData.user)
+              localStorage.setItem('has_logged_in', 'true')
+              setSuccessMsg('Welcome back! Logging you in...')
+              setTimeout(() => {
+                onSuccess()
+                onClose()
+              }, 600)
+              return
+            }
+            throw new Error('This email is already registered. Please sign in or click "Forgot password?".')
+          }
+
+          // 3. If rate-limited (429), use serverless registration fallback
+          try {
+            const res = await fetch('/api/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password })
+            })
+            const regJson = await res.json()
+            if (!res.ok) {
+              throw new Error(regJson.error || 'Registration failed.')
+            }
+          } catch (e: any) {
+            throw new Error(e.message || signUpError.message)
+          }
+        }
+
+        // 4. Complete login session
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         })
 
@@ -166,7 +199,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
           setTimeout(() => {
             onSuccess()
             onClose()
-          }, 800)
+          }, 600)
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({

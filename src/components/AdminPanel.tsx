@@ -390,7 +390,7 @@ export default function AdminPanel() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <UserAvatar email={u.email} size="sm" />
+                        <UserAvatar email={u.email} avatarUrl={u.settings?.avatar_url || u.settings?.settings?.avatar_url} size="sm" />
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{u.email}</p>
                           <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
@@ -421,7 +421,7 @@ export default function AdminPanel() {
               <div className="bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 rounded-2xl shadow-xs overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
                       <div className="flex items-center gap-3 min-w-0">
-                        <UserAvatar email={selectedUser.email} size="md" />
+                        <UserAvatar email={selectedUser.email} avatarUrl={selectedUser.settings?.avatar_url || selectedUser.settings?.settings?.avatar_url} size="md" />
                         <div className="min-w-0">
                           <h3 className="font-bold text-gray-900 dark:text-white text-sm">Merchant Configuration</h3>
                           <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{selectedUser.email}</p>

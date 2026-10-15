@@ -334,6 +334,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         operationalCitiesCount={operationalCities.length}
+        avatarUrl={settings.avatar_url || user?.user_metadata?.avatar_url}
       >
         {/* PWA Install Banner (Mobile-friendly, dismissible) */}
         <MobileInstallBanner

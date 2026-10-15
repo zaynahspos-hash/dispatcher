@@ -40,6 +40,7 @@ const DEFAULTS: Settings = {
   mistral_model: 'ministral-3b-2512',
   whatsapp_template: 'Dear {name}, your order has been booked. You can track it here: {url}\n{note}',
   whatsapp_note: 'Thank you for shopping with us!',
+  avatar_url: '',
 }
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────

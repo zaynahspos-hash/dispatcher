@@ -23,6 +23,7 @@ interface AppLayoutProps {
   theme: 'light' | 'dark'
   onToggleTheme: () => void
   operationalCitiesCount?: number
+  avatarUrl?: string
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
@@ -41,7 +42,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onInstallApp,
   theme,
   onToggleTheme,
-  operationalCitiesCount = 500
+  operationalCitiesCount = 500,
+  avatarUrl
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -230,7 +232,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {user && (
             <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/80 shadow-xs">
               <div className="flex items-center gap-2 min-w-0 pr-1">
-                <UserAvatar email={user.email} size="sm" />
+                <UserAvatar email={user.email} avatarUrl={avatarUrl} size="sm" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                     {user.email?.split('@')[0]}
@@ -393,9 +395,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 className="w-8.5 h-8.5 sm:w-auto sm:p-1 sm:pl-1.5 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center sm:justify-start gap-2 transition cursor-pointer active:scale-95 shadow-xs"
                 title={user.email}
               >
-                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center">
-                  {user.email ? user.email[0].toUpperCase() : 'U'}
-                </div>
+                <UserAvatar email={user.email} avatarUrl={avatarUrl} size="xs" />
                 <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
                   {user.email?.split('@')[0]}
                 </span>
@@ -531,9 +531,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             {user && (
               <div className="mx-3 mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-xs flex items-center justify-center shrink-0">
-                    {user.email ? user.email[0].toUpperCase() : 'U'}
-                  </div>
+                  <UserAvatar email={user.email} avatarUrl={avatarUrl} size="sm" />
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                       {user.email?.split('@')[0]}

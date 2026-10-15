@@ -54,6 +54,7 @@ export interface Settings {
   mistral_model?: string
   whatsapp_template?: string
   whatsapp_note?: string
+  avatar_url?: string
 }
 
 export interface ParseResult {
