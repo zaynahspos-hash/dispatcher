@@ -14,6 +14,9 @@ interface HistoryMobileCardListProps {
   onOpenAdvice: (parcel: BookedParcel) => void
   whatsappNote?: string
   whatsappTemplate?: string
+  isWhatsAppSent?: (tracking: string, id?: string) => boolean
+  onMarkWhatsAppSent?: (tracking: string, id?: string) => void
+  onToggleWhatsAppSent?: (tracking: string) => void
 }
 
 export function HistoryMobileCardList({
@@ -27,7 +30,10 @@ export function HistoryMobileCardList({
   handleCancelSingle,
   onOpenAdvice,
   whatsappNote,
-  whatsappTemplate
+  whatsappTemplate,
+  isWhatsAppSent,
+  onMarkWhatsAppSent,
+  onToggleWhatsAppSent
 }: HistoryMobileCardListProps) {
   return (
     <div className="lg:hidden flex flex-col gap-3">
@@ -76,6 +82,9 @@ export function HistoryMobileCardList({
           onOpenAdvice={onOpenAdvice}
           whatsappNote={whatsappNote}
           whatsappTemplate={whatsappTemplate}
+          isWhatsAppSent={isWhatsAppSent ? (isWhatsAppSent(parcel.tracking, parcel.id)) : false}
+          onMarkWhatsAppSent={onMarkWhatsAppSent}
+          onToggleWhatsAppSent={onToggleWhatsAppSent}
         />
       ))}
     </div>

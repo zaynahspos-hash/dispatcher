@@ -9,6 +9,7 @@ import { ResultsFilterBar, ResultsStatusFilter } from './results/ResultsFilterBa
 import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
+import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 
 export interface BookingResult {
   id: string
@@ -66,6 +67,8 @@ export default function BookingResults({
   const [expandDefaults, setExpandDefaults] = useState<boolean>(() => {
     return localStorage.getItem('zaynah_results_expand_defaults') === 'true'
   })
+
+  const waTracker = useWhatsAppSentTracker(settings?.postex_token)
 
   const handleToggleExpandDefaults = () => {
     setExpandDefaults(prev => {
@@ -359,6 +362,9 @@ export default function BookingResults({
             cities={cities}
             orderTypes={ORDER_TYPES}
             expandDefaults={expandDefaults}
+            isWhatsAppSent={waTracker.isSent}
+            onMarkWhatsAppSent={waTracker.markSent}
+            onToggleWhatsAppSent={waTracker.toggleSent}
           />
 
           <ResultsMobileCardList
@@ -372,6 +378,9 @@ export default function BookingResults({
             onCancelShipment={onCancelShipment ? handleCancel : undefined}
             cancellingTracking={cancellingTracking}
             getWhatsAppLink={getWhatsAppLink}
+            isWhatsAppSent={waTracker.isSent}
+            onMarkWhatsAppSent={waTracker.markSent}
+            onToggleWhatsAppSent={waTracker.toggleSent}
           />
         </>
       )}

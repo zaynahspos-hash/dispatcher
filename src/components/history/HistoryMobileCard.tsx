@@ -1,4 +1,4 @@
-import { SyncIcon, CancelIcon, InfoIcon } from '../Icons'
+import { SyncIcon, CancelIcon, InfoIcon, WhatsAppIcon } from '../Icons'
 import {
   BookedParcel,
   isCancelledStatus,
@@ -19,6 +19,9 @@ interface HistoryMobileCardProps {
   onOpenAdvice: (parcel: BookedParcel) => void
   whatsappNote?: string
   whatsappTemplate?: string
+  isWhatsAppSent?: boolean
+  onMarkWhatsAppSent?: (tracking: string, id?: string) => void
+  onToggleWhatsAppSent?: (tracking: string) => void
 }
 
 export function HistoryMobileCard({
@@ -30,7 +33,10 @@ export function HistoryMobileCard({
   onCancel,
   onOpenAdvice,
   whatsappNote,
-  whatsappTemplate
+  whatsappTemplate,
+  isWhatsAppSent,
+  onMarkWhatsAppSent,
+  onToggleWhatsAppSent
 }: HistoryMobileCardProps) {
   return (
     <div className="bg-white dark:bg-[#0c121e] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition">
@@ -44,7 +50,18 @@ export function HistoryMobileCard({
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500"
           />
           <div>
-            <div className="font-semibold text-slate-900 dark:text-white text-sm">{parcel.name}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-slate-900 dark:text-white text-sm">{parcel.name}</span>
+              {isWhatsAppSent ? (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                  Sent ✓
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
+                  WA Pending
+                </span>
+              )}
+            </div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">{parcel.phone}</div>
           </div>
         </div>
@@ -137,9 +154,7 @@ export function HistoryMobileCard({
             className="flex-1 max-w-[120px] bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs cursor-not-allowed opacity-50"
             title="WhatsApp link disabled for cancelled orders"
           >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.595-1.006-5.035-2.834-6.867-1.829-1.83-4.269-2.837-6.87-2.839-5.439 0-9.866 4.372-9.87 9.733-.001 1.73.465 3.418 1.348 4.908l-.993 3.629 3.73-.977z" />
-            </svg>
+            <WhatsAppIcon size={14} className="fill-current" />
             <span>WhatsApp</span>
           </div>
         ) : (
@@ -147,12 +162,23 @@ export function HistoryMobileCard({
             href={getWhatsAppLink(parcel, whatsappNote, whatsappTemplate)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 max-w-[120px] bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-600 font-semibold py-1.5 rounded-lg transition flex items-center justify-center gap-1.5 text-xs cursor-pointer shadow-2xs"
+            onClick={e => {
+              if (e.altKey) {
+                e.preventDefault()
+                onToggleWhatsAppSent?.(parcel.tracking)
+              } else {
+                onMarkWhatsAppSent?.(parcel.tracking, parcel.id)
+              }
+            }}
+            className={`flex-1 max-w-[120px] font-bold py-1.5 px-2.5 rounded-lg transition flex items-center justify-center gap-1.5 text-xs cursor-pointer shadow-2xs active:scale-95 ${
+              isWhatsAppSent
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
+                : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+            }`}
+            title={isWhatsAppSent ? 'WhatsApp Sent ✓ • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Message (Pending)'}
           >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.595-1.006-5.035-2.834-6.867-1.829-1.83-4.269-2.837-6.87-2.839-5.439 0-9.866 4.372-9.87 9.733-.001 1.73.465 3.418 1.348 4.908l-.993 3.629 3.73-.977z" />
-            </svg>
-            <span>WhatsApp</span>
+            <WhatsAppIcon size={14} className="fill-current" />
+            <span>{isWhatsAppSent ? 'Sent ✓' : 'WhatsApp'}</span>
           </a>
         )}
         {isCancellable(parcel.status) && (

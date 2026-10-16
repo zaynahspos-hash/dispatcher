@@ -9,6 +9,8 @@ interface UseBookedHistoryFilterProps {
   toDate: string
   statusSelect: string
   pickupFilter: string
+  whatsappFilter?: 'all' | 'pending' | 'sent'
+  isWhatsAppSent?: (tracking: string, id?: string) => boolean
 }
 
 export function useBookedHistoryFilter({
@@ -18,7 +20,9 @@ export function useBookedHistoryFilter({
   fromDate,
   toDate,
   statusSelect,
-  pickupFilter
+  pickupFilter,
+  whatsappFilter = 'all',
+  isWhatsAppSent
 }: UseBookedHistoryFilterProps) {
   // Dynamic counts for status tabs based on history
   const counts = useMemo(() => {
@@ -29,6 +33,8 @@ export function useBookedHistoryFilter({
     let delivered = 0
     let returned = 0
     let cancelled = 0
+    let waSent = 0
+    let waPending = 0
 
     history.forEach(h => {
       const cat = getStatusCategory(h.status, h.tracking)
@@ -38,10 +44,16 @@ export function useBookedHistoryFilter({
       else if (cat === 'delivered') delivered++
       else if (cat === 'returned') returned++
       else if (cat === 'cancelled') cancelled++
+
+      if (isWhatsAppSent && (isWhatsAppSent(h.tracking, h.id))) {
+        waSent++
+      } else {
+        waPending++
+      }
     })
 
-    return { all, pendingLoadsheet, booked, inTransit, delivered, returned, cancelled }
-  }, [history])
+    return { all, pendingLoadsheet, booked, inTransit, delivered, returned, cancelled, waSent, waPending }
+  }, [history, isWhatsAppSent])
 
   // Filter and sort logic
   const filteredParcels = useMemo(() => {
@@ -89,9 +101,15 @@ export function useBookedHistoryFilter({
         if (item.city.toUpperCase() !== pickupFilter.toUpperCase()) return false
       }
 
+      if (whatsappFilter && whatsappFilter !== 'all' && isWhatsAppSent) {
+        const sent = isWhatsAppSent(item.tracking, item.id)
+        if (whatsappFilter === 'sent' && !sent) return false
+        if (whatsappFilter === 'pending' && sent) return false
+      }
+
       return true
     }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
-  }, [history, statusFilter, searchQuery, fromDate, toDate, statusSelect, pickupFilter])
+  }, [history, statusFilter, searchQuery, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
 
   return { counts, filteredParcels }
 }

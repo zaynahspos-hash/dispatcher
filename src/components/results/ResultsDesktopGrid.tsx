@@ -17,24 +17,15 @@ interface ResultsDesktopGridProps {
   cities: string[]
   orderTypes: Array<{ value: string; label: string }>
   expandDefaults?: boolean
+  isWhatsAppSent?: (key?: string | null) => boolean
+  onMarkWhatsAppSent?: (tracking?: string | null, id?: string | null) => void
+  onToggleWhatsAppSent?: (key?: string | null) => void
 }
 
 const DEFAULT_RESULTS_WIDTHS = {
-  checkbox: 44,
-  index: 40,
-  refId: 105,
-  customer: 155,
-  phone: 125,
-  city: 135,
-  address: 240,
-  cod: 105,
-  orderType: 115,
-  weight: 75,
-  detail: 140,
-  note: 170,
-  copies: 65,
-  statusTracking: 160,
-  actions: 110
+  checkbox: 44, index: 40, refId: 105, customer: 155, phone: 125, city: 135,
+  address: 240, cod: 105, orderType: 115, weight: 75, detail: 140, note: 170,
+  copies: 65, statusTracking: 160, actions: 110
 }
 
 export function ResultsDesktopGrid({
@@ -49,7 +40,10 @@ export function ResultsDesktopGrid({
   cancellingTracking,
   getWhatsAppLink,
   orderTypes,
-  expandDefaults
+  expandDefaults,
+  isWhatsAppSent,
+  onMarkWhatsAppSent,
+  onToggleWhatsAppSent
 }: ResultsDesktopGridProps) {
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'results_desktop_grid_col_widths',
@@ -68,23 +62,12 @@ export function ResultsDesktopGrid({
           style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}
         >
           <colgroup>
-            <col style={{ width: `${widths.checkbox}px` }} />
-            <col style={{ width: `${widths.index}px` }} />
-            <col style={{ width: `${widths.refId}px` }} />
-            <col style={{ width: `${widths.customer}px` }} />
-            <col style={{ width: `${widths.phone}px` }} />
-            <col style={{ width: `${widths.city}px` }} />
-            <col style={{ width: `${widths.address}px` }} />
-            <col style={{ width: `${widths.cod}px` }} />
-            <col style={{ width: `${widths.orderType}px` }} />
-            {expandDefaults && (
-              <>
-                <col style={{ width: `${widths.weight || 75}px` }} />
-                <col style={{ width: `${widths.detail || 140}px` }} />
-                <col style={{ width: `${widths.note || 170}px` }} />
-                <col style={{ width: `${widths.copies || 65}px` }} />
-              </>
-            )}
+            {[widths.checkbox, widths.index, widths.refId, widths.customer, widths.phone, widths.city, widths.address, widths.cod, widths.orderType].map((w, idx) => (
+              <col key={idx} style={{ width: `${w}px` }} />
+            ))}
+            {expandDefaults && [widths.weight || 75, widths.detail || 140, widths.note || 170, widths.copies || 65].map((w, idx) => (
+              <col key={`def_${idx}`} style={{ width: `${w}px` }} />
+            ))}
             <col style={{ width: `${widths.statusTracking}px` }} />
             <col style={{ width: `${widths.actions}px` }} />
           </colgroup>
@@ -171,6 +154,7 @@ export function ResultsDesktopGrid({
               const isCancelled = r.status === 'cancelled'
               const isError = r.status === 'error'
               const isChecked = selected ? selected.has(r.id) : false
+              const isSent = isWhatsAppSent ? (isWhatsAppSent(r.tracking) || isWhatsAppSent(r.id)) : false
 
               return (
                 <tr
@@ -337,10 +321,25 @@ export function ResultsDesktopGrid({
                         href={getWhatsAppLink(r)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-7 h-7 rounded-lg border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-2xs"
-                        title="Send WhatsApp Order Update"
+                        onClick={e => {
+                          if (e.altKey) {
+                            e.preventDefault()
+                            onToggleWhatsAppSent?.(r.tracking || r.id)
+                          } else {
+                            onMarkWhatsAppSent?.(r.tracking, r.id)
+                          }
+                        }}
+                        className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center transition shadow-2xs relative active:scale-95 ${
+                          isSent
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
+                            : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
+                        }`}
+                        title={isSent ? 'WhatsApp Sent ✓ • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Order Update (Pending)'}
                       >
-                        <WhatsAppIcon size={14} />
+                        <WhatsAppIcon size={14} className="fill-current" />
+                        {isSent && (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full" />
+                        )}
                       </a>
 
                       {/* Book Single if not booked */}
@@ -348,7 +347,7 @@ export function ResultsDesktopGrid({
                         <button
                           type="button"
                           onClick={() => onBookSingle(r)}
-                          className="h-7 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-2xs transition flex items-center gap-1 active:scale-95"
+                          className="h-7.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-2xs transition flex items-center gap-1 active:scale-95"
                           title="Book on PostEx V3"
                         >
                           <SyncIcon size={11} />
@@ -366,7 +365,7 @@ export function ResultsDesktopGrid({
                             }
                           }}
                           disabled={cancellingTracking.includes(r.tracking || '')}
-                          className="w-7 h-7 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-100 transition shadow-2xs disabled:opacity-50"
+                          className="w-7.5 h-7.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-100 transition shadow-2xs disabled:opacity-50 active:scale-95"
                           title="Cancel Shipment"
                         >
                           <CancelIcon size={12} />
@@ -377,7 +376,7 @@ export function ResultsDesktopGrid({
                       <button
                         type="button"
                         onClick={() => onDelete(r.id)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 flex items-center justify-center transition shadow-2xs"
+                        className="w-7.5 h-7.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 flex items-center justify-center transition shadow-2xs active:scale-95"
                         title="Delete Row"
                       >
                         <TrashIcon size={12} />

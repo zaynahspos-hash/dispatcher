@@ -10,6 +10,7 @@ import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
 import { useResizableColumns } from '../hooks/useResizableColumns'
+import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 
 export type { BookedParcel }
 
@@ -53,6 +54,9 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
   const [statusSelect, setStatusSelect] = useState('all')
   const [pickupFilter, setPickupFilter] = useState('all')
   const [pageSize, setPageSize] = useState<number>(100)
+  const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
+
+  const waTracker = useWhatsAppSentTracker(settings?.postex_token)
 
   const handleClearFilters = () => {
     setSearchQuery('')
@@ -60,6 +64,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
     setToDate('')
     setStatusSelect('all')
     setPickupFilter('all')
+    setWhatsappFilter('all')
   }
 
   // Filter and dynamic counts hook
@@ -70,7 +75,9 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
     fromDate,
     toDate,
     statusSelect,
-    pickupFilter
+    pickupFilter,
+    whatsappFilter,
+    isWhatsAppSent: waTracker.isSent
   })
 
   // PostEx operations hook
@@ -174,6 +181,8 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
         handleClearFilters={handleClearFilters}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
+        whatsappFilter={whatsappFilter}
+        setWhatsappFilter={setWhatsappFilter}
         counts={counts}
       />
 
@@ -313,6 +322,9 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                     }}
                     whatsappNote={settings.whatsapp_note}
                     whatsappTemplate={settings.whatsapp_template}
+                    isWhatsAppSent={waTracker.isSent(parcel.tracking) || waTracker.isSent(parcel.id)}
+                    onMarkWhatsAppSent={waTracker.markSent}
+                    onToggleWhatsAppSent={waTracker.toggleSent}
                   />
                 ))}
               </tbody>
@@ -337,6 +349,9 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
             }}
             whatsappNote={settings.whatsapp_note}
             whatsappTemplate={settings.whatsapp_template}
+            isWhatsAppSent={waTracker.isSent}
+            onMarkWhatsAppSent={waTracker.markSent}
+            onToggleWhatsAppSent={waTracker.toggleSent}
           />
 
           {/* Load More Button */}
