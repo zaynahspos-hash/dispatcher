@@ -176,7 +176,6 @@ export function ParcelDesktopGrid({
             {parcels.map((parcel, i) => {
               const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
               const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
-              const isNearBottom = parcels.length > 2 && i >= parcels.length - 2
 
               return (
                 <tr
@@ -277,11 +276,10 @@ export function ParcelDesktopGrid({
                       }`}
                     />
 
-                    {/* City Dropdown Menu */}
+                    {/* City Dropdown Menu (Always opens downwards with clear visibility) */}
                     {editingCity?.row === i && !editingCity?.isMobile && (
                       <CityDropdownMenu
                         filteredCities={filteredCities}
-                        isNearBottom={isNearBottom}
                         selectedCity={parcel.city}
                         onSelectCity={city => {
                           updateField(i, 'city', city)

@@ -2,14 +2,13 @@ import { POPULAR_CITIES } from './cityAutocomplete'
 
 interface CityDropdownMenuProps {
   filteredCities: string[]
-  isNearBottom: boolean
+  isNearBottom?: boolean
   selectedCity?: string
   onSelectCity: (city: string) => void
 }
 
 export function CityDropdownMenu({
   filteredCities,
-  isNearBottom,
   selectedCity,
   onSelectCity
 }: CityDropdownMenuProps) {
@@ -17,9 +16,7 @@ export function CityDropdownMenu({
 
   return (
     <div
-      className={`absolute z-50 left-0 right-0 min-w-[240px] bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in duration-100 ${
-        isNearBottom ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-      }`}
+      className="absolute z-50 left-0 right-0 min-w-[240px] top-full mt-1.5 bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in duration-100 ring-1 ring-black/5 dark:ring-white/10"
     >
       <div className="p-2 bg-slate-50 dark:bg-[#070b12] text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-800">
         <span>Matching Cities ({filteredCities.length})</span>
