@@ -7,6 +7,8 @@ interface ParcelMobileCardsProps {
   parcels: Parcel[]
   selected: Set<number>
   toggleSelect: (index: number) => void
+  toggleAll?: () => void
+  onDeselectAll?: () => void
   updateField: (index: number, field: keyof Parcel, value: string | number) => void
   deleteParcel: (index: number) => void
   addRow: () => void
@@ -24,6 +26,8 @@ export function ParcelMobileCards({
   parcels,
   selected,
   toggleSelect,
+  toggleAll,
+  onDeselectAll,
   updateField,
   deleteParcel,
   addRow,
@@ -37,7 +41,36 @@ export function ParcelMobileCards({
   orderTypes
 }: ParcelMobileCardsProps) {
   return (
-    <div className="sm:hidden space-y-4">
+    <div className="sm:hidden space-y-3">
+      {/* Mobile Select All Bar */}
+      {parcels.length > 0 && toggleAll && (
+        <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">
+          <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
+            <input
+              type="checkbox"
+              ref={el => {
+                if (el) {
+                  el.indeterminate = selected.size > 0 && selected.size < parcels.length
+                }
+              }}
+              checked={selected.size === parcels.length && parcels.length > 0}
+              onChange={toggleAll}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+            />
+            <span>Select All ({selected.size}/{parcels.length} selected)</span>
+          </label>
+          {selected.size > 0 && onDeselectAll && (
+            <button
+              type="button"
+              onClick={onDeselectAll}
+              className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 font-extrabold cursor-pointer transition"
+            >
+              Deselect All
+            </button>
+          )}
+        </div>
+      )}
+
       {parcels.map((parcel, i) => {
         const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
         const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())

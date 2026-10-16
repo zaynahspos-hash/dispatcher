@@ -79,6 +79,11 @@ export function ParcelDesktopGrid({
               <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
                 <input
                   type="checkbox"
+                  ref={el => {
+                    if (el) {
+                      el.indeterminate = selected.size > 0 && selected.size < parcels.length
+                    }
+                  }}
                   checked={selected.size === parcels.length && parcels.length > 0}
                   onChange={toggleAll}
                   className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"

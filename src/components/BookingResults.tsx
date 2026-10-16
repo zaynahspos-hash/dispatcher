@@ -1,16 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import * as XLSX from 'xlsx'
-import { 
-  PrintIcon, 
-  UploadIcon, 
-  TrashIcon, 
-  PlusIcon, 
-  FolderIcon,
-  HistoryIcon
-} from './Icons'
+import { PlusIcon, HistoryIcon } from './Icons'
 import { Settings } from '../utils/groqParser'
 import { AirwayVaultModal } from './history/AirwayVaultModal'
 import { saveAirwayDocument } from '../utils/localPdfVault'
+import { ResultsKPIBar } from './results/ResultsKPIBar'
+import { ResultsFilterBar, ResultsStatusFilter } from './results/ResultsFilterBar'
+import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
 
@@ -62,6 +58,9 @@ export default function BookingResults({
 }: BookingResultsProps) {
   const [cancellingTracking, setCancellingTracking] = useState<string[]>([])
   const [showVault, setShowVault] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<ResultsStatusFilter>('all')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const handleCancel = async (tracking: string) => {
     if (!onCancelShipment) return
@@ -95,11 +94,86 @@ export default function BookingResults({
 
   const booked = results.filter(r => r.status === 'success')
   const failed = results.filter(r => r.status === 'error')
-  const manual = results.filter(r => r.status === 'manual')
   const totalCOD = booked.reduce((sum, r) => sum + (parseFloat(String(r.total)) || 0), 0)
 
+  // Status Filter Counts
+  const counts = useMemo(() => ({
+    all: results.length,
+    booked: results.filter(r => r.status === 'success').length,
+    failed: results.filter(r => r.status === 'error').length,
+    drafts: results.filter(r => r.status === 'manual').length,
+    cancelled: results.filter(r => r.status === 'cancelled').length
+  }), [results])
+
+  // Filtered Results by Search & Status
+  const filteredResults = useMemo(() => {
+    return results.filter(r => {
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim()
+        const matchName = (r.name || '').toLowerCase().includes(q)
+        const matchPhone = (r.phone || '').toLowerCase().includes(q)
+        const matchCity = (r.city || '').toLowerCase().includes(q)
+        const matchTracking = (r.tracking || '').toLowerCase().includes(q)
+        const matchId = (r.id || '').toLowerCase().includes(q)
+        if (!matchName && !matchPhone && !matchCity && !matchTracking && !matchId) return false
+      }
+      return true
+    })
+  }, [results, statusFilter, searchQuery])
+
+  // Selection handlers
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selected.size === filteredResults.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(filteredResults.map(r => r.id)))
+    }
+  }
+
+  const selectedBooked = useMemo(() => {
+    return results.filter(r => selected.has(r.id) && r.status === 'success' && r.tracking)
+  }, [results, selected])
+
+  const handlePrintSelected = () => {
+    if (selectedBooked.length === 0) return
+    saveAirwayDocument(settings.postex_token || 'merchant', {
+      batchName: `PostEx Airway Bill (${selectedBooked.length} Selected)`,
+      trackingNumbers: selectedBooked.map(b => b.tracking!).filter(Boolean),
+      totalCOD: selectedBooked.reduce((s, r) => s + (parseFloat(String(r.total)) || 0), 0)
+    })
+    onPrintLabels()
+  }
+
+  const handlePrintAll = () => {
+    if (booked.length === 0) return
+    saveAirwayDocument(settings.postex_token || 'merchant', {
+      batchName: `PostEx Airway Bill (${booked.length} Parcels)`,
+      trackingNumbers: booked.map(b => b.tracking!).filter(Boolean),
+      totalCOD: totalCOD
+    })
+    onPrintLabels()
+  }
+
+  const handleDeleteSelected = () => {
+    if (selected.size === 0) return
+    if (confirm(`Remove ${selected.size} selected row(s)?`)) {
+      setResults(prev => prev.filter(r => !selected.has(r.id)))
+      setSelected(new Set())
+    }
+  }
+
   function exportResultsExcel() {
-    const data = results.map(r => ({
+    const listToExport = selected.size > 0 ? results.filter(r => selected.has(r.id)) : filteredResults
+    const data = listToExport.map(r => ({
       'Name': r.name,
       'Phone': r.phone,
       'City': r.city,
@@ -119,6 +193,7 @@ export default function BookingResults({
   const clearAllResults = () => {
     if (confirm('Are you sure you want to clear all results? This cannot be undone.')) {
       setResults([])
+      setSelected(new Set())
     }
   }
 
@@ -149,6 +224,11 @@ export default function BookingResults({
   const handleDeleteRow = (id: string) => {
     if (confirm('Are you sure you want to remove this row?')) {
       setResults(prev => prev.filter(r => r.id !== id))
+      setSelected(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }
   }
 
@@ -177,158 +257,85 @@ export default function BookingResults({
 
   return (
     <div className="space-y-3.5 transition-colors duration-200">
-      {/* Sleek Integrated KPI Summary Bar (Matches ParcelKPIBar) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800/80 shadow-xs">
-        <div className="p-3.5 sm:p-4">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Dispatched Results
-          </span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">
-              {results.length}
-            </span>
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-              ({booked.length} booked{manual.length > 0 ? `, ${manual.length} drafts` : ''})
-            </span>
-          </div>
-        </div>
-
-        <div className="p-3.5 sm:p-4">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Booked COD Value
-          </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className="text-xs font-bold text-slate-400">Rs.</span>
-            <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-              {totalCOD.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-3.5 sm:p-4">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Dispatch Health
-          </span>
-          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold">
-            {failed.length === 0 ? (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                100% Operational
-              </span>
-            ) : (
-              <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
-                {failed.length} Failed Bookings
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="p-3.5 sm:p-4">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Airway Document Vault
-          </span>
-          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            {booked.length} Airway Bills Stored
-          </div>
-        </div>
-      </div>
-
-      {/* Action Toolbar (Matches ParcelKPIBar) */}
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={handleAddNewResult}
-            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
-          >
-            <PlusIcon size={14} className="text-emerald-500 shrink-0" />
-            <span>Add Row</span>
-          </button>
-
-          <button
-            onClick={exportResultsExcel}
-            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
-          >
-            <UploadIcon size={14} className="text-emerald-500 shrink-0" />
-            <span>Export XLSX</span>
-          </button>
-
-          <button
-            onClick={() => setShowVault(true)}
-            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
-            title="Open Airway Bill Vault"
-          >
-            <FolderIcon size={14} className="text-emerald-500 shrink-0" />
-            <span>Airway Vault</span>
-          </button>
-
-          <button
-            onClick={clearAllResults}
-            className="h-9 px-3.5 rounded-lg border border-rose-200/80 dark:border-rose-900/50 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-semibold text-xs hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
-            title="Clear all results"
-          >
-            <TrashIcon size={14} className="shrink-0" />
-            <span className="hidden sm:inline">Clear All</span>
-          </button>
-        </div>
-
-        {/* Primary Action Button */}
-        {booked.length > 0 && (
-          <div className="w-full sm:w-auto">
-            <button
-              onClick={() => {
-                saveAirwayDocument(settings.postex_token || 'merchant', {
-                  batchName: `PostEx Airway Bill (${booked.length} Parcels)`,
-                  trackingNumbers: booked.map(b => b.tracking!).filter(Boolean),
-                  totalCOD: totalCOD
-                })
-                onPrintLabels()
-              }}
-              disabled={loadingLabels}
-              className="w-full sm:w-auto h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 active:scale-98 disabled:opacity-50 whitespace-nowrap"
-            >
-              {loadingLabels ? (
-                <>
-                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span>Generating Labels...</span>
-                </>
-              ) : (
-                <>
-                  <PrintIcon size={14} />
-                  <span>Print Airway Bills ({booked.length}) →</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Desktop Excel Spreadsheet Table */}
-      <ResultsDesktopGrid
-        results={results}
-        updateField={updateField}
-        onDelete={handleDeleteRow}
-        onBookSingle={onBookSingle}
-        onCancelShipment={onCancelShipment ? handleCancel : undefined}
-        cancellingTracking={cancellingTracking}
-        getWhatsAppLink={getWhatsAppLink}
-        cities={cities}
-        orderTypes={ORDER_TYPES}
+      {/* 1. Integrated KPI Summary & Action Toolbar */}
+      <ResultsKPIBar
+        totalResults={results.length}
+        selectedCount={selected.size}
+        bookedCount={booked.length}
+        totalCOD={totalCOD}
+        failedCount={failed.length}
+        onAddNewResult={handleAddNewResult}
+        onExportExcel={exportResultsExcel}
+        onOpenVault={() => setShowVault(true)}
+        onClearAll={clearAllResults}
+        onPrintAll={handlePrintAll}
+        loadingLabels={loadingLabels}
       />
 
-      {/* Mobile Card List */}
-      <ResultsMobileCardList
-        results={results}
-        onDelete={handleDeleteRow}
-        onBookSingle={onBookSingle}
-        onCancelShipment={onCancelShipment ? handleCancel : undefined}
-        cancellingTracking={cancellingTracking}
-        getWhatsAppLink={getWhatsAppLink}
+      {/* 2. Filter Bar (Search + Segmented Status Pills) */}
+      <ResultsFilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        counts={counts}
+        onClearFilters={() => {
+          setSearchQuery('')
+          setStatusFilter('all')
+        }}
       />
+
+      {/* 3. Selection Action Bar (Anchored directly above table) */}
+      <ResultsSelectionBar
+        selectedCount={selected.size}
+        totalCount={filteredResults.length}
+        selectedBookedCount={selectedBooked.length}
+        onDeselectAll={() => setSelected(new Set())}
+        onPrintSelected={handlePrintSelected}
+        onDeleteSelected={handleDeleteSelected}
+        loadingLabels={loadingLabels}
+      />
+
+      {/* 4. Spreadsheet Grid for Desktop / Cards for Mobile */}
+      {filteredResults.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+          <div className="flex justify-center">
+            <HistoryIcon size={36} className="text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold mt-3">No results match this filter</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try resetting search or status filters</p>
+        </div>
+      ) : (
+        <>
+          <ResultsDesktopGrid
+            results={filteredResults}
+            selected={selected}
+            toggleSelect={toggleSelect}
+            toggleAll={toggleAll}
+            updateField={updateField}
+            onDelete={handleDeleteRow}
+            onBookSingle={onBookSingle}
+            onCancelShipment={onCancelShipment ? handleCancel : undefined}
+            cancellingTracking={cancellingTracking}
+            getWhatsAppLink={getWhatsAppLink}
+            cities={cities}
+            orderTypes={ORDER_TYPES}
+          />
+
+          <ResultsMobileCardList
+            results={filteredResults}
+            selected={selected}
+            toggleSelect={toggleSelect}
+            toggleAll={toggleAll}
+            onDeselectAll={() => setSelected(new Set())}
+            onDelete={handleDeleteRow}
+            onBookSingle={onBookSingle}
+            onCancelShipment={onCancelShipment ? handleCancel : undefined}
+            cancellingTracking={cancellingTracking}
+            getWhatsAppLink={getWhatsAppLink}
+          />
+        </>
+      )}
 
       {/* Airway Bill Document Vault Modal */}
       {showVault && (

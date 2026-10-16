@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
 import { Settings } from '../utils/groqParser'
-import { PrintIcon, SyncIcon, CancelIcon, HistoryIcon, AlertIcon } from './Icons'
+import { SyncIcon, HistoryIcon, AlertIcon } from './Icons'
 import { BookedParcel, StatusFilterType } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
+import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
@@ -154,52 +155,6 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
               </>
             )}
           </button>
-
-          {selectedIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs animate-fade-in">
-              <span className="font-bold text-slate-700 dark:text-slate-200">{selectedIds.length} selected</span>
-              <button
-                type="button"
-                onClick={handlePrintSelected}
-                disabled={isLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <PrintIcon size={12} />
-                <span>Print Labels</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerateLoadSheet}
-                disabled={isLoading}
-                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer"
-                title="Generate Load Sheet PDF"
-              >
-                <PrintIcon size={12} />
-                <span>Load Sheet</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelSelected}
-                disabled={isLoading}
-                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border border-rose-500/20 cursor-pointer disabled:opacity-50"
-              >
-                {isCancellingAll ? (
-                  <>
-                    <svg className="animate-spin h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span>{cancelProgress}</span>
-                  </>
-                ) : (
-                  <>
-                    <CancelIcon size={12} />
-                    <span>Cancel Bookings</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -260,6 +215,19 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
         </div>
       )}
 
+      {/* Selection Action Bar (Anchored directly above table & cards) */}
+      <HistorySelectionBar
+        selectedCount={selectedIds.length}
+        totalCount={paginatedParcels.length}
+        onDeselectAll={() => setSelectedIds([])}
+        onPrintSelected={handlePrintSelected}
+        onGenerateLoadSheet={handleGenerateLoadSheet}
+        onCancelSelected={handleCancelSelected}
+        isLoading={isLoading}
+        isCancellingAll={isCancellingAll}
+        cancelProgress={cancelProgress}
+      />
+
       {/* Table view for Desktop / Card List for Mobile */}
       {paginatedParcels.length === 0 ? (
         <div className="text-center py-12 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
@@ -283,8 +251,19 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                   <th className="p-3 text-center relative">
                     <input
                       type="checkbox"
+                      ref={el => {
+                        if (el) {
+                          el.indeterminate = selectedIds.length > 0 && selectedIds.length < paginatedParcels.length
+                        }
+                      }}
                       checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
-                      onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
+                      onChange={() => {
+                        if (selectedIds.length > 0) {
+                          handleSelectAll(false, [])
+                        } else {
+                          handleSelectAll(true, paginatedParcels.map(p => p.tracking))
+                        }
+                      }}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
                     />
                     <div {...getResizerProps('checkbox')} />

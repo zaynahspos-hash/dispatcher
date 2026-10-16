@@ -4,6 +4,9 @@ import { useResizableColumns } from '../../hooks/useResizableColumns'
 
 interface ResultsDesktopGridProps {
   results: BookingResult[]
+  selected?: Set<string>
+  toggleSelect?: (id: string) => void
+  toggleAll?: () => void
   updateField: (id: string, field: keyof BookingResult, value: string | number) => void
   onDelete: (id: string) => void
   onBookSingle: (result: BookingResult) => Promise<void>
@@ -15,6 +18,7 @@ interface ResultsDesktopGridProps {
 }
 
 const DEFAULT_RESULTS_WIDTHS = {
+  checkbox: 44,
   index: 40,
   refId: 105,
   customer: 155,
@@ -29,6 +33,9 @@ const DEFAULT_RESULTS_WIDTHS = {
 
 export function ResultsDesktopGrid({
   results,
+  selected,
+  toggleSelect,
+  toggleAll,
   updateField,
   onDelete,
   onBookSingle,
@@ -41,6 +48,7 @@ export function ResultsDesktopGrid({
     storageKey: 'results_desktop_grid_col_widths',
     defaultWidths: DEFAULT_RESULTS_WIDTHS,
     minWidths: {
+      checkbox: 36,
       index: 36,
       refId: 70,
       customer: 90,
@@ -61,9 +69,25 @@ export function ResultsDesktopGrid({
           className="text-xs border-collapse table-fixed select-none"
           style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}
         >
-          <colgroup><col style={{ width: `${widths.index}px` }} /><col style={{ width: `${widths.refId}px` }} /><col style={{ width: `${widths.customer}px` }} /><col style={{ width: `${widths.phone}px` }} /><col style={{ width: `${widths.city}px` }} /><col style={{ width: `${widths.address}px` }} /><col style={{ width: `${widths.cod}px` }} /><col style={{ width: `${widths.orderType}px` }} /><col style={{ width: `${widths.statusTracking}px` }} /><col style={{ width: `${widths.actions}px` }} /></colgroup>
+          <colgroup><col style={{ width: `${widths.checkbox}px` }} /><col style={{ width: `${widths.index}px` }} /><col style={{ width: `${widths.refId}px` }} /><col style={{ width: `${widths.customer}px` }} /><col style={{ width: `${widths.phone}px` }} /><col style={{ width: `${widths.city}px` }} /><col style={{ width: `${widths.address}px` }} /><col style={{ width: `${widths.cod}px` }} /><col style={{ width: `${widths.orderType}px` }} /><col style={{ width: `${widths.statusTracking}px` }} /><col style={{ width: `${widths.actions}px` }} /></colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
+              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                {selected && toggleAll && (
+                  <input
+                    type="checkbox"
+                    ref={el => {
+                      if (el) {
+                        el.indeterminate = selected.size > 0 && selected.size < results.length
+                      }
+                    }}
+                    checked={selected.size === results.length && results.length > 0}
+                    onChange={toggleAll}
+                    className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+                  />
+                )}
+                <div {...getResizerProps('checkbox')} />
+              </th>
               <th className="p-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-800 relative">
                 #
                 <div {...getResizerProps('index')} />
@@ -108,14 +132,27 @@ export function ResultsDesktopGrid({
               const isBooked = r.status === 'success'
               const isCancelled = r.status === 'cancelled'
               const isError = r.status === 'error'
+              const isChecked = selected ? selected.has(r.id) : false
 
               return (
                 <tr
                   key={r.id || i}
                   className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
-                    isBooked ? 'bg-emerald-500/[0.02]' : isError ? 'bg-rose-500/[0.03]' : ''
+                    isChecked ? 'bg-emerald-500/[0.04]' : isBooked ? 'bg-emerald-500/[0.02]' : isError ? 'bg-rose-500/[0.03]' : ''
                   }`}
                 >
+                  {/* Row Checkbox */}
+                  <td className="p-3 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
+                    {toggleSelect && (
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleSelect(r.id)}
+                        className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+                      />
+                    )}
+                  </td>
+
                   {/* Row Index */}
                   <td className="p-2 text-center text-slate-400 font-mono text-[11px] border-r border-b border-slate-200/80 dark:border-slate-800">
                     {i + 1}

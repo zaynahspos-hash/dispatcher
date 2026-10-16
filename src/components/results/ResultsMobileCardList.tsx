@@ -3,6 +3,10 @@ import { TrashIcon, CancelIcon, CheckIcon, SyncIcon } from '../Icons'
 
 interface ResultsMobileCardListProps {
   results: BookingResult[]
+  selected?: Set<string>
+  toggleSelect?: (id: string) => void
+  toggleAll?: () => void
+  onDeselectAll?: () => void
   onDelete: (id: string) => void
   onBookSingle: (result: BookingResult) => Promise<void>
   onCancelShipment?: (tracking: string) => Promise<void>
@@ -12,6 +16,10 @@ interface ResultsMobileCardListProps {
 
 export function ResultsMobileCardList({
   results,
+  selected,
+  toggleSelect,
+  toggleAll,
+  onDeselectAll,
   onDelete,
   onBookSingle,
   onCancelShipment,
@@ -20,16 +28,48 @@ export function ResultsMobileCardList({
 }: ResultsMobileCardListProps) {
   return (
     <div className="sm:hidden space-y-2.5">
+      {/* Mobile Select All Bar */}
+      {results.length > 0 && toggleAll && (
+        <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">
+          <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
+            <input
+              type="checkbox"
+              ref={el => {
+                if (el && selected) {
+                  el.indeterminate = selected.size > 0 && selected.size < results.length
+                }
+              }}
+              checked={selected ? selected.size === results.length && results.length > 0 : false}
+              onChange={toggleAll}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+            />
+            <span>Select All ({selected ? selected.size : 0}/{results.length} selected)</span>
+          </label>
+          {selected && selected.size > 0 && onDeselectAll && (
+            <button
+              type="button"
+              onClick={onDeselectAll}
+              className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 font-extrabold cursor-pointer transition"
+            >
+              Deselect All
+            </button>
+          )}
+        </div>
+      )}
+
       {results.map((r, i) => {
         const isBooked = r.status === 'success'
         const isCancelled = r.status === 'cancelled'
         const isError = r.status === 'error'
+        const isChecked = selected ? selected.has(r.id) : false
 
         return (
           <div
             key={r.id || i}
             className={`p-3.5 rounded-2xl bg-white dark:bg-[#0c121e] border transition-all duration-200 shadow-xs ${
-              isBooked
+              isChecked
+                ? 'border-emerald-500/50 ring-1 ring-emerald-500/20 bg-emerald-500/[0.02]'
+                : isBooked
                 ? 'border-emerald-200/80 dark:border-emerald-900/50'
                 : isError
                 ? 'border-rose-200/80 dark:border-rose-900/50'
@@ -38,7 +78,15 @@ export function ResultsMobileCardList({
           >
             {/* Top row: Status / Tracking & COD */}
             <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                {toggleSelect && (
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleSelect(r.id)}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+                  />
+                )}
                 <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">#{i + 1}</span>
                 {isBooked && r.tracking ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 truncate">

@@ -233,6 +233,8 @@ export default function ParcelTable({
         parcels={parcels}
         selected={selected}
         toggleSelect={toggleSelect}
+        toggleAll={toggleAll}
+        onDeselectAll={() => setSelected(new Set())}
         updateField={updateField}
         deleteParcel={deleteParcel}
         addRow={addRow}

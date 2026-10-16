@@ -36,8 +36,19 @@ export function HistoryMobileCardList({
         <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
           <input
             type="checkbox"
+            ref={el => {
+              if (el) {
+                el.indeterminate = selectedIds.length > 0 && selectedIds.length < paginatedParcels.length
+              }
+            }}
             checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
-            onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
+            onChange={() => {
+              if (selectedIds.length > 0) {
+                handleSelectAll(false, [])
+              } else {
+                handleSelectAll(true, paginatedParcels.map(p => p.tracking))
+              }
+            }}
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
           />
           <span>Select All ({selectedIds.length}/{paginatedParcels.length} selected)</span>
