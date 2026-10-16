@@ -17,6 +17,7 @@ interface ParcelTableProps {
   loading: boolean
   settings: Settings
   cities?: string[]
+  updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
 }
 
 export const ORDER_TYPES = [
@@ -33,7 +34,8 @@ export default function ParcelTable({
   onBookSelected,
   loading,
   settings,
-  cities
+  cities,
+  updateSetting
 }: ParcelTableProps) {
   const [selected, setSelected] = useState<Set<number>>(new Set(parcels.map((_, i) => i)))
   const [cityFilter, setCityFilter] = useState('')
@@ -118,8 +120,12 @@ export default function ParcelTable({
   }
 
   function addRow() {
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let nextNum = parseInt(settings.order_id_next_num || '1001', 10)
+    if (isNaN(nextNum)) nextNum = 1001
+
     const newParcel: Parcel = {
-      id: `tv${Date.now().toString().slice(-6)}`,
+      id: `${prefix}${nextNum}`,
       name: '',
       phone: '',
       city: 'Lahore',
@@ -134,6 +140,9 @@ export default function ParcelTable({
     }
     setParcels(prev => [...prev, newParcel])
     setSelected(prev => new Set([...prev, parcels.length]))
+    if (updateSetting) {
+      updateSetting('order_id_next_num', String(nextNum + 1))
+    }
     toast.success('Row Added', 'New order ready for input.')
   }
 

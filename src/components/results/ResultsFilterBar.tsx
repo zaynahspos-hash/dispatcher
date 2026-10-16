@@ -1,5 +1,5 @@
 import React from 'react'
-import { SearchIcon, TrashIcon } from '../Icons'
+import { SearchIcon, RefreshIcon } from '../Icons'
 
 export type ResultsStatusFilter = 'all' | 'success' | 'error' | 'manual' | 'cancelled'
 
@@ -67,10 +67,10 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
             <button
               type="button"
               onClick={onClearFilters}
-              className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 flex items-center gap-1.5"
+              className="h-10 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center gap-1.5 whitespace-nowrap"
               title="Reset all search filters"
             >
-              <TrashIcon size={13} />
+              <RefreshIcon size={14} />
               <span className="hidden sm:inline">Reset</span>
             </button>
           )}

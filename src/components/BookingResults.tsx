@@ -37,6 +37,7 @@ interface BookingResultsProps {
   settings: Settings
   cities: string[]
   onBookSingle: (result: BookingResult) => Promise<void>
+  updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
 }
 
 const ORDER_TYPES = [
@@ -54,7 +55,8 @@ export default function BookingResults({
   onCancelShipment,
   settings,
   cities,
-  onBookSingle
+  onBookSingle,
+  updateSetting
 }: BookingResultsProps) {
   const [cancellingTracking, setCancellingTracking] = useState<string[]>([])
   const [showVault, setShowVault] = useState(false)
@@ -81,12 +83,29 @@ export default function BookingResults({
     }
 
     const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-    const noteContent = settings.whatsapp_note || 'Thank you for shopping with us!'
+    const defaultNote = 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' 
+      ? settings.whatsapp_note 
+      : defaultNote
 
-    let template = settings.whatsapp_template || 'Dear {name}, your order has been booked. You can track it here: {url}\n{note}'
+    const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
+    let template = settings.whatsapp_template || 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
+
+    // Upgrade legacy default templates to include amount
+    if (template.includes('Dear {name}, your order has been booked. You can track it here: {url}')) {
+      template = 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
+    }
+
+    // Ensure total COD amount is always present
+    if (!template.includes('{amount}') && !template.includes('{order_amount}') && !template.includes('{total}')) {
+      template = `${template}\nTotal COD: Rs. ${formattedTotal}`
+    }
+
     template = template
-      .replace(/{name}/g, parcel.name)
-      .replace(/{url}/g, trackingUrl)
+      .replace(/{(?:name|customer_name)}/g, parcel.name)
+      .replace(/{(?:url|portal_link)}/g, trackingUrl)
+      .replace(/{(?:amount|order_amount|total)}/g, formattedTotal)
+      .replace(/{(?:tracking|tracking_number)}/g, parcel.tracking || '')
       .replace(/{note}/g, noteContent)
 
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template)}`
@@ -198,9 +217,12 @@ export default function BookingResults({
   }
 
   const handleAddNewResult = () => {
-    const newId = `manual_${Date.now()}`
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let nextNum = parseInt(settings.order_id_next_num || '1001', 10)
+    if (isNaN(nextNum)) nextNum = 1001
+
     const newRow: BookingResult = {
-      id: newId,
+      id: `${prefix}${nextNum}`,
       name: '',
       phone: '',
       city: cities[0] || 'Lahore',
@@ -215,6 +237,9 @@ export default function BookingResults({
       airwayBillCopy: 1
     }
     setResults(prev => [newRow, ...prev])
+    if (updateSetting) {
+      updateSetting('order_id_next_num', String(nextNum + 1))
+    }
   }
 
   const updateField = (id: string, field: keyof BookingResult, value: string | number) => {

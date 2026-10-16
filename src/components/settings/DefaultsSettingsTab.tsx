@@ -87,6 +87,54 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
           />
         </div>
       </div>
+
+      {/* Auto-Serial Order ID Fallback Section */}
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+        <div>
+          <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            Auto-Serial Order ID (Fallback)
+          </h4>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Auto-increments when order ID is omitted in chat text. If an order ID already exists in text, it is preserved.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+              Order ID Prefix
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. tv-, ord-, ZN-"
+              value={settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'}
+              onChange={e => updateSetting('order_id_prefix', e.target.value)}
+              className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+              Next Serial Number
+            </label>
+            <input
+              type="number"
+              placeholder="e.g. 1001 or 12345"
+              value={settings.order_id_next_num || '1001'}
+              onChange={e => updateSetting('order_id_next_num', e.target.value)}
+              className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+            />
+          </div>
+        </div>
+
+        {/* Live Fallback Preview */}
+        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80 text-[11px]">
+          <span className="text-slate-500 dark:text-slate-400 font-medium">Next Generated Fallback ID:</span>
+          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+            {(settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-')}{(settings.order_id_next_num || '1001')}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SearchIcon, TrashIcon, FilterIcon } from '../Icons'
+import { SearchIcon, RefreshIcon, FilterIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
 import { StatusFilterType } from './types'
 
@@ -94,7 +94,7 @@ export function HistoryFilterBar({
       <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-2.5 sm:p-4 shadow-xs">
         <div className="flex items-center gap-2">
           {/* Main Search Input */}
-          <div className="relative flex-1 flex items-center border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
+          <div className="relative flex-1 flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
             <span className="pl-3 text-slate-400 dark:text-slate-500 shrink-0">
               <SearchIcon size={16} />
             </span>
@@ -109,7 +109,7 @@ export function HistoryFilterBar({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+                className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -120,14 +120,14 @@ export function HistoryFilterBar({
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-            className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 ${
+            className={`h-10 flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 whitespace-nowrap ${
               mobileFiltersOpen || activeFiltersCount > 0
                 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                 : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
             }`}
           >
             <FilterIcon size={14} className={activeFiltersCount > 0 ? 'text-emerald-500' : 'text-slate-500'} />
-            <span className="hidden xs:inline">Filters</span>
+            <span className="hidden sm:inline">Filters</span>
             {activeFiltersCount > 0 && (
               <span className="w-4.5 h-4.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center leading-none">
                 {activeFiltersCount}
@@ -140,11 +140,11 @@ export function HistoryFilterBar({
             <button
               type="button"
               onClick={handleClearFilters}
-              className="p-2 sm:px-3 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0"
+              className="h-10 flex items-center justify-center gap-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap"
               title="Clear all filters"
             >
-              <TrashIcon size={14} />
-              <span className="hidden sm:inline ml-1">Reset</span>
+              <RefreshIcon size={14} />
+              <span className="hidden sm:inline">Reset</span>
             </button>
           )}
         </div>

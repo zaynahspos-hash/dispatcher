@@ -106,13 +106,28 @@ export const getWhatsAppLink = (parcel: BookedParcel, whatsappNote?: string, wha
     cleanPhone = '92' + cleanPhone
   }
 
-  const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking}`
-  const noteContent = whatsappNote || 'Thank you for shopping with us!'
+  const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
+  const defaultNote = 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+  const noteContent = whatsappNote && whatsappNote !== 'Thank you for shopping with us!' ? whatsappNote : defaultNote
   
-  let template = whatsappTemplate || 'Dear {name}, your order has been booked. You can track it here: {url}\n{note}'
+  const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
+  let template = whatsappTemplate || 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
+
+  // Upgrade legacy default templates to include amount
+  if (template.includes('Dear {name}, your order has been booked. You can track it here: {url}')) {
+    template = 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
+  }
+
+  // Ensure total COD amount is always present
+  if (!template.includes('{amount}') && !template.includes('{order_amount}') && !template.includes('{total}')) {
+    template = `${template}\nTotal COD: Rs. ${formattedTotal}`
+  }
+
   template = template
-    .replace(/{name}/g, parcel.name)
-    .replace(/{url}/g, trackingUrl)
+    .replace(/{(?:name|customer_name)}/g, parcel.name)
+    .replace(/{(?:url|portal_link)}/g, trackingUrl)
+    .replace(/{(?:amount|order_amount|total)}/g, formattedTotal)
+    .replace(/{(?:tracking|tracking_number)}/g, parcel.tracking || '')
     .replace(/{note}/g, noteContent)
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template)}`

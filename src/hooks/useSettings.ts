@@ -38,9 +38,11 @@ const DEFAULTS: Settings = {
   kimi_model: 'moonshot-v1-8k',
   mistral_api_key: '',
   mistral_model: 'ministral-3b-2512',
-  whatsapp_template: 'Dear {name}, your order has been booked. You can track it here: {url}\n{note}',
-  whatsapp_note: 'Thank you for shopping with us!',
+  whatsapp_template: 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}',
+  whatsapp_note: 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!',
   avatar_url: '',
+  order_id_prefix: 'tv-',
+  order_id_next_num: '1001',
 }
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────

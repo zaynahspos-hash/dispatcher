@@ -24,6 +24,7 @@ interface UseParcelOperationsProps {
   updateHistory: (newHistory: BookedParcel[]) => void
   setActiveTab: (tab: any) => void
   fetchTokenUsage: () => void
+  updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
 }
 
 export function useParcelOperations({
@@ -33,6 +34,7 @@ export function useParcelOperations({
   updateHistory,
   setActiveTab,
   fetchTokenUsage,
+  updateSetting,
 }: UseParcelOperationsProps) {
   const [parcels, setParcels] = useState<Parcel[]>(() => {
     try {
@@ -153,6 +155,9 @@ export function useParcelOperations({
         })
 
         const result = await parseParcelText(rawText, settings)
+        if (result.nextSerialNum !== undefined && updateSetting) {
+          updateSetting('order_id_next_num', String(result.nextSerialNum))
+        }
         
         setLoadingProgress({
           title: `Normalizing Logistics Data`,
@@ -186,6 +191,7 @@ export function useParcelOperations({
       
       const resultsArray: any[] = []
       const chunkSize = 5
+      let runningSettings = { ...settings }
       for (let i = 0; i < blocks.length; i += chunkSize) {
         const chunk = blocks.slice(i, i + chunkSize).join('\n\n')
         const currentBatch = Math.min(chunkSize, blocks.length - i)
@@ -200,9 +206,12 @@ export function useParcelOperations({
           percentage: Math.round((completedCount / blocks.length) * 100)
         })
 
-        const res = await parseParcelText(chunk, settings)
+        const res = await parseParcelText(chunk, runningSettings)
         if (res) {
           resultsArray.push(res)
+          if (res.nextSerialNum !== undefined) {
+            runningSettings = { ...runningSettings, order_id_next_num: String(res.nextSerialNum) }
+          }
         }
         completedCount += currentBatch
 
@@ -218,6 +227,10 @@ export function useParcelOperations({
         })
       }
       
+      if (runningSettings.order_id_next_num !== settings.order_id_next_num && updateSetting) {
+        updateSetting('order_id_next_num', runningSettings.order_id_next_num)
+      }
+
       const allParsed: Parcel[] = []
       let totalTokens = 0
 

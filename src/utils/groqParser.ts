@@ -58,11 +58,14 @@ export interface Settings {
   return_address_code?: string
   ai_model?: string
   default_order_type?: string
+  order_id_prefix?: string
+  order_id_next_num?: string
 }
 
 export interface ParseResult {
   parcels: Parcel[]
   tokensUsed: number
+  nextSerialNum?: number
 }
 
 export async function parseParcelText(rawText: string, settings: Settings): Promise<ParseResult> {
@@ -78,44 +81,24 @@ export async function parseParcelText(rawText: string, settings: Settings): Prom
   let attemptedAny = false
 
   for (const provider of orderedProviders) {
-    let apiKeyString = ''
-    let model = ''
+    const providerMap: Record<string, { key?: string; model?: string; defaultModel: string }> = {
+      groq: { key: settings.groq_api_key, model: settings.groq_model, defaultModel: 'llama-3.1-8b-instant' },
+      openrouter: { key: settings.openrouter_api_key, model: settings.openrouter_model, defaultModel: 'meta-llama/llama-3.1-8b-instruct:free' },
+      gemini: { key: settings.gemini_api_key, model: settings.gemini_model, defaultModel: 'gemini-3.5-flash-lite' },
+      openai: { key: settings.openai_api_key, model: settings.openai_model, defaultModel: 'gpt-4o-mini' },
+      anthropic: { key: settings.anthropic_api_key, model: settings.anthropic_model, defaultModel: 'claude-3-haiku-20240307' },
+      deepseek: { key: settings.deepseek_api_key, model: settings.deepseek_model, defaultModel: 'deepseek-chat' },
+      kimi: { key: settings.kimi_api_key, model: settings.kimi_model, defaultModel: 'moonshot-v1-8k' },
+      mistral: { key: settings.mistral_api_key, model: settings.mistral_model, defaultModel: 'ministral-3b-2512' }
+    }
+    const cfg = providerMap[provider]
+    if (!cfg || !cfg.key) continue
 
-    if (provider === 'groq') {
-      apiKeyString = settings.groq_api_key || ''
-      model = settings.groq_model || 'llama-3.1-8b-instant'
-      if (model === 'custom') model = 'llama-3.1-8b-instant'
-    } else if (provider === 'openrouter') {
-      apiKeyString = settings.openrouter_api_key || ''
-      model = settings.openrouter_model || 'meta-llama/llama-3.1-8b-instruct:free'
-      if (model === 'custom') model = 'meta-llama/llama-3.1-8b-instruct:free'
-    } else if (provider === 'gemini') {
-      apiKeyString = settings.gemini_api_key || ''
-      let rawModel = settings.gemini_model || 'gemini-3.5-flash-lite'
-      if (!rawModel || rawModel === 'custom' || rawModel.includes('2.0') || rawModel.includes('1.5') || rawModel.includes('2.5') || rawModel.includes('preview')) {
-        rawModel = 'gemini-3.5-flash-lite'
-      }
-      model = rawModel
-    } else if (provider === 'openai') {
-      apiKeyString = settings.openai_api_key || ''
-      model = settings.openai_model || 'gpt-4o-mini'
-      if (model === 'custom') model = 'gpt-4o-mini'
-    } else if (provider === 'anthropic') {
-      apiKeyString = settings.anthropic_api_key || ''
-      model = settings.anthropic_model || 'claude-3-haiku-20240307'
-      if (model === 'custom') model = 'claude-3-haiku-20240307'
-    } else if (provider === 'deepseek') {
-      apiKeyString = settings.deepseek_api_key || ''
-      model = settings.deepseek_model || 'deepseek-chat'
-      if (model === 'custom') model = 'deepseek-chat'
-    } else if (provider === 'kimi') {
-      apiKeyString = settings.kimi_api_key || ''
-      model = settings.kimi_model || 'moonshot-v1-8k'
-      if (model === 'custom') model = 'moonshot-v1-8k'
-    } else if (provider === 'mistral') {
-      apiKeyString = settings.mistral_api_key || ''
-      model = settings.mistral_model || 'ministral-3b-2512'
-      if (model === 'custom') model = 'ministral-3b-2512'
+    const apiKeyString = cfg.key
+    let model = cfg.model || cfg.defaultModel
+    if (model === 'custom' || !model) model = cfg.defaultModel
+    if (provider === 'gemini' && (model.includes('2.0') || model.includes('1.5') || model.includes('2.5') || model.includes('preview'))) {
+      model = 'gemini-3.5-flash-lite'
     }
 
     const keys = apiKeyString
@@ -123,9 +106,7 @@ export async function parseParcelText(rawText: string, settings: Settings): Prom
       .map(k => k.trim())
       .filter(k => k.length > 0)
 
-    if (keys.length === 0) {
-      continue // Skip if this provider doesn't have keys configured
-    }
+    if (keys.length === 0) continue
 
     attemptedAny = true
 
@@ -142,6 +123,7 @@ You are a Pakistani courier parcel data extractor.
 Extract ALL parcels from the WhatsApp text below and return a JSON array.
 
 RULES:
+- Order ID / Ref: If the message mentions an order number, reference, or invoice ID (e.g. #1024, ORD-99, Ref 55), extract it as "id". If NO order ID is explicitly written, return "" (empty string). NEVER make up or invent fake IDs like ord1, ord2.
 - Name: Customer's full name, properly capitalized.
 - Phone: Always 03XXXXXXXXX format (fix +92 303 → 03035..., remove spaces/dashes)
 - If multiple phones: first in phone field, rest as "(Alternate: 03XXXXXXXXX)" at end of address
@@ -165,7 +147,7 @@ Return ONLY a valid JSON array. No markdown, no explanation.
 Format:
 [
   {
-    "id": "ord1",
+    "id": "",
     "name": "Muhammad Ali",
     "phone": "03001234567",
     "city": "Lahore",
@@ -336,24 +318,38 @@ Format:
         }
         const parsed = JSON.parse(cleaned)
         const rawList = Array.isArray(parsed) ? parsed : [parsed]
-        const normalizedList: Parcel[] = rawList.map((p: any, idx: number) => ({
-          id: p.id ? String(p.id) : `ORD-${Date.now()}-${idx + 1}`,
-          name: String(p.name || '').trim(),
-          phone: String(p.phone || '').trim(),
-          city: normalizeCityName(p.city),
-          address: String(p.address || '').trim(),
-          total: Number(p.total || 0),
-          items: Number(p.items || settings.default_items || 1),
-          weight: Number(p.weight || settings.default_weight || 0.5),
-          orderType: p.orderType || 'Normal',
-          airwayBillCopy: Number(p.airwayBillCopy || 1),
-          detail: String(p.detail || settings.default_product || 'Kids Clothes'),
-          note: String(p.note || settings.default_note || 'Call before delivery')
-        }))
+        const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+        let currentNum = parseInt(settings.order_id_next_num || '1001', 10)
+        if (isNaN(currentNum)) currentNum = 1001
+
+        const normalizedList: Parcel[] = rawList.map((p: any) => {
+          let orderId = p.id ? String(p.id).trim() : ''
+          // If no order ID was given in text, or old fallback hallucinated "ord1", "ord2":
+          if (!orderId || (prefix.toLowerCase() !== 'ord' && /^ord\d+$/i.test(orderId))) {
+            orderId = `${prefix}${currentNum}`
+            currentNum++
+          }
+
+          return {
+            id: orderId,
+            name: String(p.name || '').trim(),
+            phone: String(p.phone || '').trim(),
+            city: normalizeCityName(p.city),
+            address: String(p.address || '').trim(),
+            total: Number(p.total || 0),
+            items: Number(p.items || settings.default_items || 1),
+            weight: Number(p.weight || settings.default_weight || 0.5),
+            orderType: p.orderType || 'Normal',
+            airwayBillCopy: Number(p.airwayBillCopy || 1),
+            detail: String(p.detail || settings.default_product || 'Kids Clothes'),
+            note: String(p.note || settings.default_note || 'Call before delivery')
+          }
+        })
 
         resultPayload = {
           parcels: normalizedList,
-          tokensUsed
+          tokensUsed,
+          nextSerialNum: currentNum
         }
         success = true
 
