@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import PasteInput from './components/PasteInput'
-import { supabase } from './utils/supabaseClient'
 import AuthModal from './components/AuthModal'
 import AdminPanel from './components/AdminPanel'
 import AuthPage from './components/AuthPage'
@@ -17,7 +16,11 @@ import { useUserHistorySync } from './hooks/useUserHistorySync'
 import { usePwaInstall } from './hooks/usePwaInstall'
 import { CITY_LIST } from './utils/cityList'
 import { BookedHistory } from './components/BookedHistory'
-import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, SettingsIcon, AppsIcon } from './components/Icons'
+import { DocumentVaultTab } from './components/vault/DocumentVaultTab'
+import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, SettingsIcon, AppsIcon, FolderIcon, AdminIcon } from './components/Icons'
+import { usePasswordRecovery } from './hooks/usePasswordRecovery'
+import { useNavigationTabs, Tab } from './hooks/useNavigationTabs'
+import { getSavedAirwayDocuments } from './utils/localPdfVault'
 import { getCached, setCached, removeCached, getTTL } from './utils/cacheWithExpiry'
 import { AppLayout } from './components/layout/AppLayout'
 import { ToastProvider } from './components/common/Toast'
@@ -34,19 +37,10 @@ const ADMIN_EMAILS = [
   import.meta.env.VITE_ADMIN_EMAIL
 ].filter(Boolean).map(e => e.toLowerCase().trim())
 
-type Tab = 'paste' | 'table' | 'results' | 'history' | 'settings' | 'admin' | 'apps'
 
 export default function App() {
   const { settings, updateSetting, user, initialAuthChecked, logout } = useSettings()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const h = window.location.hash || ''
-      const s = window.location.search || ''
-      return h.includes('recovery') || h.includes('type=recovery') || s.includes('type=recovery')
-    }
-    return false
-  })
 
   // PWA install lifecycle
   const {
@@ -63,29 +57,7 @@ export default function App() {
   } = usePwaInstall()
 
   // Password recovery listener
-  useEffect(() => {
-    const checkRecovery = () => {
-      const h = window.location.hash || ''
-      const s = window.location.search || ''
-      if (h.includes('recovery') || h.includes('type=recovery') || s.includes('type=recovery')) {
-        setIsResetPasswordOpen(true)
-      }
-    }
-
-    checkRecovery()
-    window.addEventListener('hashchange', checkRecovery)
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsResetPasswordOpen(true)
-      }
-    })
-
-    return () => {
-      window.removeEventListener('hashchange', checkRecovery)
-      subscription.unsubscribe()
-    }
-  }, [])
+  const { isResetPasswordOpen, setIsResetPasswordOpen } = usePasswordRecovery()
 
   // User history and token usage sync
   const {
@@ -117,69 +89,8 @@ export default function App() {
   }, [theme])
 
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<Tab>(() => {
-    try {
-      const hash = window.location.hash.replace('#', '') as Tab
-      if (['paste', 'table', 'results', 'history', 'settings', 'admin', 'apps'].includes(hash)) {
-        return hash
-      }
-      const saved = localStorage.getItem('parcel_app_active_tab')
-      return (saved as Tab) || 'paste'
-    } catch {
-      return 'paste'
-    }
-  })
-
-  useEffect(() => {
-    const currentHash = window.location.hash || ''
-    // NEVER overwrite password recovery, tokens, or OAuth error hashes!
-    if (
-      currentHash.includes('recovery') ||
-      currentHash.includes('access_token') ||
-      currentHash.includes('type=') ||
-      currentHash.includes('error')
-    ) {
-      return
-    }
-
-    window.location.hash = activeTab
-    try {
-      localStorage.setItem('parcel_app_active_tab', activeTab)
-    } catch (e) {
-      console.error('Error saving activeTab:', e)
-    }
-  }, [activeTab])
-
-  // Sync state if user changes hash in the address bar directly
-  useEffect(() => {
-    const handleHashChange = () => {
-      const rawHash = window.location.hash || ''
-      if (
-        rawHash.includes('recovery') ||
-        rawHash.includes('access_token') ||
-        rawHash.includes('type=') ||
-        rawHash.includes('error')
-      ) {
-        return
-      }
-
-      const hash = rawHash.replace('#', '') as Tab
-      if (['paste', 'table', 'results', 'history', 'settings', 'admin', 'apps'].includes(hash)) {
-        if (hash === 'admin') {
-          if (user && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
-            setActiveTab(hash)
-          } else {
-            window.location.hash = activeTab
-          }
-        } else {
-          setActiveTab(hash)
-        }
-      }
-    }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [user, activeTab])
+  // Navigation tab routing state
+  const { activeTab, setActiveTab } = useNavigationTabs(user, ADMIN_EMAILS)
 
   // Parcel operations (parsing, booking, printing, cancellation)
   const {
@@ -246,19 +157,34 @@ export default function App() {
     }
   }, [settings.postex_token])
 
-  const AdminIcon = ({ size = 20, className = '' }: { size?: number; className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className} style={{ width: size, height: size }}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-    </svg>
-  )
-
   const isAdmin = !!(user && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim()))
+
+  // Local Document Vault badges count
+  const [vaultCount, setVaultCount] = useState<number>(() => {
+    try {
+      return getSavedAirwayDocuments(user?.id).length
+    } catch {
+      return 0
+    }
+  })
+
+  useEffect(() => {
+    const updateVaultCount = () => {
+      try {
+        setVaultCount(getSavedAirwayDocuments(user?.id).length)
+      } catch {}
+    }
+    updateVaultCount()
+    window.addEventListener('zaynah_vault_updated', updateVaultCount)
+    return () => window.removeEventListener('zaynah_vault_updated', updateVaultCount)
+  }, [user?.id])
 
   const tabConfig = [
     { id: 'paste' as Tab, label: 'Paste', mobileLabel: 'Paste', Icon: PasteIcon, badge: null },
     { id: 'table' as Tab, label: 'Parcels', mobileLabel: 'Parcels', Icon: TableIcon, badge: parcels.length || null },
     { id: 'results' as Tab, label: 'Results', mobileLabel: 'Results', Icon: ResultsIcon, badge: results.length || null },
     { id: 'history' as Tab, label: 'Booked History', mobileLabel: 'History', Icon: HistoryIcon, badge: history.length || null },
+    { id: 'vault' as Tab, label: 'Document Vault', mobileLabel: 'Vault', Icon: FolderIcon, badge: vaultCount || null },
     { id: 'settings' as Tab, label: 'Settings', mobileLabel: 'Settings', Icon: SettingsIcon, badge: null },
     { id: 'apps' as Tab, label: 'All Apps', mobileLabel: 'Apps', Icon: AppsIcon, badge: null },
   ]
@@ -382,6 +308,14 @@ export default function App() {
               settings={settings}
               history={history}
               onUpdateHistory={updateHistory}
+            />
+          )}
+          {activeTab === 'vault' && (
+            <DocumentVaultTab
+              settings={settings}
+              history={history}
+              onUpdateHistory={updateHistory}
+              userId={user?.id}
             />
           )}
           {activeTab === 'settings' && (

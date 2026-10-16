@@ -80,9 +80,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     await forceAppUpdate()
   }
 
-  // Mobile Bottom Bar (5 core focused tabs)
-  const mobileBottomTabIds = ['paste', 'table', 'results', 'history', 'settings']
-  const mobileBottomTabs = tabs.filter(t => mobileBottomTabIds.includes(t.id))
+  // Mobile Bottom Bar (5 core focused operations tabs)
+  const baseBottomTabIds = ['paste', 'table', 'results', 'history', 'vault']
+  const mobileBottomTabIds = baseBottomTabIds.includes(activeTab)
+    ? baseBottomTabIds
+    : [...baseBottomTabIds.slice(0, 4), activeTab]
+  const mobileBottomTabs = mobileBottomTabIds.map(id => tabs.find(t => t.id === id)).filter(Boolean) as typeof tabs
 
   // Find active tab label for header breadcrumb
   const currentTabObj = tabs.find(t => t.id === activeTab) || tabs[0]

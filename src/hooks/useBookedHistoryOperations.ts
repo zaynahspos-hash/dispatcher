@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Settings } from '../utils/groqParser'
 import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice } from '../utils/postexApi'
+import { saveAirwayDocument, saveLoadSheetDocument } from '../utils/localPdfVault'
 import {
   BookedParcel,
   ActionStatusState,
@@ -40,20 +41,9 @@ export function useBookedHistoryOperations({
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState<boolean>(false)
   const [adviceError, setAdviceError] = useState<string | null>(null)
 
-  const handleSelectAll = (checked: boolean, targetIds: string[]) => {
-    if (checked) {
-      setSelectedIds(targetIds)
-    } else {
-      setSelectedIds([])
-    }
-  }
-
+  const handleSelectAll = (checked: boolean, targetIds: string[]) => setSelectedIds(checked ? targetIds : [])
   const handleSelectItem = (tracking: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, tracking])
-    } else {
-      setSelectedIds(prev => prev.filter(id => id !== tracking))
-    }
+    setSelectedIds(prev => checked ? [...prev, tracking] : prev.filter(id => id !== tracking))
   }
 
   const handlePrintSelected = async () => {
@@ -63,7 +53,12 @@ export function useBookedHistoryOperations({
     try {
       const success = await printLabels(settings.postex_token, selectedIds)
       if (success) {
-        setActionStatus({ type: 'success', message: 'PDF airway bills downloaded successfully!' })
+        saveAirwayDocument(settings.postex_token, {
+          batchName: `PostEx Airway Bill (${selectedIds.length} Parcels)`,
+          trackingNumbers: selectedIds,
+          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.invoice_amount || 0), 0)
+        })
+        setActionStatus({ type: 'success', message: `PDF airway bills downloaded & saved to Vault (${selectedIds.length} CNs)!` })
       } else {
         setActionStatus({ type: 'error', message: 'Failed to generate labels. Verify your PostEx token.' })
       }
@@ -106,17 +101,21 @@ export function useBookedHistoryOperations({
         selectedIds
       )
       if (success) {
+        saveLoadSheetDocument(settings.postex_token, {
+          pickupCode: settings.postex_pickup || '',
+          batchName: `Load Sheet (${selectedIds.length} Parcels)`,
+          trackingNumbers: selectedIds,
+          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.invoice_amount || 0), 0)
+        })
         const updatedHistory = history.map(item => {
-          if (selectedIds.includes(item.tracking)) {
-            return { ...item, status: 'BOOKED' }
-          }
+          if (selectedIds.includes(item.tracking)) return { ...item, status: 'BOOKED' }
           return item
         })
         onUpdateHistory(updatedHistory)
         setSelectedIds([])
         setActionStatus({
           type: 'success',
-          message: `Load sheet PDF generated and downloaded successfully for ${selectedIds.length} parcels! Status updated to BOOKED.`
+          message: `Load sheet PDF generated & saved to Vault for ${selectedIds.length} parcels! Status updated to BOOKED.`
         })
       } else {
         setActionStatus({ type: 'error', message: 'Failed to generate load sheet. Check token and pickup address.' })

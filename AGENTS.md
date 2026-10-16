@@ -31,6 +31,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 12. **0ms Instant Navigation & Micro-Interactions** — Tab switching, filter changes, and search operations must respond instantaneously without UI lag, blank screens, or layout jitter.
 13. **Zero Backdrop-Blur Thrashing (RULE M10b)** — App-wide ban on `backdrop-blur-*` on scrolling layers and sticky action bars to prevent mobile GPU repaints and stutter. Use high-contrast solid/opacity layers instead (`bg-white/95`, `bg-[#0f172a]/95`, `bg-black/60`).
 14. **Agent Executes Autonomously** — Run terminal builds, type checks, and verifications autonomously. Never ask the user to run routine commands unless external physical authentication or interactive credentials are required.
+15. **Zero Auto-Push & Ask First (RULE G4)** — NEVER execute `git push` or deploy code autonomously under any circumstance. All pending tasks, queues, and bug fixes must be inspected and completely resolved first. Explicitly ask the user for permission before pushing code to GitHub or deploying.
 
 ---
 

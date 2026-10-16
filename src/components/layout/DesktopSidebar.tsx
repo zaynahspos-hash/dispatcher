@@ -23,7 +23,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse
 }) => {
-  const operationsTabIds = ['paste', 'table', 'results', 'history']
+  const operationsTabIds = ['paste', 'table', 'results', 'history', 'vault']
   const operationsTabs = tabs.filter(t => operationsTabIds.includes(t.id))
   const systemTabs = tabs.filter(t => !operationsTabIds.includes(t.id))
 
