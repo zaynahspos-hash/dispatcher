@@ -26,7 +26,7 @@ export default function OtherApps() {
       url: 'https://zaynahspos.com',
       badge: 'ZaynahPOS.com',
       logo: '/zaynahs-logo.svg',
-      image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/zaynahspos.com%20(1).webp',
+      image: '/zaynahspos.com.webp',
       article: {
         title: 'Core System Capabilities',
         paragraphs: [
@@ -49,7 +49,7 @@ export default function OtherApps() {
       url: 'https://dispatcher.zaynahspos.com/',
       badge: 'Active System',
       logo: '/apple-touch-icon.png?v=20261014',
-      image: 'https://vnoxmoqnyqaqnlsnwbus.supabase.co/storage/v1/object/public/product-images/app-preview.webp',
+      image: '/app-preview.webp',
       article: {
         title: 'Core System Capabilities',
         paragraphs: [
