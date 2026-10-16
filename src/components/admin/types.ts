@@ -1,0 +1,29 @@
+export interface UserProfile {
+  id: string
+  email: string
+  role: string
+  created_at: string
+  settings?: {
+    settings: any
+  } | null
+}
+
+export interface LogEntry {
+  id: string
+  user_id: string
+  action: string
+  details: string | null
+  created_at: string
+}
+
+export interface CustomerEntry {
+  id: string
+  user_id: string
+  phone: string
+  name: string
+  created_at: string
+  updated_at?: string
+  user?: {
+    email: string
+  } | null
+}

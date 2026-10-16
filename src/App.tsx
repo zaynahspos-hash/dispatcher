@@ -17,7 +17,7 @@ import { useUserHistorySync } from './hooks/useUserHistorySync'
 import { usePwaInstall } from './hooks/usePwaInstall'
 import { CITY_LIST } from './utils/cityList'
 import { BookedHistory } from './components/BookedHistory'
-import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, SettingsIcon, AppsIcon } from './components/Icons'
+import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, SettingsIcon } from './components/Icons'
 import { getCached, setCached, removeCached, getTTL } from './utils/cacheWithExpiry'
 import { AppLayout } from './components/layout/AppLayout'
 import { ToastProvider } from './components/common/Toast'
@@ -47,7 +47,6 @@ export default function App() {
     }
     return false
   })
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // PWA install lifecycle
   const {
@@ -117,16 +116,6 @@ export default function App() {
     try { localStorage.setItem('parcel_app_theme', theme) } catch {}
   }, [theme])
 
-  // Keyboard shortcut (Escape closes sidebar)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsSidebarOpen(false)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -270,7 +259,6 @@ export default function App() {
     { id: 'results' as Tab, label: 'Results', mobileLabel: 'Results', Icon: ResultsIcon, badge: results.length || null },
     { id: 'history' as Tab, label: 'Booked History', mobileLabel: 'History', Icon: HistoryIcon, badge: history.length || null },
     { id: 'settings' as Tab, label: 'Settings', mobileLabel: 'Settings', Icon: SettingsIcon, badge: null },
-    { id: 'apps' as Tab, label: 'Other Apps', mobileLabel: 'Apps', Icon: AppsIcon, badge: null },
   ]
 
   if (isAdmin) {

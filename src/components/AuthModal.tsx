@@ -44,11 +44,13 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         .maybeSingle()
 
       if (!data) {
-        await supabase
-          .from('users')
-          .insert([{ id: user.id, email: user.email, role }])
-          .then(() => {})
-          .catch(() => {})
+        try {
+          await supabase
+            .from('users')
+            .insert([{ id: user.id, email: user.email, role }])
+        } catch {
+          // Handled by database trigger
+        }
       }
     } catch {
       // Handled by database trigger
@@ -150,7 +152,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         // 2. If email is already registered, attempt auto sign-in or advise user
         if (signUpError) {
           const errText = (signUpError.message || '').toLowerCase()
-          if (errText.includes('already registered') || errText.includes('already exists') || signUpData?.user?.identities?.length === 0) {
+          if (errText.includes('already registered') || errText.includes('already exists') || (signUpData as any)?.user?.identities?.length === 0) {
             const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
               email: cleanEmail,
               password,

@@ -2,6 +2,7 @@ import React from 'react'
 import { Parcel } from '../../utils/groqParser'
 import { TrashIcon } from '../Icons'
 import { POPULAR_CITIES } from './cityAutocomplete'
+import { useResizableColumns } from '../../hooks/useResizableColumns'
 
 interface ParcelDesktopGridProps {
   parcels: Parcel[]
@@ -20,6 +21,20 @@ interface ParcelDesktopGridProps {
   orderTypes: Array<{ value: string; label: string }>
 }
 
+const DEFAULT_PARCEL_WIDTHS = {
+  checkbox: 44,
+  index: 40,
+  refId: 112,
+  customer: 160,
+  phone: 130,
+  city: 144,
+  address: 300,
+  cod: 112,
+  items: 64,
+  orderType: 120,
+  action: 48
+}
+
 export function ParcelDesktopGrid({
   parcels,
   selected,
@@ -35,31 +50,78 @@ export function ParcelDesktopGrid({
   cityInputRef,
   orderTypes
 }: ParcelDesktopGridProps) {
+  const { widths, getResizerProps } = useResizableColumns({
+    storageKey: 'parcel_desktop_grid_col_widths',
+    defaultWidths: DEFAULT_PARCEL_WIDTHS,
+    minWidths: {
+      checkbox: 36,
+      index: 36,
+      refId: 70,
+      customer: 90,
+      phone: 90,
+      city: 80,
+      address: 120,
+      cod: 80,
+      items: 50,
+      orderType: 80,
+      action: 40
+    }
+  })
+
   return (
     <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden">
-      {/* Horizontal scroll container with comfortable column widths */}
+      {/* Horizontal scroll container with interactive Excel resizable column widths */}
       <div className="overflow-x-auto min-h-[400px] pb-32">
-        <table className="w-full text-xs min-w-[1260px] border-collapse">
+        <table className="text-xs border-collapse table-fixed select-none" style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}>
+          <colgroup><col style={{ width: `${widths.checkbox}px` }} /><col style={{ width: `${widths.index}px` }} /><col style={{ width: `${widths.refId}px` }} /><col style={{ width: `${widths.customer}px` }} /><col style={{ width: `${widths.phone}px` }} /><col style={{ width: `${widths.city}px` }} /><col style={{ width: `${widths.address}px` }} /><col style={{ width: `${widths.cod}px` }} /><col style={{ width: `${widths.items}px` }} /><col style={{ width: `${widths.orderType}px` }} /><col style={{ width: `${widths.action}px` }} /></colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
-              <th className="w-12 px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">
+              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
                 <input
                   type="checkbox"
                   checked={selected.size === parcels.length && parcels.length > 0}
                   onChange={toggleAll}
                   className="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                 />
+                <div {...getResizerProps('checkbox')} />
               </th>
-              <th className="w-12 px-2 py-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-800">#</th>
-              <th className="w-32 min-w-[120px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Ref ID</th>
-              <th className="w-44 min-w-[170px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Customer</th>
-              <th className="w-36 min-w-[140px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Phone</th>
-              <th className="w-44 min-w-[170px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">City</th>
-              <th className="min-w-[280px] px-3 py-3 text-left border-r border-slate-200/80 dark:border-slate-800">Delivery Address</th>
-              <th className="w-32 min-w-[120px] px-3 py-3 text-right border-r border-slate-200/80 dark:border-slate-800">COD (Rs.)</th>
-              <th className="w-20 min-w-[80px] px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">Items</th>
-              <th className="w-36 min-w-[140px] px-3 py-3 text-center border-r border-slate-200/80 dark:border-slate-800">Order Type</th>
-              <th className="w-16 min-w-[64px] px-3 py-3 text-center">Action</th>
+              <th className="p-3 text-center font-mono border-r border-slate-200/80 dark:border-slate-800 relative">
+                #
+                <div {...getResizerProps('index')} />
+              </th>
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                Ref ID
+                <div {...getResizerProps('refId')} />
+              </th>
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                Customer
+                <div {...getResizerProps('customer')} />
+              </th>
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                Phone
+                <div {...getResizerProps('phone')} />
+              </th>
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                City
+                <div {...getResizerProps('city')} />
+              </th>
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                Delivery Address
+                <div {...getResizerProps('address')} />
+              </th>
+              <th className="p-3 text-right border-r border-slate-200/80 dark:border-slate-800 relative">
+                COD (Rs.)
+                <div {...getResizerProps('cod')} />
+              </th>
+              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                Items
+                <div {...getResizerProps('items')} />
+              </th>
+              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                Order Type
+                <div {...getResizerProps('orderType')} />
+              </th>
+              <th className="p-3 text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
@@ -76,7 +138,7 @@ export function ParcelDesktopGrid({
                   }`}
                 >
                   {/* Checkbox */}
-                  <td className="w-12 px-3 py-2 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
+                  <td className="p-2 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
                     <input
                       type="checkbox"
                       checked={selected.has(i)}
@@ -86,12 +148,12 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Row Index */}
-                  <td className="w-12 px-2 py-2 text-center text-slate-400 font-mono text-[11px] border-r border-b border-slate-200/80 dark:border-slate-800">
+                  <td className="p-2 text-center text-slate-400 font-mono text-[11px] border-r border-b border-slate-200/80 dark:border-slate-800">
                     {i + 1}
                   </td>
 
                   {/* Ref ID (Flush Excel Cell) */}
-                  <td className="w-32 min-w-[120px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       value={parcel.id || ''}
                       onChange={e => updateField(i, 'id', e.target.value)}
@@ -100,7 +162,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Customer Name */}
-                  <td className="w-44 min-w-[170px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                     <input
                       value={parcel.name || ''}
                       onChange={e => updateField(i, 'name', e.target.value)}
@@ -110,7 +172,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Phone Number */}
-                  <td className="w-36 min-w-[140px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       value={parcel.phone || ''}
                       onChange={e => updateField(i, 'phone', e.target.value)}
@@ -124,7 +186,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* City (with live search dropdown) */}
-                  <td className="w-44 min-w-[170px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container">
                     <input
                       ref={editingCity?.row === i && !editingCity?.isMobile ? cityInputRef : undefined}
                       value={parcel.city || ''}
@@ -186,7 +248,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Address */}
-                  <td className="min-w-[280px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                     <input
                       value={parcel.address || ''}
                       onChange={e => updateField(i, 'address', e.target.value)}
@@ -196,7 +258,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* COD Amount (Right Aligned Font Mono) */}
-                  <td className="w-32 min-w-[120px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       type="number"
                       value={parcel.total}
@@ -206,7 +268,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Items Count (Centered) */}
-                  <td className="w-20 min-w-[80px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       type="number"
                       value={parcel.items}
@@ -216,7 +278,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Order Type */}
-                  <td className="w-36 min-w-[140px] p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
                     <select
                       value={parcel.orderType || 'Normal'}
                       onChange={e => updateField(i, 'orderType', e.target.value)}
@@ -229,7 +291,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Action */}
-                  <td className="w-16 min-w-[64px] p-0 border-b border-slate-200/80 dark:border-slate-800 text-center">
+                  <td className="p-0 border-b border-slate-200/80 dark:border-slate-800 text-center">
                     <button
                       onClick={() => deleteParcel(i)}
                       title="Delete Row"

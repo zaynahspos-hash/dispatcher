@@ -74,7 +74,7 @@ export class PostExProvider implements ICourierProvider {
       note: payload.transactionNotes
     }
 
-    const res = await createOrder(parcelAdapter, token, credentials as any)
+    const res = await createOrder(token || '', parcelAdapter as any, credentials as any)
     const isSuccess = String(res?.statusCode) === '200' || res?.dist?.trackingNumber
 
     return {
@@ -119,7 +119,7 @@ export class PostExProvider implements ICourierProvider {
   async printLabels(
     trackingNumbers: string[],
     credentials: Record<string, string>
-  ): Promise<Blob | string> {
+  ): Promise<Blob | string | boolean> {
     const token = credentials.postex_token || credentials.token
     return await printLabels(token || '', trackingNumbers)
   }

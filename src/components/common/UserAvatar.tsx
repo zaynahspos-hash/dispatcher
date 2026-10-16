@@ -36,10 +36,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const cleanEmail = email?.trim().toLowerCase() || ''
   
-  // Resolution:
-  // 1. Explicit avatarUrl (e.g. Google OAuth picture or Supabase user_metadata)
-  // 2. Universal Unavatar API (Google, Gmail, Gravatar, GitHub)
-  const src = avatarUrl || (cleanEmail ? `https://unavatar.io/${encodeURIComponent(cleanEmail)}?fallback=false` : null)
+  // Resolution: Use explicit custom uploaded avatarUrl if provided, otherwise render crisp local initials
+  const src = avatarUrl || null
 
   // Initial letter
   const initial = (name ? name[0] : (cleanEmail ? cleanEmail[0] : 'U')).toUpperCase()

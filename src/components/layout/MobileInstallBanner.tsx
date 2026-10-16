@@ -25,7 +25,7 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
   }
 
   return (
-    <div className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 text-slate-900 dark:text-gray-100 rounded-2xl shadow-sm flex items-center justify-between gap-3 transition-all duration-300">
+    <div className="lg:hidden mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-900/60 text-slate-900 dark:text-gray-100 rounded-2xl shadow-sm flex items-center justify-between gap-3 transition-all duration-300">
       <div className="flex items-center gap-2.5 min-w-0">
         <img 
           src="/favicon-96x96.png?v=20261014" 

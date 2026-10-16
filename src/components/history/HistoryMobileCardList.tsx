@@ -8,7 +8,6 @@ interface HistoryMobileCardListProps {
   handleSelectAll: (checked: boolean, trackings: string[]) => void
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>
   handleSelectItem: (tracking: string, checked: boolean) => void
-  handleSaveName: (tracking: string, newName: string) => void
   handleSyncStatus: (tracking: string) => void
   syncingTracking: string | null
   handleCancelSingle: (tracking: string) => void
@@ -23,7 +22,6 @@ export function HistoryMobileCardList({
   handleSelectAll,
   setSelectedIds,
   handleSelectItem,
-  handleSaveName,
   handleSyncStatus,
   syncingTracking,
   handleCancelSingle,
@@ -61,7 +59,6 @@ export function HistoryMobileCardList({
           parcel={parcel}
           isSelected={selectedIds.includes(parcel.tracking)}
           onToggleSelect={handleSelectItem}
-          onSaveName={handleSaveName}
           onSyncStatus={handleSyncStatus}
           isSyncing={syncingTracking === parcel.tracking}
           onCancel={handleCancelSingle}

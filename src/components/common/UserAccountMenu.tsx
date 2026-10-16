@@ -4,7 +4,6 @@ import { supabase } from '../../utils/supabaseClient'
 import { useToast } from './Toast'
 import { Settings } from '../../utils/groqParser'
 import { 
-  LockIcon, 
   CheckIcon, 
   MoonIcon, 
   SunIcon, 

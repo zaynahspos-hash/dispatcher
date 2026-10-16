@@ -4,8 +4,7 @@ import {
   CloseIcon, 
   TrashIcon, 
   DownloadIcon, 
-  SearchIcon, 
-  CheckIcon 
+  SearchIcon
 } from '../Icons'
 import { 
   SavedAirwayDocument, 

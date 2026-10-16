@@ -55,6 +55,9 @@ export interface Settings {
   whatsapp_template?: string
   whatsapp_note?: string
   avatar_url?: string
+  return_address_code?: string
+  ai_model?: string
+  default_order_type?: string
 }
 
 export interface ParseResult {

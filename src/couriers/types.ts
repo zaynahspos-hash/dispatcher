@@ -107,7 +107,7 @@ export interface ICourierProvider {
   printLabels(
     trackingNumbers: string[],
     credentials: Record<string, string>
-  ): Promise<Blob | string>
+  ): Promise<Blob | string | boolean>
 
   /**
    * Fetch registered merchant pickup locations

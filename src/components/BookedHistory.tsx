@@ -8,8 +8,20 @@ import { HistoryFilterBar } from './history/HistoryFilterBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
+import { useResizableColumns } from '../hooks/useResizableColumns'
 
 export type { BookedParcel }
+
+const DEFAULT_HISTORY_WIDTHS = {
+  checkbox: 44,
+  consignee: 170,
+  tracking: 155,
+  destination: 170,
+  bookingDate: 120,
+  cod: 110,
+  status: 130,
+  action: 110
+}
 
 interface BookedHistoryProps {
   settings: Settings
@@ -18,6 +30,21 @@ interface BookedHistoryProps {
 }
 
 export function BookedHistory({ settings, history, onUpdateHistory }: BookedHistoryProps) {
+  const { widths: colWidths, getResizerProps } = useResizableColumns({
+    storageKey: 'history_desktop_grid_col_widths',
+    defaultWidths: DEFAULT_HISTORY_WIDTHS,
+    minWidths: {
+      checkbox: 36,
+      consignee: 90,
+      tracking: 90,
+      destination: 90,
+      bookingDate: 70,
+      cod: 70,
+      status: 80,
+      action: 70
+    }
+  })
+
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('pending_loadsheet')
   const [searchQuery, setSearchQuery] = useState('')
   const [fromDate, setFromDate] = useState('')
@@ -88,16 +115,6 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
   }, [filteredParcels, pageSize])
 
   const hasMore = filteredParcels.length > pageSize
-
-  const handleSaveName = (tracking: string, newName: string) => {
-    const updated = history.map(item => {
-      if (item.tracking === tracking) {
-        return { ...item, name: newName }
-      }
-      return item
-    })
-    onUpdateHistory(updated)
-  }
 
   const uniqueCities = useMemo(() => {
     const citiesSet = new Set(history.map(item => item.city.toUpperCase().trim()))
@@ -254,26 +271,49 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {/* Desktop Table */}
+          {/* Desktop Table with interactive resizers */}
           <div className="hidden lg:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
-            <table className="w-full text-left text-xs border-collapse">
+            <table
+              className="w-full text-left text-xs border-collapse table-fixed select-none"
+              style={{ minWidth: Object.values(colWidths).reduce((a, b) => a + b, 0) }}
+            >
+              <colgroup><col style={{ width: `${colWidths.checkbox}px` }} /><col style={{ width: `${colWidths.consignee}px` }} /><col style={{ width: `${colWidths.tracking}px` }} /><col style={{ width: `${colWidths.destination}px` }} /><col style={{ width: `${colWidths.bookingDate}px` }} /><col style={{ width: `${colWidths.cod}px` }} /><col style={{ width: `${colWidths.status}px` }} /><col style={{ width: `${colWidths.action}px` }} /></colgroup>
               <thead>
-                <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800">
-                  <th className="p-4 w-10">
+                <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                  <th className="p-3 text-center relative">
                     <input
                       type="checkbox"
                       checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
                       onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
                     />
+                    <div {...getResizerProps('checkbox')} />
                   </th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Consignee</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Destination</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Booking Date</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200 text-right">COD Amount</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200">Status</th>
-                  <th className="p-4 font-bold text-slate-700 dark:text-slate-200 text-center w-36">Action</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
+                    Consignee
+                    <div {...getResizerProps('consignee')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
+                    Tracking Info
+                    <div {...getResizerProps('tracking')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
+                    Destination
+                    <div {...getResizerProps('destination')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
+                    Booking Date
+                    <div {...getResizerProps('bookingDate')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right relative">
+                    COD Amount
+                    <div {...getResizerProps('cod')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
+                    Status
+                    <div {...getResizerProps('status')} />
+                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,7 +323,6 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
                     parcel={parcel}
                     isSelected={selectedIds.includes(parcel.tracking)}
                     onToggleSelect={handleSelectItem}
-                    onSaveName={handleSaveName}
                     onSyncStatus={handleSyncStatus}
                     isSyncing={syncingTracking === parcel.tracking}
                     onCancel={handleCancelSingle}
@@ -308,7 +347,6 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
             handleSelectAll={handleSelectAll}
             setSelectedIds={setSelectedIds}
             handleSelectItem={handleSelectItem}
-            handleSaveName={handleSaveName}
             handleSyncStatus={handleSyncStatus}
             syncingTracking={syncingTracking}
             handleCancelSingle={handleCancelSingle}
