@@ -24,15 +24,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       ) {
         return 'reset'
       }
-      if (h.includes('signin') || s.includes('signin')) {
-        return 'signin'
-      }
       if (h.includes('signup') || s.includes('signup')) {
-        return 'signup'
-      }
-      // First time visitors should default to 'signup' (Create Account)
-      const hasLoggedIn = localStorage.getItem('has_logged_in')
-      if (!hasLoggedIn) {
         return 'signup'
       }
     }

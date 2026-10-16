@@ -9,13 +9,7 @@ interface AuthModalProps {
 type AuthMode = 'signin' | 'signup' | 'forgot'
 
 export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<AuthMode>(() => {
-    if (typeof window !== 'undefined') {
-      const hasLoggedIn = localStorage.getItem('has_logged_in')
-      if (!hasLoggedIn) return 'signup'
-    }
-    return 'signin'
-  })
+  const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
