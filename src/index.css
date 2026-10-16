@@ -93,5 +93,40 @@ input:focus, select:focus, textarea:focus {
   -webkit-text-security: none !important;
 }
 
+/* WebKit / Safari / Chrome Autofill Overrides: Prevent dark inputs from turning white */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Light mode inputs when parent or document has light mode */
+:root:not(.dark) input:not([class*="bg-slate-950"]):not([class*="bg-black"]):-webkit-autofill,
+:root:not(.dark) input:not([class*="bg-slate-950"]):not([class*="bg-black"]):-webkit-autofill:hover,
+:root:not(.dark) input:not([class*="bg-slate-950"]):not([class*="bg-black"]):-webkit-autofill:focus,
+:root:not(.dark) input:not([class*="bg-slate-950"]):not([class*="bg-black"]):-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a !important;
+}
+
+/* Dark mode inputs always stay dark with white text */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active,
+input[class*="bg-slate-950"]:-webkit-autofill,
+input[class*="bg-slate-950"]:-webkit-autofill:hover,
+input[class*="bg-slate-950"]:-webkit-autofill:focus,
+input[class*="bg-slate-950"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
 
 

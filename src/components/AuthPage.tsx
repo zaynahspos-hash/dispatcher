@@ -367,13 +367,13 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-[#090d16] font-sans relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-[#090d16] font-sans relative overflow-hidden select-none dark [color-scheme:dark]">
       
       {/* Background radial gradient accent */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       {/* Main Auth Card */}
-      <div className="w-full max-w-[420px] bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10">
+      <div className="w-full max-w-[420px] bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 [color-scheme:dark]">
         
         {/* Top-Right Hard Refresh Button for PWA */}
         <button
@@ -625,7 +625,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="merchant@example.com"
                   autoFocus
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all [color-scheme:dark]"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -695,7 +695,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="merchant@example.com"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all [color-scheme:dark]"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -734,7 +734,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all font-mono"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all font-mono [color-scheme:dark]"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -773,7 +773,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all font-mono"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 outline-none transition-all font-mono [color-scheme:dark]"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                     <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
