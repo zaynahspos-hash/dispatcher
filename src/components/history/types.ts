@@ -107,7 +107,7 @@ export const getWhatsAppLink = (parcel: BookedParcel, whatsappNote?: string, wha
   }
 
   const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-  const defaultNote = 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+  const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
   const noteContent = whatsappNote && whatsappNote !== 'Thank you for shopping with us!' ? whatsappNote : defaultNote
   
   const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')

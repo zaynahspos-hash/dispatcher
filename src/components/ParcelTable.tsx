@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { Parcel, Settings } from '../utils/groqParser'
+import { BookedParcel } from './history/types'
 import { CITY_LIST } from '../utils/cityList'
 import { PlusIcon, HistoryIcon } from './Icons'
 import { useToast } from './common/Toast'
@@ -8,6 +9,13 @@ import { getFilteredCities } from './parcel/cityAutocomplete'
 import { ParcelKPIBar } from './parcel/ParcelKPIBar'
 import { ParcelDesktopGrid } from './parcel/ParcelDesktopGrid'
 import { ParcelMobileCards } from './parcel/ParcelMobileCards'
+import {
+  buildHistoryIdSet,
+  detectSerialConflicts,
+  resolveAllSerialConflicts,
+  getNextAvailableSerial,
+  cleanSerialId
+} from '../utils/orderSerialHelper'
 
 interface ParcelTableProps {
   parcels: Parcel[]
@@ -18,6 +26,7 @@ interface ParcelTableProps {
   settings: Settings
   cities?: string[]
   updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
+  history?: BookedParcel[]
 }
 
 export const ORDER_TYPES = [
@@ -35,14 +44,29 @@ export default function ParcelTable({
   loading,
   settings,
   cities,
-  updateSetting
+  updateSetting,
+  history
 }: ParcelTableProps) {
   const [selected, setSelected] = useState<Set<number>>(new Set(parcels.map((_, i) => i)))
   const [cityFilter, setCityFilter] = useState('')
   const [editingCity, setEditingCity] = useState<{ row: number; isMobile?: boolean } | null>(null)
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
+  const [expandDefaults, setExpandDefaults] = useState<boolean>(() => {
+    return localStorage.getItem('zaynah_table_expand_defaults') === 'true'
+  })
   const cityInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+
+  const handleToggleExpandDefaults = () => {
+    setExpandDefaults(prev => {
+      const next = !prev
+      localStorage.setItem('zaynah_table_expand_defaults', String(next))
+      return next
+    })
+  }
+
+  const historyIds = useMemo(() => buildHistoryIdSet(history), [history])
+  const conflictInfo = useMemo(() => detectSerialConflicts(parcels, historyIds), [parcels, historyIds])
 
   const activeCityList = (cities && cities.length > 0) ? cities : CITY_LIST
 
@@ -124,8 +148,15 @@ export default function ParcelTable({
     let nextNum = parseInt(settings.order_id_next_num || '1001', 10)
     if (isNaN(nextNum)) nextNum = 1001
 
+    const used = new Set<string>(historyIds)
+    parcels.forEach(p => {
+      if (p.id) used.add(cleanSerialId(p.id))
+    })
+
+    const next = getNextAvailableSerial(prefix, nextNum, used)
+
     const newParcel: Parcel = {
-      id: `${prefix}${nextNum}`,
+      id: next.nextId,
       name: '',
       phone: '',
       city: 'Lahore',
@@ -141,9 +172,38 @@ export default function ParcelTable({
     setParcels(prev => [...prev, newParcel])
     setSelected(prev => new Set([...prev, parcels.length]))
     if (updateSetting) {
-      updateSetting('order_id_next_num', String(nextNum + 1))
+      updateSetting('order_id_next_num', String(next.nextNum))
     }
-    toast.success('Row Added', 'New order ready for input.')
+    toast.success('Row Added', `New order ready with ID: ${next.nextId}`)
+  }
+
+  function handleResolveSingleRow(index: number) {
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let nextNum = parseInt(settings.order_id_next_num || '1001', 10) || 1001
+
+    const used = new Set<string>(historyIds)
+    parcels.forEach((p, i) => {
+      if (i !== index && p.id) used.add(cleanSerialId(p.id))
+    })
+
+    const next = getNextAvailableSerial(prefix, nextNum, used)
+    updateField(index, 'id', next.nextId)
+    if (updateSetting) {
+      updateSetting('order_id_next_num', String(next.nextNum))
+    }
+    toast.success('Serial Reassigned', `Row #${index + 1} updated to available ID: ${next.nextId}`)
+  }
+
+  function handleResolveAllConflicts() {
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let nextNum = parseInt(settings.order_id_next_num || '1001', 10) || 1001
+
+    const res = resolveAllSerialConflicts(parcels, historyIds, prefix, nextNum)
+    setParcels(res.updatedParcels)
+    if (updateSetting && res.nextNum !== nextNum) {
+      updateSetting('order_id_next_num', String(res.nextNum))
+    }
+    toast.success('Serials Auto-Assigned', `${res.resolvedCount} duplicate/DB ID(s) resolved to clean sequential serials!`)
   }
 
   function exportExcel() {
@@ -211,6 +271,10 @@ export default function ParcelTable({
         totalCOD={totalCOD}
         invalidPhonesCount={invalidPhonesCount}
         unverifiedCitiesCount={unverifiedCitiesCount}
+        duplicateSerialsCount={conflictInfo.totalConflicts}
+        onResolveDuplicates={handleResolveAllConflicts}
+        expandDefaults={expandDefaults}
+        onToggleExpandDefaults={handleToggleExpandDefaults}
         onAddRow={addRow}
         onExportExcel={exportExcel}
         onClearAll={clearAll}
@@ -235,6 +299,10 @@ export default function ParcelTable({
         filteredCities={filteredCities}
         cityInputRef={cityInputRef}
         orderTypes={ORDER_TYPES}
+        conflictedIndices={conflictInfo.conflictedIndices}
+        conflictReasons={conflictInfo.conflictReasons}
+        onResolveSingleRow={handleResolveSingleRow}
+        expandDefaults={expandDefaults}
       />
 
       {/* 3. Mobile Handheld Editing Cards (RULE M1) */}
@@ -255,6 +323,10 @@ export default function ParcelTable({
         expandedRow={expandedRow}
         setExpandedRow={setExpandedRow}
         orderTypes={ORDER_TYPES}
+        conflictedIndices={conflictInfo.conflictedIndices}
+        conflictReasons={conflictInfo.conflictReasons}
+        onResolveSingleRow={handleResolveSingleRow}
+        expandDefaults={expandDefaults}
       />
     </div>
   )

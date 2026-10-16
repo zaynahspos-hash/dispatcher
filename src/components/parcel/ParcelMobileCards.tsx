@@ -1,6 +1,6 @@
 import React from 'react'
 import { Parcel } from '../../utils/groqParser'
-import { PlusIcon, TrashIcon } from '../Icons'
+import { PlusIcon, TrashIcon, RefreshIcon } from '../Icons'
 import { POPULAR_CITIES } from './cityAutocomplete'
 
 interface ParcelMobileCardsProps {
@@ -20,6 +20,10 @@ interface ParcelMobileCardsProps {
   expandedRow: number | null
   setExpandedRow: React.Dispatch<React.SetStateAction<number | null>>
   orderTypes: Array<{ value: string; label: string }>
+  conflictedIndices?: Set<number>
+  conflictReasons?: Map<number, 'already_in_db' | 'duplicate_in_table'>
+  onResolveSingleRow?: (index: number) => void
+  expandDefaults?: boolean
 }
 
 export function ParcelMobileCards({
@@ -38,7 +42,11 @@ export function ParcelMobileCards({
   filteredCities,
   expandedRow,
   setExpandedRow,
-  orderTypes
+  orderTypes,
+  conflictedIndices,
+  conflictReasons,
+  onResolveSingleRow,
+  expandDefaults
 }: ParcelMobileCardsProps) {
   return (
     <div className="sm:hidden space-y-3">
@@ -74,7 +82,7 @@ export function ParcelMobileCards({
       {parcels.map((parcel, i) => {
         const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
         const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
-        const isExpanded = expandedRow === i
+        const isExpanded = expandDefaults || expandedRow === i
 
         return (
           <div
@@ -97,12 +105,29 @@ export function ParcelMobileCards({
                 <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                   #{i + 1}
                 </span>
-                <input
-                  value={parcel.id || ''}
-                  onChange={e => updateField(i, 'id', e.target.value)}
-                  placeholder="Ref ID"
-                  className="w-24 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    value={parcel.id || ''}
+                    onChange={e => updateField(i, 'id', e.target.value)}
+                    placeholder="Ref ID"
+                    className={`w-24 px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 ${
+                      conflictedIndices?.has(i)
+                        ? 'bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-300 focus:ring-amber-500'
+                        : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
+                    }`}
+                  />
+                  {conflictedIndices?.has(i) && onResolveSingleRow && (
+                    <button
+                      type="button"
+                      onClick={() => onResolveSingleRow(i)}
+                      title={`${conflictReasons?.get(i) === 'already_in_db' ? 'Already in DB' : 'Duplicate'} - Click to assign next available serial`}
+                      className="h-6 px-1.5 rounded bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] flex items-center gap-0.5 active:scale-95 cursor-pointer"
+                    >
+                      <RefreshIcon size={9} />
+                      <span>Next</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">

@@ -361,6 +361,7 @@ export default function App() {
               settings={settings}
               cities={operationalCities}
               updateSetting={updateSetting}
+              history={history}
             />
           )}
           {activeTab === 'results' && (

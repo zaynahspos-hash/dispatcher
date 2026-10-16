@@ -5,6 +5,7 @@ import { BookedParcel } from '../components/BookedHistory'
 import { createOrder, printLabels, cancelOrder } from '../utils/postexApi'
 import { logUsage, supabase } from '../utils/supabaseClient'
 import { LoadingProgress } from '../components/layout/GlobalLoadingOverlay'
+import { buildHistoryIdSet, getNextAvailableSerial, cleanSerialId, isDuplicateRefError } from '../utils/orderSerialHelper'
 
 export function cleanPhoneNumber(phone: string): string {
   if (!phone) return ''
@@ -130,6 +131,7 @@ export function useParcelOperations({
     try {
       const blocks = splitTextByOrders(rawText)
       const totalOrders = Math.max(1, blocks.length)
+      const historyIdSet = buildHistoryIdSet(history)
 
       setLoadingProgress({
         title: `Extracting & Cleaning Orders`,
@@ -154,7 +156,7 @@ export function useParcelOperations({
           percentage: 45
         })
 
-        const result = await parseParcelText(rawText, settings)
+        const result = await parseParcelText(rawText, settings, historyIdSet)
         if (result.nextSerialNum !== undefined && updateSetting) {
           updateSetting('order_id_next_num', String(result.nextSerialNum))
         }
@@ -206,9 +208,12 @@ export function useParcelOperations({
           percentage: Math.round((completedCount / blocks.length) * 100)
         })
 
-        const res = await parseParcelText(chunk, runningSettings)
+        const res = await parseParcelText(chunk, runningSettings, historyIdSet)
         if (res) {
           resultsArray.push(res)
+          res.parcels.forEach(p => {
+            if (p.id) historyIdSet.add(cleanSerialId(p.id))
+          })
           if (res.nextSerialNum !== undefined) {
             runningSettings = { ...runningSettings, order_id_next_num: String(res.nextSerialNum) }
           }
@@ -281,41 +286,77 @@ export function useParcelOperations({
     const bookingResults: BookingResult[] = []
     const successTrackings: string[] = []
     const newBookings: BookedParcel[] = []
+    const updatedParcelsMap = new Map<string, string>()
+
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let currentNextNum = parseInt(settings.order_id_next_num || '1001', 10)
+    if (isNaN(currentNextNum)) currentNextNum = 1001
+    const usedSerialsInSession = buildHistoryIdSet(history)
+    let serialsAdvanced = false
 
     for (let i = 0; i < parcelsToBook.length; i++) {
-      const parcel = parcelsToBook[i]
-      setLoadingMessage(`Booking ${i + 1}/${parcelsToBook.length}: ${parcel.name}...`)
+      const originalParcel = parcelsToBook[i]
+      let effectiveParcel = { ...originalParcel }
+      const originalParcelId = originalParcel.id
+
+      // Proactively auto-assign next available serial if already in DB or earlier in this session
+      const cleanId = cleanSerialId(effectiveParcel.id)
+      if (cleanId && usedSerialsInSession.has(cleanId)) {
+        const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+        effectiveParcel.id = nextId
+        currentNextNum = nextNum
+        serialsAdvanced = true
+      }
+      usedSerialsInSession.add(cleanSerialId(effectiveParcel.id))
+
+      setLoadingMessage(`Booking ${i + 1}/${parcelsToBook.length}: ${effectiveParcel.name} (${effectiveParcel.id})...`)
       setLoadingProgress({
         title: 'Booking on PostEx V3',
-        step: `Generating airway bill for ${parcel.name} (${parcel.city})...`,
+        step: `Generating airway bill for ${effectiveParcel.name} (${effectiveParcel.city})...`,
         current: i + 1,
         total: parcelsToBook.length,
         done: i,
         remaining: parcelsToBook.length - i,
         percentage: Math.round(((i + 1) / parcelsToBook.length) * 100)
       })
+
       try {
-        const res = await createOrder(token, parcel, settings)
+        let res = await createOrder(token, effectiveParcel, settings)
+        let initialError = res.message || res.statusMessage || ''
+
+        // If PostEx returns duplicate order error, auto-assign next serial & retry once
+        if (Number(res.statusCode) !== 200 && isDuplicateRefError(initialError)) {
+          const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+          effectiveParcel.id = nextId
+          currentNextNum = nextNum
+          serialsAdvanced = true
+          usedSerialsInSession.add(cleanSerialId(nextId))
+          res = await createOrder(token, effectiveParcel, settings)
+        }
+
         if (Number(res.statusCode) === 200) {
+          if (effectiveParcel.id !== originalParcelId) {
+            updatedParcelsMap.set(originalParcelId, effectiveParcel.id)
+          }
           bookingResults.push({
-            ...parcel,
+            ...effectiveParcel,
             status: 'success',
             tracking: res.dist?.trackingNumber,
           })
           if (res.dist?.trackingNumber) {
             successTrackings.push(res.dist.trackingNumber)
             newBookings.push({
-              id: parcel.id,
-              name: parcel.name,
-              phone: parcel.phone,
-              city: parcel.city,
-              address: parcel.address,
-              total: parcel.total,
-              items: parcel.items,
-              weight: parcel.weight,
-              detail: parcel.detail,
-              note: parcel.note,
-              orderType: parcel.orderType || 'Normal',
+              id: effectiveParcel.id,
+              name: effectiveParcel.name,
+              phone: effectiveParcel.phone,
+              city: effectiveParcel.city,
+              address: effectiveParcel.address,
+              total: effectiveParcel.total,
+              items: effectiveParcel.items,
+              weight: effectiveParcel.weight,
+              detail: effectiveParcel.detail,
+              note: effectiveParcel.note,
+              orderType: effectiveParcel.orderType || 'Normal',
               tracking: res.dist.trackingNumber,
               bookingDate: new Date().toISOString(),
               status: 'UNBOOKED'
@@ -323,7 +364,7 @@ export function useParcelOperations({
           }
         } else {
           bookingResults.push({
-            ...parcel,
+            ...effectiveParcel,
             status: 'error',
             error: res.message || res.statusMessage || JSON.stringify(res),
           })
@@ -331,18 +372,74 @@ export function useParcelOperations({
       } catch (e: any) {
         const data = e?.response?.data
         const errMsg = (data && (data.message || data.statusMessage || data.error || (typeof data === 'string' ? data : JSON.stringify(data)))) || e?.message || 'Connection error'
+
+        // If caught error is duplicate reference, auto-assign next serial and retry once
+        if (isDuplicateRefError(errMsg)) {
+          try {
+            const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+            effectiveParcel.id = nextId
+            currentNextNum = nextNum
+            serialsAdvanced = true
+            usedSerialsInSession.add(cleanSerialId(nextId))
+            const retryRes = await createOrder(token, effectiveParcel, settings)
+            if (Number(retryRes.statusCode) === 200) {
+              if (effectiveParcel.id !== originalParcelId) {
+                updatedParcelsMap.set(originalParcelId, effectiveParcel.id)
+              }
+              bookingResults.push({
+                ...effectiveParcel,
+                status: 'success',
+                tracking: retryRes.dist?.trackingNumber,
+              })
+              if (retryRes.dist?.trackingNumber) {
+                successTrackings.push(retryRes.dist.trackingNumber)
+                newBookings.push({
+                  id: effectiveParcel.id,
+                  name: effectiveParcel.name,
+                  phone: effectiveParcel.phone,
+                  city: effectiveParcel.city,
+                  address: effectiveParcel.address,
+                  total: effectiveParcel.total,
+                  items: effectiveParcel.items,
+                  weight: effectiveParcel.weight,
+                  detail: effectiveParcel.detail,
+                  note: effectiveParcel.note,
+                  orderType: effectiveParcel.orderType || 'Normal',
+                  tracking: retryRes.dist.trackingNumber,
+                  bookingDate: new Date().toISOString(),
+                  status: 'UNBOOKED'
+                })
+              }
+              continue
+            }
+          } catch (retryErr) {
+            // fall through to error push
+          }
+        }
+
         bookingResults.push({
-          ...parcel,
+          ...effectiveParcel,
           status: 'error',
           error: errMsg,
         })
       }
     }
 
+    if (serialsAdvanced && updateSetting) {
+      updateSetting('order_id_next_num', String(currentNextNum))
+    }
+    if (updatedParcelsMap.size > 0) {
+      setParcels(prev => prev.map(p => {
+        const newId = updatedParcelsMap.get(p.id)
+        return newId ? { ...p, id: newId } : p
+      }))
+    }
+
     // Merge with existing results (for "book selected")
     setResults(prev => {
-      const existingIds = new Set(bookingResults.map(r => r.id))
-      const filtered = prev.filter(r => !existingIds.has(r.id))
+      const incomingIds = new Set(bookingResults.map(r => r.id))
+      const oldReplacedIds = new Set(Array.from(updatedParcelsMap.keys()))
+      const filtered = prev.filter(r => !incomingIds.has(r.id) && !oldReplacedIds.has(r.id))
       return [...filtered, ...bookingResults]
     })
 
@@ -461,8 +558,14 @@ export function useParcelOperations({
     setLoadingMessage(`Booking ${result.name} on PostEx...`)
     const token = settings.postex_token
 
-    const parcelToBook: Parcel = {
-      id: result.id || `res_${Date.now()}`,
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    let currentNextNum = parseInt(settings.order_id_next_num || '1001', 10)
+    if (isNaN(currentNextNum)) currentNextNum = 1001
+    const usedSerialsInSession = buildHistoryIdSet(history)
+
+    const originalParcelId = result.id || `res_${Date.now()}`
+    let parcelToBook: Parcel = {
+      id: originalParcelId,
       name: result.name,
       phone: result.phone,
       city: result.city,
@@ -476,9 +579,35 @@ export function useParcelOperations({
       note: result.note || settings.default_note || 'Call before delivery',
     }
 
+    let serialChanged = false
+    const cleanId = cleanSerialId(parcelToBook.id)
+    if (cleanId && usedSerialsInSession.has(cleanId)) {
+      const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+      parcelToBook.id = nextId
+      currentNextNum = nextNum
+      serialChanged = true
+      usedSerialsInSession.add(cleanSerialId(nextId))
+    }
+
     try {
-      const res = await createOrder(token, parcelToBook, settings)
+      let res = await createOrder(token, parcelToBook, settings)
+      let initialError = res.message || res.statusMessage || ''
+      if (Number(res.statusCode) !== 200 && isDuplicateRefError(initialError)) {
+        const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+        parcelToBook.id = nextId
+        currentNextNum = nextNum
+        serialChanged = true
+        usedSerialsInSession.add(cleanSerialId(nextId))
+        res = await createOrder(token, parcelToBook, settings)
+      }
+
       if (Number(res.statusCode) === 200) {
+        if (serialChanged && updateSetting) {
+          updateSetting('order_id_next_num', String(currentNextNum))
+        }
+        if (serialChanged) {
+          setParcels(prev => prev.map(p => p.id === originalParcelId ? { ...p, id: parcelToBook.id } : p))
+        }
         const updatedResult: BookingResult = {
           ...result,
           ...parcelToBook,
@@ -488,7 +617,7 @@ export function useParcelOperations({
         }
 
         // Update results state
-        setResults(prev => prev.map(r => r.id === result.id ? updatedResult : r))
+        setResults(prev => prev.map(r => r.id === originalParcelId ? updatedResult : r))
 
         // Update history
         if (res.dist?.trackingNumber) {
@@ -540,7 +669,7 @@ export function useParcelOperations({
           }
         }
         
-        alert('Booking Successful!')
+        alert(serialChanged ? `Booking Successful! (Auto-assigned new Order ID: ${parcelToBook.id})` : 'Booking Successful!')
       } else {
         const errMsg = res.message || res.statusMessage || JSON.stringify(res)
         const updatedResult: BookingResult = {
@@ -549,20 +678,98 @@ export function useParcelOperations({
           status: 'error',
           error: errMsg
         }
-        setResults(prev => prev.map(r => r.id === result.id ? updatedResult : r))
+        setResults(prev => prev.map(r => r.id === originalParcelId ? updatedResult : r))
         logUsage('booking_failed', `Failed to book single parcel for ${parcelToBook.name}. Error: ${errMsg}`)
         alert('Booking Failed: ' + errMsg)
       }
     } catch (e: any) {
       const data = e?.response?.data
       const errMsg = (data && (data.message || data.statusMessage || data.error || (typeof data === 'string' ? data : JSON.stringify(data)))) || e?.message || 'Connection error'
+
+      if (isDuplicateRefError(errMsg)) {
+        try {
+          const { nextId, nextNum } = getNextAvailableSerial(prefix, currentNextNum, usedSerialsInSession)
+          parcelToBook.id = nextId
+          currentNextNum = nextNum
+          serialChanged = true
+          usedSerialsInSession.add(cleanSerialId(nextId))
+          const retryRes = await createOrder(token, parcelToBook, settings)
+          if (Number(retryRes.statusCode) === 200) {
+            if (serialChanged && updateSetting) {
+              updateSetting('order_id_next_num', String(currentNextNum))
+            }
+            if (serialChanged) {
+              setParcels(prev => prev.map(p => p.id === originalParcelId ? { ...p, id: parcelToBook.id } : p))
+            }
+            const updatedResult: BookingResult = {
+              ...result,
+              ...parcelToBook,
+              status: 'success',
+              tracking: retryRes.dist?.trackingNumber,
+              error: undefined
+            }
+            setResults(prev => prev.map(r => r.id === originalParcelId ? updatedResult : r))
+            if (retryRes.dist?.trackingNumber) {
+              const newHistoryItem: BookedParcel = {
+                id: parcelToBook.id,
+                name: parcelToBook.name,
+                phone: parcelToBook.phone,
+                city: parcelToBook.city,
+                address: parcelToBook.address,
+                total: parcelToBook.total,
+                items: parcelToBook.items,
+                weight: parcelToBook.weight,
+                detail: parcelToBook.detail,
+                note: parcelToBook.note,
+                tracking: retryRes.dist.trackingNumber,
+                bookingDate: new Date().toISOString(),
+                status: 'UNBOOKED'
+              }
+              updateHistory([newHistoryItem, ...history])
+              logUsage('order_booked', `Successfully booked single parcel for ${parcelToBook.name}. Tracking: ${retryRes.dist.trackingNumber}`)
+
+              if (user) {
+                const cleanPhone = cleanPhoneNumber(parcelToBook.phone)
+                const cleanName = (parcelToBook.name || '').trim()
+                if (cleanPhone && cleanName) {
+                  supabase
+                    .from('customers')
+                    .upsert({
+                      user_id: user.id,
+                      phone: cleanPhone,
+                      name: cleanName,
+                      updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id,phone', ignoreDuplicates: false })
+                    .then(({ error }) => {
+                      if (error) console.error('Failed to upsert single customer:', error)
+                    })
+                }
+              }
+
+              setLoadingLabels(true)
+              try {
+                await printLabels(token, [retryRes.dist.trackingNumber])
+              } catch (e: any) {
+                console.error('Label print error:', e?.message)
+              } finally {
+                setLoadingLabels(false)
+              }
+            }
+            alert(`Booking Successful! (Auto-assigned new Order ID: ${parcelToBook.id})`)
+            return
+          }
+        } catch (retryErr) {
+          // fall through
+        }
+      }
+
       const updatedResult: BookingResult = {
         ...result,
         ...parcelToBook,
         status: 'error',
         error: errMsg
       }
-      setResults(prev => prev.map(r => r.id === result.id ? updatedResult : r))
+      setResults(prev => prev.map(r => r.id === originalParcelId ? updatedResult : r))
       logUsage('booking_failed', `Failed to book single parcel for ${parcelToBook.name}. Error: ${errMsg}`)
       alert('Booking Failed: ' + errMsg)
     } finally {

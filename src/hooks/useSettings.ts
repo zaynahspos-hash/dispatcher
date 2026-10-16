@@ -37,13 +37,14 @@ const DEFAULTS: Settings = {
   kimi_api_key: '',
   kimi_model: 'moonshot-v1-8k',
   mistral_api_key: '',
-  mistral_model: 'ministral-3b-2512',
   whatsapp_template: 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}',
-  whatsapp_note: 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!',
+  whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!',
   avatar_url: '',
   order_id_prefix: 'tv-',
   order_id_next_num: '1001',
 }
+
+const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────
 // All keys are namespaced with the user's UUID so that two tenants on the
@@ -59,7 +60,11 @@ function userVersionKey(userId: string) {
 
 /** Read a single field from localStorage for this user */
 function readLocal(userId: string, field: keyof Settings): string {
-  return localStorage.getItem(userSettingsKey(userId, field)) || (DEFAULTS[field] as string) || ''
+  const val = localStorage.getItem(userSettingsKey(userId, field))
+  if (field === 'whatsapp_note' && (!val || val === 'Thank you for shopping with us!')) {
+    return DEFAULT_WHATSAPP_NOTE
+  }
+  return val || (DEFAULTS[field] as string) || ''
 }
 
 /** Write a single field to localStorage for this user */
@@ -152,6 +157,9 @@ export function useSettings() {
         const dbSettings = data.settings as unknown as Settings
         if (!dbSettings.gemini_model || dbSettings.gemini_model.includes('2.0') || dbSettings.gemini_model.includes('1.5') || dbSettings.gemini_model.includes('1.0') || dbSettings.gemini_model === 'custom') {
           dbSettings.gemini_model = 'gemini-3-flash-preview'
+        }
+        if (!dbSettings.whatsapp_note || dbSettings.whatsapp_note === 'Thank you for shopping with us!') {
+          dbSettings.whatsapp_note = DEFAULT_WHATSAPP_NOTE
         }
         const dbUpdatedAt = data.updated_at || ''
         const localVersion = localStorage.getItem(userVersionKey(currentUser.id))

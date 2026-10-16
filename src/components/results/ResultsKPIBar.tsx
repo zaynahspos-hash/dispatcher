@@ -13,6 +13,8 @@ interface ResultsKPIBarProps {
   onClearAll: () => void
   onPrintAll: () => void
   loadingLabels?: boolean
+  expandDefaults?: boolean
+  onToggleExpandDefaults?: () => void
 }
 
 export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
@@ -26,7 +28,9 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
   onOpenVault,
   onClearAll,
   onPrintAll,
-  loadingLabels
+  loadingLabels,
+  expandDefaults,
+  onToggleExpandDefaults
 }) => {
   return (
     <div className="space-y-3.5">
@@ -115,6 +119,22 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
             <FolderIcon size={14} className="text-emerald-500 shrink-0" />
             <span>Airway Vault</span>
           </button>
+
+          {onToggleExpandDefaults && (
+            <button
+              type="button"
+              onClick={onToggleExpandDefaults}
+              className={`flex-1 sm:flex-initial h-9 px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap ${
+                expandDefaults
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+              title="Toggle display of logistics defaults: Weight, Product Detail, Transaction Note, and Copies"
+            >
+              <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
+              <span className="text-[10px] font-mono">{expandDefaults ? '▲' : '▼'}</span>
+            </button>
+          )}
 
           <button
             onClick={onClearAll}

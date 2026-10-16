@@ -63,6 +63,17 @@ export default function BookingResults({
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ResultsStatusFilter>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [expandDefaults, setExpandDefaults] = useState<boolean>(() => {
+    return localStorage.getItem('zaynah_results_expand_defaults') === 'true'
+  })
+
+  const handleToggleExpandDefaults = () => {
+    setExpandDefaults(prev => {
+      const next = !prev
+      localStorage.setItem('zaynah_results_expand_defaults', String(next))
+      return next
+    })
+  }
 
   const handleCancel = async (tracking: string) => {
     if (!onCancelShipment) return
@@ -83,7 +94,7 @@ export default function BookingResults({
     }
 
     const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-    const defaultNote = 'Review dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
     const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' 
       ? settings.whatsapp_note 
       : defaultNote
@@ -295,6 +306,8 @@ export default function BookingResults({
         onClearAll={clearAllResults}
         onPrintAll={handlePrintAll}
         loadingLabels={loadingLabels}
+        expandDefaults={expandDefaults}
+        onToggleExpandDefaults={handleToggleExpandDefaults}
       />
 
       {/* 2. Filter Bar (Search + Segmented Status Pills) */}
@@ -345,6 +358,7 @@ export default function BookingResults({
             getWhatsAppLink={getWhatsAppLink}
             cities={cities}
             orderTypes={ORDER_TYPES}
+            expandDefaults={expandDefaults}
           />
 
           <ResultsMobileCardList

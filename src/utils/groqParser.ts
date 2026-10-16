@@ -68,7 +68,11 @@ export interface ParseResult {
   nextSerialNum?: number
 }
 
-export async function parseParcelText(rawText: string, settings: Settings): Promise<ParseResult> {
+export async function parseParcelText(
+  rawText: string,
+  settings: Settings,
+  existingIds?: Set<string>
+): Promise<ParseResult> {
   const selectedProvider = settings.ai_provider || 'groq'
   const providersOrder = ['groq', 'openai', 'openrouter', 'gemini', 'anthropic', 'deepseek', 'kimi', 'mistral']
   // Reorder so that the user's selectedProvider is tried first
@@ -322,12 +326,25 @@ Format:
         let currentNum = parseInt(settings.order_id_next_num || '1001', 10)
         if (isNaN(currentNum)) currentNum = 1001
 
+        const usedSerials = new Set<string>()
+        if (existingIds) {
+          existingIds.forEach(id => usedSerials.add(String(id || '').trim().toLowerCase()))
+        }
+
         const normalizedList: Parcel[] = rawList.map((p: any) => {
           let orderId = p.id ? String(p.id).trim() : ''
           // If no order ID was given in text, or old fallback hallucinated "ord1", "ord2":
           if (!orderId || (prefix.toLowerCase() !== 'ord' && /^ord\d+$/i.test(orderId))) {
-            orderId = `${prefix}${currentNum}`
+            let candidate = `${prefix}${currentNum}`
+            while (usedSerials.has(candidate.toLowerCase())) {
+              currentNum++
+              candidate = `${prefix}${currentNum}`
+            }
+            orderId = candidate
+            usedSerials.add(orderId.toLowerCase())
             currentNum++
+          } else {
+            usedSerials.add(orderId.toLowerCase())
           }
 
           return {

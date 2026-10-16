@@ -1,8 +1,9 @@
 import React from 'react'
 import { Parcel } from '../../utils/groqParser'
-import { TrashIcon } from '../Icons'
-import { POPULAR_CITIES } from './cityAutocomplete'
+import { TrashIcon, RefreshIcon } from '../Icons'
 import { useResizableColumns } from '../../hooks/useResizableColumns'
+import { CityDropdownMenu } from './CityDropdownMenu'
+import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
 interface ParcelDesktopGridProps {
   parcels: Parcel[]
@@ -19,6 +20,10 @@ interface ParcelDesktopGridProps {
   filteredCities: string[]
   cityInputRef: React.RefObject<HTMLInputElement | null>
   orderTypes: Array<{ value: string; label: string }>
+  conflictedIndices?: Set<number>
+  conflictReasons?: Map<number, 'already_in_db' | 'duplicate_in_table'>
+  onResolveSingleRow?: (index: number) => void
+  expandDefaults?: boolean
 }
 
 const DEFAULT_PARCEL_WIDTHS = {
@@ -28,10 +33,14 @@ const DEFAULT_PARCEL_WIDTHS = {
   customer: 160,
   phone: 130,
   city: 144,
-  address: 300,
-  cod: 112,
-  items: 64,
-  orderType: 120,
+  address: 280,
+  cod: 105,
+  items: 60,
+  orderType: 115,
+  weight: 75,
+  detail: 140,
+  note: 170,
+  copies: 65,
   action: 48
 }
 
@@ -48,7 +57,11 @@ export function ParcelDesktopGrid({
   setCityFilter,
   filteredCities,
   cityInputRef,
-  orderTypes
+  orderTypes,
+  conflictedIndices,
+  conflictReasons,
+  onResolveSingleRow,
+  expandDefaults
 }: ParcelDesktopGridProps) {
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'parcel_desktop_grid_col_widths',
@@ -64,6 +77,10 @@ export function ParcelDesktopGrid({
       cod: 80,
       items: 50,
       orderType: 80,
+      weight: 60,
+      detail: 90,
+      note: 100,
+      copies: 50,
       action: 40
     }
   })
@@ -73,7 +90,27 @@ export function ParcelDesktopGrid({
       {/* Horizontal scroll container with interactive Excel resizable column widths */}
       <div className="overflow-x-auto min-h-[400px] pb-32">
         <table className="text-xs border-collapse table-fixed select-none" style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}>
-          <colgroup><col style={{ width: `${widths.checkbox}px` }} /><col style={{ width: `${widths.index}px` }} /><col style={{ width: `${widths.refId}px` }} /><col style={{ width: `${widths.customer}px` }} /><col style={{ width: `${widths.phone}px` }} /><col style={{ width: `${widths.city}px` }} /><col style={{ width: `${widths.address}px` }} /><col style={{ width: `${widths.cod}px` }} /><col style={{ width: `${widths.items}px` }} /><col style={{ width: `${widths.orderType}px` }} /><col style={{ width: `${widths.action}px` }} /></colgroup>
+          <colgroup>
+            <col style={{ width: `${widths.checkbox}px` }} />
+            <col style={{ width: `${widths.index}px` }} />
+            <col style={{ width: `${widths.refId}px` }} />
+            <col style={{ width: `${widths.customer}px` }} />
+            <col style={{ width: `${widths.phone}px` }} />
+            <col style={{ width: `${widths.city}px` }} />
+            <col style={{ width: `${widths.address}px` }} />
+            <col style={{ width: `${widths.cod}px` }} />
+            <col style={{ width: `${widths.items}px` }} />
+            <col style={{ width: `${widths.orderType}px` }} />
+            {expandDefaults && (
+              <>
+                <col style={{ width: `${widths.weight || 75}px` }} />
+                <col style={{ width: `${widths.detail || 140}px` }} />
+                <col style={{ width: `${widths.note || 170}px` }} />
+                <col style={{ width: `${widths.copies || 65}px` }} />
+              </>
+            )}
+            <col style={{ width: `${widths.action}px` }} />
+          </colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
               <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
@@ -126,6 +163,26 @@ export function ParcelDesktopGrid({
                 Order Type
                 <div {...getResizerProps('orderType')} />
               </th>
+              {expandDefaults && (
+                <>
+                  <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Weight (KG)
+                    <div {...getResizerProps('weight')} />
+                  </th>
+                  <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Product / Detail
+                    <div {...getResizerProps('detail')} />
+                  </th>
+                  <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Note / Instructions
+                    <div {...getResizerProps('note')} />
+                  </th>
+                  <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Copies
+                    <div {...getResizerProps('copies')} />
+                  </th>
+                </>
+              )}
               <th className="p-3 text-center">Action</th>
             </tr>
           </thead>
@@ -158,12 +215,34 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Ref ID (Flush Excel Cell) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
-                    <input
-                      value={parcel.id || ''}
-                      onChange={e => updateField(i, 'id', e.target.value)}
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
-                    />
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
+                    <div className="flex items-center h-10 pr-1.5">
+                      <input
+                        value={parcel.id || ''}
+                        onChange={e => updateField(i, 'id', e.target.value)}
+                        className={`flex-1 h-full px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
+                          conflictedIndices?.has(i) ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-slate-800 dark:text-slate-100'
+                        }`}
+                        title={
+                          conflictReasons?.get(i) === 'already_in_db'
+                            ? 'Serial already booked in database! Click button to assign next available serial.'
+                            : conflictReasons?.get(i) === 'duplicate_in_table'
+                            ? 'Duplicate serial in current table! Click button to assign next available serial.'
+                            : ''
+                        }
+                      />
+                      {conflictedIndices?.has(i) && onResolveSingleRow && (
+                        <button
+                          type="button"
+                          onClick={() => onResolveSingleRow(i)}
+                          title={`${conflictReasons?.get(i) === 'already_in_db' ? 'Already in DB' : 'Duplicate ID'} — Click to assign next available serial`}
+                          className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/25 hover:bg-amber-500 hover:text-slate-950 text-amber-800 dark:text-amber-300 font-sans font-bold flex items-center gap-1 transition cursor-pointer shrink-0"
+                        >
+                          <RefreshIcon size={10} />
+                          <span className="hidden xl:inline">{conflictReasons?.get(i) === 'already_in_db' ? 'In DB' : 'Dup'}</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
 
                   {/* Customer Name */}
@@ -213,42 +292,16 @@ export function ParcelDesktopGrid({
                     />
 
                     {/* City Dropdown Menu */}
-                    {editingCity?.row === i && !editingCity?.isMobile && filteredCities.length > 0 && (
-                      <div
-                        className={`absolute z-50 left-0 right-0 min-w-[240px] bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in duration-100 ${
-                          isNearBottom ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                        }`}
-                      >
-                        <div className="p-2 bg-slate-50 dark:bg-[#070b12] text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-800">
-                          <span>Matching Cities ({filteredCities.length})</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 text-[9px] font-medium">Select</span>
-                        </div>
-                        <div className="p-1">
-                          {filteredCities.map(city => (
-                            <button
-                              key={city}
-                              type="button"
-                              onMouseDown={e => {
-                                e.preventDefault()
-                                updateField(i, 'city', city)
-                                setEditingCity(null)
-                              }}
-                              className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
-                                parcel.city?.toUpperCase() === city
-                                  ? 'bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400'
-                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200'
-                              }`}
-                            >
-                              <span>{city}</span>
-                              {POPULAR_CITIES.includes(city) && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium">
-                                  Major
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                    {editingCity?.row === i && !editingCity?.isMobile && (
+                      <CityDropdownMenu
+                        filteredCities={filteredCities}
+                        isNearBottom={isNearBottom}
+                        selectedCity={parcel.city}
+                        onSelectCity={city => {
+                          updateField(i, 'city', city)
+                          setEditingCity(null)
+                        }}
+                      />
                     )}
                   </td>
 
@@ -294,6 +347,17 @@ export function ParcelDesktopGrid({
                       ))}
                     </select>
                   </td>
+
+                  {/* Defaults Expanded Logistics Columns */}
+                  {expandDefaults && (
+                    <LogisticsDefaultsCells
+                      weight={parcel.weight}
+                      detail={parcel.detail}
+                      note={parcel.note}
+                      copies={parcel.airwayBillCopy}
+                      onUpdate={(field, val) => updateField(i, field, val)}
+                    />
+                  )}
 
                   {/* Action */}
                   <td className="p-0 border-b border-slate-200/80 dark:border-slate-800 text-center">

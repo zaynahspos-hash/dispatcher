@@ -1,4 +1,4 @@
-import { PlusIcon, UploadIcon, SyncIcon, TrashIcon } from '../Icons'
+import { PlusIcon, UploadIcon, SyncIcon, TrashIcon, RefreshIcon } from '../Icons'
 
 interface ParcelKPIBarProps {
   totalParcels: number
@@ -6,6 +6,10 @@ interface ParcelKPIBarProps {
   totalCOD: number
   invalidPhonesCount: number
   unverifiedCitiesCount: number
+  duplicateSerialsCount?: number
+  onResolveDuplicates?: () => void
+  expandDefaults?: boolean
+  onToggleExpandDefaults?: () => void
   onAddRow: () => void
   onExportExcel: () => void
   onClearAll: () => void
@@ -20,6 +24,10 @@ export function ParcelKPIBar({
   totalCOD,
   invalidPhonesCount,
   unverifiedCitiesCount,
+  duplicateSerialsCount = 0,
+  onResolveDuplicates,
+  expandDefaults,
+  onToggleExpandDefaults,
   onAddRow,
   onExportExcel,
   onClearAll,
@@ -96,6 +104,29 @@ export function ParcelKPIBar({
         </div>
       </div>
 
+      {/* Duplicate / Already in DB Serials Alert Banner */}
+      {duplicateSerialsCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 sm:px-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs shadow-2xs">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span>
+              <strong>{duplicateSerialsCount} parcel(s)</strong> have Ref IDs that already exist in database or duplicate in table.
+            </span>
+          </div>
+          {onResolveDuplicates && (
+            <button
+              type="button"
+              onClick={onResolveDuplicates}
+              className="h-8 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs whitespace-nowrap active:scale-98 shrink-0"
+              title="Automatically reassign next sequential available serials"
+            >
+              <RefreshIcon size={13} />
+              <span>Auto-Assign Next Available</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Action Toolbar */}
       <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
         {/* Secondary Utilities: Add Row, Export, Clear All */}
@@ -115,6 +146,22 @@ export function ParcelKPIBar({
             <UploadIcon size={14} className="text-emerald-500 shrink-0" />
             <span>Export XLSX</span>
           </button>
+
+          {onToggleExpandDefaults && (
+            <button
+              type="button"
+              onClick={onToggleExpandDefaults}
+              className={`flex-1 sm:flex-initial h-9 px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap ${
+                expandDefaults
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+              title="Toggle display of logistics defaults: Weight, Product Detail, Transaction Note, and Copies"
+            >
+              <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
+              <span className="text-[10px] font-mono">{expandDefaults ? '▲' : '▼'}</span>
+            </button>
+          )}
 
           <button
             onClick={onClearAll}

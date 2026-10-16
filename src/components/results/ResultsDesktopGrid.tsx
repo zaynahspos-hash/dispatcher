@@ -1,6 +1,7 @@
 import { BookingResult } from '../BookingResults'
-import { TrashIcon, CancelIcon, CheckIcon, SyncIcon } from '../Icons'
+import { TrashIcon, CancelIcon, CheckIcon, SyncIcon, WhatsAppIcon } from '../Icons'
 import { useResizableColumns } from '../../hooks/useResizableColumns'
+import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
 interface ResultsDesktopGridProps {
   results: BookingResult[]
@@ -15,6 +16,7 @@ interface ResultsDesktopGridProps {
   getWhatsAppLink: (parcel: BookingResult) => string
   cities: string[]
   orderTypes: Array<{ value: string; label: string }>
+  expandDefaults?: boolean
 }
 
 const DEFAULT_RESULTS_WIDTHS = {
@@ -27,6 +29,10 @@ const DEFAULT_RESULTS_WIDTHS = {
   address: 240,
   cod: 105,
   orderType: 115,
+  weight: 75,
+  detail: 140,
+  note: 170,
+  copies: 65,
   statusTracking: 160,
   actions: 110
 }
@@ -42,23 +48,15 @@ export function ResultsDesktopGrid({
   onCancelShipment,
   cancellingTracking,
   getWhatsAppLink,
-  orderTypes
+  orderTypes,
+  expandDefaults
 }: ResultsDesktopGridProps) {
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'results_desktop_grid_col_widths',
     defaultWidths: DEFAULT_RESULTS_WIDTHS,
     minWidths: {
-      checkbox: 36,
-      index: 36,
-      refId: 70,
-      customer: 90,
-      phone: 90,
-      city: 80,
-      address: 120,
-      cod: 80,
-      orderType: 80,
-      statusTracking: 120,
-      actions: 90
+      checkbox: 36, index: 36, refId: 70, customer: 90, phone: 90, city: 80, address: 120,
+      cod: 80, orderType: 80, weight: 60, detail: 90, note: 100, copies: 50, statusTracking: 120, actions: 90
     }
   })
 
@@ -69,7 +67,27 @@ export function ResultsDesktopGrid({
           className="text-xs border-collapse table-fixed select-none"
           style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}
         >
-          <colgroup><col style={{ width: `${widths.checkbox}px` }} /><col style={{ width: `${widths.index}px` }} /><col style={{ width: `${widths.refId}px` }} /><col style={{ width: `${widths.customer}px` }} /><col style={{ width: `${widths.phone}px` }} /><col style={{ width: `${widths.city}px` }} /><col style={{ width: `${widths.address}px` }} /><col style={{ width: `${widths.cod}px` }} /><col style={{ width: `${widths.orderType}px` }} /><col style={{ width: `${widths.statusTracking}px` }} /><col style={{ width: `${widths.actions}px` }} /></colgroup>
+          <colgroup>
+            <col style={{ width: `${widths.checkbox}px` }} />
+            <col style={{ width: `${widths.index}px` }} />
+            <col style={{ width: `${widths.refId}px` }} />
+            <col style={{ width: `${widths.customer}px` }} />
+            <col style={{ width: `${widths.phone}px` }} />
+            <col style={{ width: `${widths.city}px` }} />
+            <col style={{ width: `${widths.address}px` }} />
+            <col style={{ width: `${widths.cod}px` }} />
+            <col style={{ width: `${widths.orderType}px` }} />
+            {expandDefaults && (
+              <>
+                <col style={{ width: `${widths.weight || 75}px` }} />
+                <col style={{ width: `${widths.detail || 140}px` }} />
+                <col style={{ width: `${widths.note || 170}px` }} />
+                <col style={{ width: `${widths.copies || 65}px` }} />
+              </>
+            )}
+            <col style={{ width: `${widths.statusTracking}px` }} />
+            <col style={{ width: `${widths.actions}px` }} />
+          </colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
               <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
@@ -120,6 +138,26 @@ export function ResultsDesktopGrid({
                 Order Type
                 <div {...getResizerProps('orderType')} />
               </th>
+              {expandDefaults && (
+                <>
+                  <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Weight (KG)
+                    <div {...getResizerProps('weight')} />
+                  </th>
+                  <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Product / Detail
+                    <div {...getResizerProps('detail')} />
+                  </th>
+                  <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Note / Instructions
+                    <div {...getResizerProps('note')} />
+                  </th>
+                  <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                    Copies
+                    <div {...getResizerProps('copies')} />
+                  </th>
+                </>
+              )}
               <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
                 Status / Tracking
                 <div {...getResizerProps('statusTracking')} />
@@ -239,6 +277,18 @@ export function ResultsDesktopGrid({
                     </select>
                   </td>
 
+                  {/* Defaults Expanded Logistics Columns */}
+                  {expandDefaults && (
+                    <LogisticsDefaultsCells
+                      disabled={isBooked}
+                      weight={r.weight}
+                      detail={r.detail}
+                      note={r.note}
+                      copies={r.airwayBillCopy}
+                      onUpdate={(field, val) => updateField(r.id, field, val)}
+                    />
+                  )}
+
                   {/* Status & Tracking */}
                   <td className="p-2 border-r border-b border-slate-200/80 dark:border-slate-800 text-center">
                     {isBooked && r.tracking ? (
@@ -290,9 +340,7 @@ export function ResultsDesktopGrid({
                         className="w-7 h-7 rounded-lg border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-2xs"
                         title="Send WhatsApp Order Update"
                       >
-                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.595-1.006-5.035-2.834-6.867-1.829-1.83-4.269-2.837-6.87-2.839-5.439 0-9.866 4.372-9.87 9.733-.001 1.73.465 3.418 1.348 4.908l-.993 3.629 3.73-.977z" />
-                        </svg>
+                        <WhatsAppIcon size={14} />
                       </a>
 
                       {/* Book Single if not booked */}
