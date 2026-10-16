@@ -1,4 +1,4 @@
-import { PlusIcon, UploadIcon, SyncIcon, TrashIcon, RefreshIcon } from '../Icons'
+import { PlusIcon, UploadIcon, SyncIcon, TrashIcon, RefreshIcon, AutoFitIcon } from '../Icons'
 
 interface ParcelKPIBarProps {
   totalParcels: number
@@ -10,6 +10,7 @@ interface ParcelKPIBarProps {
   onResolveDuplicates?: () => void
   expandDefaults?: boolean
   onToggleExpandDefaults?: () => void
+  onAutoFitColumns?: (e?: React.MouseEvent) => void
   onAddRow: () => void
   onExportExcel: () => void
   onClearAll: () => void
@@ -28,6 +29,7 @@ export function ParcelKPIBar({
   onResolveDuplicates,
   expandDefaults,
   onToggleExpandDefaults,
+  onAutoFitColumns,
   onAddRow,
   onExportExcel,
   onClearAll,
@@ -160,6 +162,18 @@ export function ParcelKPIBar({
             >
               <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
               <span className="text-[10px] font-mono">{expandDefaults ? '▲' : '▼'}</span>
+            </button>
+          )}
+
+          {onAutoFitColumns && (
+            <button
+              type="button"
+              onClick={onAutoFitColumns}
+              className="flex-1 sm:flex-initial h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
+            >
+              <AutoFitIcon size={14} className="text-emerald-500 shrink-0" />
+              <span>Auto-Fit ↔</span>
             </button>
           )}
 

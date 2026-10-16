@@ -56,6 +56,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('zaynah_desktop_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev
+      try {
+        localStorage.setItem('zaynah_desktop_sidebar_collapsed', String(next))
+      } catch {}
+      return next
+    })
+  }
 
   const handleRefreshApp = async () => {
     if (isRefreshing) return
@@ -81,6 +98,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         isSettingsConfigured={isSettingsConfigured}
         operationalCitiesCount={operationalCitiesCount}
         dailyRequests={dailyRequests}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
       />
 
       {/* ========================================================
@@ -192,7 +211,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
         {/* Scrollable Main Application Canvas (Generous mobile pb to clear bottom bar) */}
         <main className="flex-1 overflow-y-auto overscroll-y-none px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 pb-[calc(110px+max(env(safe-area-inset-bottom),20px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
-          <div className="w-full max-w-[1440px] space-y-6">
+          <div className={`w-full space-y-6 transition-all duration-200 ${
+            isSidebarCollapsed ? 'max-w-none' : 'max-w-[1720px] 2xl:max-w-none'
+          }`}>
             {children}
           </div>
         </main>

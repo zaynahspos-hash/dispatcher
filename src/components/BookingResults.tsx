@@ -10,6 +10,7 @@ import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
+import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 
 export interface BookingResult {
   id: string
@@ -142,35 +143,18 @@ export default function BookingResults({
   const filteredResults = useMemo(() => {
     return results.filter(r => {
       if (statusFilter !== 'all' && r.status !== statusFilter) return false
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
-        const matchName = (r.name || '').toLowerCase().includes(q)
-        const matchPhone = (r.phone || '').toLowerCase().includes(q)
-        const matchCity = (r.city || '').toLowerCase().includes(q)
-        const matchTracking = (r.tracking || '').toLowerCase().includes(q)
-        const matchId = (r.id || '').toLowerCase().includes(q)
-        if (!matchName && !matchPhone && !matchCity && !matchTracking && !matchId) return false
-      }
-      return true
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase().trim()
+      return (r.name || '').toLowerCase().includes(q) || (r.phone || '').toLowerCase().includes(q) ||
+        (r.city || '').toLowerCase().includes(q) || (r.tracking || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q)
     })
   }, [results, statusFilter, searchQuery])
 
   // Selection handlers
-  const toggleSelect = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  const toggleAll = () => {
-    if (selected.size === filteredResults.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(filteredResults.map(r => r.id)))
-    }
-  }
+  const toggleSelect = (id: string) => setSelected(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
+  })
+  const toggleAll = () => setSelected(selected.size === filteredResults.length ? new Set() : new Set(filteredResults.map(r => r.id)))
 
   const selectedBooked = useMemo(() => {
     return results.filter(r => selected.has(r.id) && r.status === 'success' && r.tracking)
@@ -237,23 +221,13 @@ export default function BookingResults({
 
     const newRow: BookingResult = {
       id: `${prefix}${nextNum}`,
-      name: '',
-      phone: '',
-      city: cities[0] || 'Lahore',
-      address: '',
-      total: 0,
-      status: 'manual',
-      items: Number(settings.default_items) || 1,
-      weight: Number(settings.default_weight) || 0.5,
-      detail: settings.default_product || 'Kids Clothes',
-      note: settings.default_note || 'Call before delivery',
-      orderType: 'Normal',
-      airwayBillCopy: 1
+      name: '', phone: '', city: cities[0] || 'Lahore', address: '', total: 0, status: 'manual',
+      items: Number(settings.default_items) || 1, weight: Number(settings.default_weight) || 0.5,
+      detail: settings.default_product || 'Kids Clothes', note: settings.default_note || 'Call before delivery',
+      orderType: 'Normal', airwayBillCopy: 1
     }
     setResults(prev => [newRow, ...prev])
-    if (updateSetting) {
-      updateSetting('order_id_next_num', String(nextNum + 1))
-    }
+    if (updateSetting) updateSetting('order_id_next_num', String(nextNum + 1))
   }
 
   const updateField = (id: string, field: keyof BookingResult, value: string | number) => {
@@ -263,12 +237,33 @@ export default function BookingResults({
   const handleDeleteRow = (id: string) => {
     if (confirm('Are you sure you want to remove this row?')) {
       setResults(prev => prev.filter(r => r.id !== id))
-      setSelected(prev => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
+      setSelected(prev => { const next = new Set(prev); next.delete(id); return next })
     }
+  }
+
+  const handleAutoFitColumns = (e?: React.MouseEvent) => {
+    if (e?.altKey) {
+      triggerTableReset('results_desktop_grid_col_widths')
+      return
+    }
+    const lengths = measureMaxContentLengths(
+      {
+        refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
+        address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', orderType: 'ORDER TYPE',
+        weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'TRANSACTION NOTE',
+        copies: 'COPIES', statusTracking: 'STATUS & TRACKING'
+      },
+      results,
+      {
+        refId: r => r.order_ref_number, customer: r => r.customer_name,
+        phone: r => r.customer_phone, city: r => r.delivery_city,
+        address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
+        orderType: r => r.order_type || 'Normal (COD)', weight: r => `${r.order_weight || 0.5} kg`,
+        detail: r => r.order_detail, note: r => r.transaction_notes,
+        copies: r => String(r.pickup_address_code || 1), statusTracking: r => `${r.tracking_number || ''} ${r.order_status || ''}`
+      }
+    )
+    triggerTableAutoFit('results_desktop_grid_col_widths', lengths)
   }
 
   if (results.length === 0) {
@@ -311,6 +306,7 @@ export default function BookingResults({
         loadingLabels={loadingLabels}
         expandDefaults={expandDefaults}
         onToggleExpandDefaults={handleToggleExpandDefaults}
+        onAutoFitColumns={handleAutoFitColumns}
       />
 
       {/* 2. Filter Bar (Search + Segmented Status Pills) */}

@@ -9,20 +9,14 @@ import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
-import { useResizableColumns } from '../hooks/useResizableColumns'
+import { useResizableColumns, measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 
 export type { BookedParcel }
 
 const DEFAULT_HISTORY_WIDTHS = {
-  checkbox: 44,
-  consignee: 170,
-  tracking: 155,
-  destination: 170,
-  bookingDate: 120,
-  cod: 110,
-  status: 130,
-  action: 110
+  checkbox: 44, consignee: 170, tracking: 155, destination: 170,
+  bookingDate: 120, cod: 110, status: 130, action: 110
 }
 
 interface BookedHistoryProps {
@@ -36,16 +30,48 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
     storageKey: 'history_desktop_grid_col_widths',
     defaultWidths: DEFAULT_HISTORY_WIDTHS,
     minWidths: {
-      checkbox: 36,
-      consignee: 90,
-      tracking: 90,
-      destination: 90,
-      bookingDate: 70,
-      cod: 70,
-      status: 80,
-      action: 70
+      checkbox: 28, consignee: 40, tracking: 40, destination: 40,
+      bookingDate: 40, cod: 40, status: 40, action: 50
+    },
+    onMeasureCol: (colKey) => {
+      const lengths = measureMaxContentLengths({ [colKey]: colKey }, history, {
+        consignee: h => `${h.customer_name || ''} ${h.customer_phone || ''}`,
+        tracking: h => h.tracking_number || '',
+        destination: h => `${h.delivery_city || ''} ${h.delivery_address || ''}`,
+        bookingDate: h => h.booking_date || '',
+        cod: h => `Rs. ${h.invoice_amount || 0}`,
+        status: h => h.order_status || ''
+      })
+      return lengths[colKey] || 12
     }
   })
+
+  const handleAutoFitColumns = (e?: React.MouseEvent) => {
+    if (e?.altKey) {
+      triggerTableReset('history_desktop_grid_col_widths')
+      return
+    }
+    const lengths = measureMaxContentLengths(
+      {
+        consignee: 'CONSIGNEE / RECIPIENT',
+        tracking: 'TRACKING NUMBER',
+        destination: 'DESTINATION & CITY',
+        bookingDate: 'BOOKING DATE',
+        cod: 'COD (RS.)',
+        status: 'SHIPMENT STATUS'
+      },
+      history,
+      {
+        consignee: h => `${h.customer_name || ''} ${h.customer_phone || ''}`,
+        tracking: h => h.tracking_number || '',
+        destination: h => `${h.delivery_city || ''} ${h.delivery_address || ''}`,
+        bookingDate: h => h.booking_date || '',
+        cod: h => `Rs. ${h.invoice_amount || 0}`,
+        status: h => h.order_status || ''
+      }
+    )
+    triggerTableAutoFit('history_desktop_grid_col_widths', lengths)
+  }
 
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('pending_loadsheet')
   const [searchQuery, setSearchQuery] = useState('')
@@ -55,16 +81,10 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
   const [pickupFilter, setPickupFilter] = useState('all')
   const [pageSize, setPageSize] = useState<number>(100)
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
-
   const waTracker = useWhatsAppSentTracker(settings?.postex_token)
 
   const handleClearFilters = () => {
-    setSearchQuery('')
-    setFromDate('')
-    setToDate('')
-    setStatusSelect('all')
-    setPickupFilter('all')
-    setWhatsappFilter('all')
+    setSearchQuery(''); setFromDate(''); setToDate(''); setStatusSelect('all'); setPickupFilter('all'); setWhatsappFilter('all')
   }
 
   // Filter and dynamic counts hook
@@ -167,22 +187,14 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
 
       {/* Advanced Filter Component */}
       <HistoryFilterBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        fromDate={fromDate}
-        setFromDate={setFromDate}
-        toDate={toDate}
-        setToDate={setToDate}
-        statusSelect={statusSelect}
-        setStatusSelect={setStatusSelect}
-        pickupFilter={pickupFilter}
-        setPickupFilter={setPickupFilter}
-        uniqueCities={uniqueCities}
-        handleClearFilters={handleClearFilters}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        whatsappFilter={whatsappFilter}
-        setWhatsappFilter={setWhatsappFilter}
+        searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+        fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
+        statusSelect={statusSelect} setStatusSelect={setStatusSelect}
+        pickupFilter={pickupFilter} setPickupFilter={setPickupFilter}
+        uniqueCities={uniqueCities} handleClearFilters={handleClearFilters}
+        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+        whatsappFilter={whatsappFilter} setWhatsappFilter={setWhatsappFilter}
+        onAutoFitColumns={handleAutoFitColumns}
         counts={counts}
       />
 
@@ -371,17 +383,10 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
       {/* Shipper Advice Modal */}
       <ShipperAdviceModal
         parcel={adviceParcel}
-        onClose={() => {
-          setAdviceParcel(null)
-          setAdviceError(null)
-        }}
-        adviceStatusId={adviceStatusId}
-        setAdviceStatusId={setAdviceStatusId}
-        adviceRemarks={adviceRemarks}
-        setAdviceRemarks={setAdviceRemarks}
-        onSubmit={handleSubmitAdvice}
-        isSubmitting={isSubmittingAdvice}
-        error={adviceError}
+        onClose={() => { setAdviceParcel(null); setAdviceError(null) }}
+        adviceStatusId={adviceStatusId} setAdviceStatusId={setAdviceStatusId}
+        adviceRemarks={adviceRemarks} setAdviceRemarks={setAdviceRemarks}
+        onSubmit={handleSubmitAdvice} isSubmitting={isSubmittingAdvice} error={adviceError}
       />
     </div>
   )

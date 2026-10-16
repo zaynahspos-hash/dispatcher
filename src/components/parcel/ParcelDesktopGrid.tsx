@@ -1,7 +1,7 @@
 import React from 'react'
 import { Parcel } from '../../utils/groqParser'
 import { TrashIcon, RefreshIcon } from '../Icons'
-import { useResizableColumns } from '../../hooks/useResizableColumns'
+import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { CityDropdownMenu } from './CityDropdownMenu'
 import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
@@ -27,21 +27,9 @@ interface ParcelDesktopGridProps {
 }
 
 const DEFAULT_PARCEL_WIDTHS = {
-  checkbox: 44,
-  index: 40,
-  refId: 112,
-  customer: 160,
-  phone: 130,
-  city: 144,
-  address: 280,
-  cod: 105,
-  items: 60,
-  orderType: 115,
-  weight: 75,
-  detail: 140,
-  note: 170,
-  copies: 65,
-  action: 48
+  checkbox: 44, index: 40, refId: 112, customer: 160, phone: 130, city: 144,
+  address: 280, cod: 105, items: 60, orderType: 115, weight: 75, detail: 140,
+  note: 170, copies: 65, action: 48
 }
 
 export function ParcelDesktopGrid({
@@ -67,21 +55,19 @@ export function ParcelDesktopGrid({
     storageKey: 'parcel_desktop_grid_col_widths',
     defaultWidths: DEFAULT_PARCEL_WIDTHS,
     minWidths: {
-      checkbox: 36,
-      index: 36,
-      refId: 70,
-      customer: 90,
-      phone: 90,
-      city: 80,
-      address: 120,
-      cod: 80,
-      items: 50,
-      orderType: 80,
-      weight: 60,
-      detail: 90,
-      note: 100,
-      copies: 50,
-      action: 40
+      checkbox: 28, index: 28, refId: 40, customer: 40, phone: 40, city: 40, address: 40,
+      cod: 40, items: 36, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, action: 36
+    },
+    onMeasureCol: (colKey) => {
+      const lengths = measureMaxContentLengths({ [colKey]: colKey }, parcels, {
+        refId: p => p.order_ref_number, customer: p => p.customer_name,
+        phone: p => p.customer_phone, city: p => p.delivery_city,
+        address: p => p.delivery_address, cod: p => `Rs. ${p.invoice_amount || 0}`,
+        items: p => String(p.order_items || 1), orderType: p => p.order_type || 'Normal (COD)',
+        weight: p => `${p.order_weight || 0.5} kg`, detail: p => p.order_detail,
+        note: p => p.transaction_notes, copies: p => String(p.pickup_address_code || 1)
+      })
+      return lengths[colKey] || 12
     }
   })
 

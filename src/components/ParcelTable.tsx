@@ -9,6 +9,7 @@ import { getFilteredCities } from './parcel/cityAutocomplete'
 import { ParcelKPIBar } from './parcel/ParcelKPIBar'
 import { ParcelDesktopGrid } from './parcel/ParcelDesktopGrid'
 import { ParcelMobileCards } from './parcel/ParcelMobileCards'
+import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import {
   buildHistoryIdSet,
   detectSerialConflicts,
@@ -262,6 +263,33 @@ export default function ParcelTable({
     )
   }
 
+  const handleAutoFitColumns = (e?: React.MouseEvent) => {
+    if (e?.altKey) {
+      triggerTableReset('parcel_desktop_grid_col_widths')
+      addToast('Reset column widths to default', 'info')
+      return
+    }
+    const lengths = measureMaxContentLengths(
+      {
+        refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
+        address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS',
+        orderType: 'ORDER TYPE', weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL',
+        note: 'TRANSACTION NOTE', copies: 'COPIES'
+      },
+      parcels,
+      {
+        refId: p => p.order_ref_number, customer: p => p.customer_name,
+        phone: p => p.customer_phone, city: p => p.delivery_city,
+        address: p => p.delivery_address, cod: p => `Rs. ${p.invoice_amount || 0}`,
+        items: p => String(p.order_items || 1), orderType: p => p.order_type || 'Normal (COD)',
+        weight: p => `${p.order_weight || 0.5} kg`, detail: p => p.order_detail,
+        note: p => p.transaction_notes, copies: p => String(p.pickup_address_code || 1)
+      }
+    )
+    triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
+    addToast('Auto-fitted all columns to longest text', 'success')
+  }
+
   return (
     <div className="space-y-4">
       {/* 1. KPI Summary Bar & Dispatch Action Toolbar */}
@@ -275,6 +303,7 @@ export default function ParcelTable({
         onResolveDuplicates={handleResolveAllConflicts}
         expandDefaults={expandDefaults}
         onToggleExpandDefaults={handleToggleExpandDefaults}
+        onAutoFitColumns={handleAutoFitColumns}
         onAddRow={addRow}
         onExportExcel={exportExcel}
         onClearAll={clearAll}

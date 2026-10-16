@@ -32,3 +32,10 @@ Before staging and committing changes:
 1. `npm run build` must complete with 0 errors.
 2. `supabase/schema/SUPER_MASTER_SCHEMA.sql` must reflect any database changes.
 3. No lingering `console.log` statements with sensitive tokens or raw customer PII.
+
+---
+
+## 4. Git Push Policy — Explicit User Instruction Only (RULE G4)
+- **NEVER execute `git push` autonomously.**
+- Remote code pushes (`git push`, `git push origin main`, etc.) are **STRICTLY FORBIDDEN** unless the user explicitly asks to push in their prompt (e.g., *"push code"*, *"git push kardo"*, *"ab push kardo"*).
+- The agent may build, test, type-check, and make local edits, but MUST NEVER push code to GitHub or remote repositories without the user's explicit command.

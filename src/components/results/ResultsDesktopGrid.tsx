@@ -1,6 +1,6 @@
 import { BookingResult } from '../BookingResults'
 import { TrashIcon, CancelIcon, CheckIcon, SyncIcon, WhatsAppIcon } from '../Icons'
-import { useResizableColumns } from '../../hooks/useResizableColumns'
+import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
 interface ResultsDesktopGridProps {
@@ -23,9 +23,8 @@ interface ResultsDesktopGridProps {
 }
 
 const DEFAULT_RESULTS_WIDTHS = {
-  checkbox: 44, index: 40, refId: 105, customer: 155, phone: 125, city: 135,
-  address: 240, cod: 105, orderType: 115, weight: 75, detail: 140, note: 170,
-  copies: 65, statusTracking: 160, actions: 110
+  checkbox: 44, index: 40, refId: 105, customer: 155, phone: 125, city: 135, address: 240,
+  cod: 105, orderType: 115, weight: 75, detail: 140, note: 170, copies: 65, statusTracking: 160, actions: 110
 }
 
 export function ResultsDesktopGrid({
@@ -49,8 +48,19 @@ export function ResultsDesktopGrid({
     storageKey: 'results_desktop_grid_col_widths',
     defaultWidths: DEFAULT_RESULTS_WIDTHS,
     minWidths: {
-      checkbox: 36, index: 36, refId: 70, customer: 90, phone: 90, city: 80, address: 120,
-      cod: 80, orderType: 80, weight: 60, detail: 90, note: 100, copies: 50, statusTracking: 120, actions: 90
+      checkbox: 28, index: 28, refId: 40, customer: 40, phone: 40, city: 40, address: 40,
+      cod: 40, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, statusTracking: 50, actions: 60
+    },
+    onMeasureCol: (colKey) => {
+      const lengths = measureMaxContentLengths({ [colKey]: colKey }, results, {
+        refId: r => r.order_ref_number, customer: r => r.customer_name,
+        phone: r => r.customer_phone, city: r => r.delivery_city,
+        address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
+        orderType: r => r.order_type || 'Normal (COD)', weight: r => `${r.order_weight || 0.5} kg`,
+        detail: r => r.order_detail, note: r => r.transaction_notes,
+        copies: r => String(r.pickup_address_code || 1), statusTracking: r => `${r.tracking_number || ''} ${r.order_status || ''}`
+      })
+      return lengths[colKey] || 12
     }
   })
 
@@ -65,9 +75,7 @@ export function ResultsDesktopGrid({
             {[widths.checkbox, widths.index, widths.refId, widths.customer, widths.phone, widths.city, widths.address, widths.cod, widths.orderType].map((w, idx) => (
               <col key={idx} style={{ width: `${w}px` }} />
             ))}
-            {expandDefaults && [widths.weight || 75, widths.detail || 140, widths.note || 170, widths.copies || 65].map((w, idx) => (
-              <col key={`def_${idx}`} style={{ width: `${w}px` }} />
-            ))}
+            {expandDefaults && [widths.weight || 75, widths.detail || 140, widths.note || 170, widths.copies || 65].map((w, idx) => <col key={`def_${idx}`} style={{ width: `${w}px` }} />)}
             <col style={{ width: `${widths.statusTracking}px` }} />
             <col style={{ width: `${widths.actions}px` }} />
           </colgroup>
@@ -359,11 +367,7 @@ export function ResultsDesktopGrid({
                       {isBooked && r.tracking && onCancelShipment && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm(`Cancel booking for ${r.name} (${r.tracking})?`)) {
-                              onCancelShipment(r.tracking || '')
-                            }
-                          }}
+                          onClick={() => { if (confirm(`Cancel booking for ${r.name} (${r.tracking})?`)) onCancelShipment(r.tracking || '') }}
                           disabled={cancellingTracking.includes(r.tracking || '')}
                           className="w-7.5 h-7.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-100 transition shadow-2xs disabled:opacity-50 active:scale-95"
                           title="Cancel Shipment"

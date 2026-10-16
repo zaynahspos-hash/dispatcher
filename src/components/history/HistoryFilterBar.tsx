@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SearchIcon, RefreshIcon, FilterIcon } from '../Icons'
+import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
 import { StatusFilterType } from './types'
 
@@ -20,6 +20,7 @@ interface HistoryFilterBarProps {
   setStatusFilter: (filter: StatusFilterType) => void
   whatsappFilter?: 'all' | 'pending' | 'sent'
   setWhatsappFilter?: (filter: 'all' | 'pending' | 'sent') => void
+  onAutoFitColumns?: (e?: React.MouseEvent) => void
   counts: {
     all: number
     pendingLoadsheet: number
@@ -50,6 +51,7 @@ export function HistoryFilterBar({
   setStatusFilter,
   whatsappFilter = 'all',
   setWhatsappFilter,
+  onAutoFitColumns,
   counts
 }: HistoryFilterBarProps) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
@@ -151,6 +153,19 @@ export function HistoryFilterBar({
             >
               <RefreshIcon size={14} />
               <span className="hidden sm:inline">Reset</span>
+            </button>
+          )}
+
+          {/* Excel Auto-Fit Columns */}
+          {onAutoFitColumns && (
+            <button
+              type="button"
+              onClick={onAutoFitColumns}
+              className="h-10 hidden sm:flex items-center justify-center gap-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap active:scale-98"
+              title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
+            >
+              <AutoFitIcon size={14} className="text-emerald-500" />
+              <span>Auto-Fit ↔</span>
             </button>
           )}
         </div>
