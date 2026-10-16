@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
 import { Settings } from '../utils/groqParser'
 import { PrintIcon, SyncIcon, CancelIcon, HistoryIcon, AlertIcon } from './Icons'
-import { BookedParcel, StatusFilterType, getStatusCategory, isUnderReview } from './history/types'
+import { BookedParcel, StatusFilterType } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
+import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
-import { HistoryMobileCard } from './history/HistoryMobileCard'
+import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
 
 export type { BookedParcel }
@@ -33,78 +34,16 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
     setPickupFilter('all')
   }
 
-  // Dynamic counts for status tabs based on history
-  const counts = useMemo(() => {
-    const all = history.length
-    let pendingLoadsheet = 0
-    let booked = 0
-    let inTransit = 0
-    let delivered = 0
-    let returned = 0
-    let cancelled = 0
-
-    history.forEach(h => {
-      const cat = getStatusCategory(h.status, h.tracking)
-      if (cat === 'pending_loadsheet') pendingLoadsheet++
-      else if (cat === 'booked') booked++
-      else if (cat === 'intransit') inTransit++
-      else if (cat === 'delivered') delivered++
-      else if (cat === 'returned') returned++
-      else if (cat === 'cancelled') cancelled++
-    })
-
-    return { all, pendingLoadsheet, booked, inTransit, delivered, returned, cancelled }
-  }, [history])
-
-  // Filter logic
-  const filteredParcels = useMemo(() => {
-    return history.filter(item => {
-      if (statusFilter !== 'all') {
-        const cat = getStatusCategory(item.status, item.tracking)
-        if (cat !== statusFilter) return false
-      }
-
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase().trim()
-        const matchesOrder = item.id.toLowerCase().includes(q)
-        const matchesTracking = item.tracking.toLowerCase().includes(q)
-        const matchesName = item.name.toLowerCase().includes(q)
-        const matchesPhone = item.phone.toLowerCase().includes(q)
-        if (!matchesOrder && !matchesTracking && !matchesName && !matchesPhone) {
-          return false
-        }
-      }
-
-      const bDate = new Date(item.bookingDate)
-      const itemTime = bDate.getTime()
-      if (fromDate) {
-        const start = new Date(fromDate)
-        start.setHours(0, 0, 0, 0)
-        if (itemTime < start.getTime()) return false
-      }
-      if (toDate) {
-        const end = new Date(toDate)
-        end.setHours(23, 59, 59, 999)
-        if (itemTime > end.getTime()) return false
-      }
-
-      if (statusSelect !== 'all') {
-        const sel = statusSelect.toLowerCase()
-        if (sel === 'under_review') {
-          if (!isUnderReview(item.status)) return false
-        } else {
-          const statusLower = item.status.toLowerCase()
-          if (!statusLower.includes(sel)) return false
-        }
-      }
-
-      if (pickupFilter !== 'all') {
-        if (item.city.toUpperCase() !== pickupFilter.toUpperCase()) return false
-      }
-
-      return true
-    }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
-  }, [history, statusFilter, searchQuery, fromDate, toDate, statusSelect, pickupFilter])
+  // Filter and dynamic counts hook
+  const { counts, filteredParcels } = useBookedHistoryFilter({
+    history,
+    statusFilter,
+    searchQuery,
+    fromDate,
+    toDate,
+    statusSelect,
+    pickupFilter
+  })
 
   // PostEx operations hook
   const {
@@ -363,50 +302,25 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
           </div>
 
           {/* Mobile Card List */}
-          <div className="lg:hidden flex flex-col gap-3">
-            {/* Mobile Select All Bar */}
-            <div className="flex items-center justify-between bg-white dark:bg-gray-900 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mb-1">
-              <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-gray-700 dark:text-gray-200 select-none">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.length === paginatedParcels.length && paginatedParcels.length > 0}
-                  onChange={e => handleSelectAll(e.target.checked, paginatedParcels.map(p => p.tracking))}
-                  className="w-4.5 h-4.5 rounded border-gray-300 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 cursor-pointer"
-                />
-                <span>Select All ({selectedIds.length}/{paginatedParcels.length} selected)</span>
-              </label>
-              {selectedIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedIds([])}
-                  className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-extrabold cursor-pointer transition"
-                >
-                  Deselect All
-                </button>
-              )}
-            </div>
-
-            {paginatedParcels.map(parcel => (
-              <HistoryMobileCard
-                key={parcel.tracking}
-                parcel={parcel}
-                isSelected={selectedIds.includes(parcel.tracking)}
-                onToggleSelect={handleSelectItem}
-                onSaveName={handleSaveName}
-                onSyncStatus={handleSyncStatus}
-                isSyncing={syncingTracking === parcel.tracking}
-                onCancel={handleCancelSingle}
-                onOpenAdvice={p => {
-                  setAdviceParcel(p)
-                  setAdviceStatusId(2)
-                  setAdviceRemarks('')
-                  setAdviceError(null)
-                }}
-                whatsappNote={settings.whatsapp_note}
-                whatsappTemplate={settings.whatsapp_template}
-              />
-            ))}
-          </div>
+          <HistoryMobileCardList
+            paginatedParcels={paginatedParcels}
+            selectedIds={selectedIds}
+            handleSelectAll={handleSelectAll}
+            setSelectedIds={setSelectedIds}
+            handleSelectItem={handleSelectItem}
+            handleSaveName={handleSaveName}
+            handleSyncStatus={handleSyncStatus}
+            syncingTracking={syncingTracking}
+            handleCancelSingle={handleCancelSingle}
+            onOpenAdvice={p => {
+              setAdviceParcel(p)
+              setAdviceStatusId(2)
+              setAdviceRemarks('')
+              setAdviceError(null)
+            }}
+            whatsappNote={settings.whatsapp_note}
+            whatsappTemplate={settings.whatsapp_template}
+          />
 
           {/* Load More Button */}
           {hasMore && (

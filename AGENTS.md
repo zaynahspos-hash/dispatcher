@@ -71,6 +71,8 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **30** | [30-sorting-reordering.md](docs/agent-rules/30-sorting-reordering.md) | Multi-column sorting, status grouping, bulk checkbox actions |
 | **31** | [31-modal-overlay-system.md](docs/agent-rules/31-modal-overlay-system.md) | Responsive bottom sheet drawer & dialog system, focus lock, zero blur |
 | **32** | [32-anti-ai-quality-engineering.md](docs/agent-rules/32-anti-ai-quality-engineering.md) | Anti-AI slop protocols: real data validation, zero placeholder code, deep defensive patterns |
+| **33** | [33-zero-emojis-and-safe-areas.md](docs/agent-rules/33-zero-emojis-and-safe-areas.md) | Zero emojis UI rule, mobile safe-area insets, admin whitelist scoping, local PDF document vault |
+| **34** | [34-clean-code-error-handling-and-courier-extensibility.md](docs/agent-rules/34-clean-code-error-handling-and-courier-extensibility.md) | Human-readable clean code, zero silent errors policy, folder discipline, pluggable multi-courier engine |
 
 ---
 

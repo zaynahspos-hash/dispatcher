@@ -4,13 +4,15 @@ Engineering discipline for clean, maintainable, modular frontend code.
 
 ---
 
-## 1. File Size & Responsibility Limits (RULE O1)
-- **Target File Size**: 150–350 lines.
-- **Maximum Soft Limit**: 400 lines.
-- When a component grows beyond 400 lines:
-  - Extract sub-components (e.g. `ParcelRow`, `TrackingModal`, `AdviceDrawer`).
-  - Extract business logic into dedicated custom hooks in `src/hooks/`.
-  - Extract helper calculations into pure functions in `src/utils/`.
+## 1. File Size & Responsibility Limits (RULE O1 — HARD ENFORCEMENT)
+- **Target File Size**: `150–300 lines` per file.
+- **Absolute Hard Limit (Ceiling)**: **`400 lines maximum`**.
+- **Zero Tolerance Policy**:
+  - No file may exceed 400 lines. Any file reaching 400 lines is considered in direct violation of architectural standards and must be decomposed immediately.
+  - Multi-viewport components (desktop grid + mobile cards) MUST be separated into distinct subcomponents (`*DesktopGrid.tsx`, `*MobileCards.tsx`).
+  - Multi-tab panels (e.g. Settings, Admin tabs) MUST be modularized into individual tab subcomponents (`src/components/settings/*Tab.tsx`).
+  - Complex state and API side-effects MUST be isolated in `src/hooks/`.
+  - Pure calculation and validation logic MUST live in `src/utils/`.
 
 ---
 
