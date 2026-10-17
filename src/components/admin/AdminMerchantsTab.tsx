@@ -47,18 +47,9 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
     setFeedbackMsg(null)
 
     try {
-      const { error: rpcErr } = await supabase.rpc('admin_toggle_tenant_status', {
-        target_user_id: u.id,
-        new_status: nextStatus
-      })
-
+      const { error: rpcErr } = await supabase.rpc('admin_toggle_tenant_status', { target_user_id: u.id, new_status: nextStatus })
       if (rpcErr) {
-        // Fallback directly to tables
-        await supabase.from('users').update({
-          status: nextStatus,
-          is_blocked: nextStatus === 'suspended'
-        }).eq('id', u.id)
-
+        await supabase.from('users').update({ status: nextStatus, is_blocked: nextStatus === 'suspended' }).eq('id', u.id)
         const existingSettings = (u.settings as any)?.settings || {}
         await supabase.from('user_settings').upsert({
           user_id: u.id,
@@ -90,15 +81,14 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
     setFeedbackMsg(null)
 
     try {
-      const { error: rpcErr } = await supabase.rpc('admin_delete_tenant_cascade', {
-        target_user_id: selectedUser.id
-      })
-
+      const { error: rpcErr } = await supabase.rpc('admin_delete_tenant_cascade', { target_user_id: selectedUser.id })
       if (rpcErr) {
+        console.error('admin_delete_tenant_cascade error:', rpcErr)
         await Promise.all(['booked_history', 'customers', 'usage_logs', 'user_settings'].map(t =>
           supabase.from(t).delete().eq('user_id', selectedUser.id)
         ))
-        await supabase.from('users').delete().eq('id', selectedUser.id)
+        const { error: userDelErr } = await supabase.from('users').delete().eq('id', selectedUser.id)
+        if (userDelErr) throw new Error(rpcErr.message || userDelErr.message || 'Failed to delete merchant.')
       }
 
       setIsDeleteDialogOpen(false)
