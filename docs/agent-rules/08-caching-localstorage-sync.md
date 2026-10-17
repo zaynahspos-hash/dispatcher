@@ -87,3 +87,21 @@ supabase.auth.onAuthStateChange((event) => {
 - **Zero Stale / Zero Missing Data**:
   - Any local action (booking, cancelling, advice, deletion) instantly writes to local state and updates local timestamp, so fresh data is visible in 0ms while multi-device changes are automatically pulled.
 
+---
+
+## 6. Avatar & Image Resilient Caching & Anti-Auto-Deletion (RULE C12)
+- **Zero Accidental Avatar Wiping**:
+  - `avatar_url` is a protected persistent secret key (`CRITICAL_SECRET_KEYS`).
+  - An empty DB fetch or periodic background sync must NEVER overwrite an existing cached avatar.
+  - Manual settings saves (e.g. from Settings tab) must preserve current `avatar_url` so saving courier/AI settings cannot wipe profile images.
+- **0ms Instant Cache-First Rendering**:
+  - User avatars are cached locally in Base64 format via `src/utils/avatarCache.ts` (`zaynah_avatar_cache_${userId}`).
+  - Avatars render in 0ms without network latency or initials flicker.
+- **Dynamic Invalidation on Change**:
+  - When the user uploads a new photo, the cache entry is immediately updated with the new photo and new cache timestamp.
+  - When the user explicitly clicks "Remove", `clearCachedAvatar` immediately purges the cache and resets to initials.
+  - Stale cached photos are never served after a photo update.
+- **Dual Cloud & Metadata Sync**:
+  - On upload, `avatar_url` is persisted to both `user_settings.settings.avatar_url` and Supabase Auth metadata (`supabase.auth.updateUser({ data: { avatar_url } })`) to ensure multi-device continuity.
+
+

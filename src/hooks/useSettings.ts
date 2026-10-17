@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Settings } from '../utils/groqParser'
 import { supabase } from '../utils/supabaseClient'
+import { clearCachedAvatar } from '../utils/avatarCache'
 
 const DEFAULTS: Settings = {
   groq_api_key: '',
@@ -53,7 +54,7 @@ const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number O
 
 const CRITICAL_SECRET_KEYS: Array<keyof Settings> = [
   'postex_token', 'groq_api_key', 'gemini_api_key', 'openai_api_key',
-  'anthropic_api_key', 'deepseek_api_key', 'openrouter_api_key'
+  'anthropic_api_key', 'deepseek_api_key', 'openrouter_api_key', 'avatar_url'
 ]
 
 function userSettingsKey(userId: string, field: keyof Settings) {
@@ -207,7 +208,7 @@ export function useSettings() {
           const merged = { ...DEFAULTS, ...dbSettings }
           CRITICAL_SECRET_KEYS.forEach(k => {
             if (!merged[k]) {
-              const fallback = readLocal(currentUser.id, k) || localStorage.getItem(`zaynah_vault_${k}`)
+              const fallback = readLocal(currentUser.id, k) || localStorage.getItem(`zaynah_vault_${k}`) || (k === 'avatar_url' ? currentUser.user_metadata?.avatar_url : '')
               if (fallback) merged[k] = fallback
             }
           })
@@ -216,6 +217,10 @@ export function useSettings() {
           localStorage.setItem(userVersionKey(currentUser.id), dbUpdatedAt)
         } else {
           const localSettings = readAllLocal(currentUser.id)
+          if (!localSettings.avatar_url && currentUser.user_metadata?.avatar_url) {
+            localSettings.avatar_url = currentUser.user_metadata.avatar_url
+            writeLocal(currentUser.id, 'avatar_url', localSettings.avatar_url)
+          }
           setSettings(localSettings)
         }
       } else {
@@ -270,6 +275,14 @@ export function useSettings() {
       }
 
       if (user) {
+        // If avatar_url was modified, sync with Supabase Auth metadata for multi-device persistence
+        const avatarTouch = typeof key === 'object' ? key.avatar_url : (key === 'avatar_url' ? value : undefined)
+        if (avatarTouch !== undefined) {
+          supabase.auth.updateUser({ data: { avatar_url: avatarTouch || '' } }).catch(e => {
+            console.warn('[useSettings] Auth metadata avatar sync error:', e)
+          })
+        }
+
         const now = new Date().toISOString()
         // RULE D13: snake_case table + column
         supabase.from('user_settings').upsert({
@@ -313,6 +326,8 @@ export function useSettings() {
       localStorage.removeItem(`booked_history_${user.id}`)
       localStorage.removeItem(`booking_results_${user.id}`)
       localStorage.removeItem(`booked_history_synced_at_${user.id}`)
+      clearCachedAvatar(user.id)
+      if (user.email) clearCachedAvatar(user.email)
     }
     await supabase.auth.signOut()
     setSettings(DEFAULTS)

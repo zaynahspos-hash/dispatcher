@@ -50,7 +50,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **05** | [05-database-supabase.md](docs/agent-rules/05-database-supabase.md) | Zero Prisma, snake_case only, UUID PKs, strict Multi-Tenant SaaS RLS, SUPER_MASTER_SCHEMA |
 | **06** | [06-git-github.md](docs/agent-rules/06-git-github.md) | Git commit standards, secret hygiene, branch flow, release tagging |
 | **07** | [07-deployment-hosting.md](docs/agent-rules/07-deployment-hosting.md) | Vite SPA builds, `vite-plugin-singlefile`, Vercel/Netlify hosting, zero Cloudflare |
-| **08** | [08-caching-localstorage-sync.md](docs/agent-rules/08-caching-localstorage-sync.md) | Offline LocalStorage fallback, `cacheWithExpiry`, real-time Supabase cloud sync |
+| **08** | [08-caching-localstorage-sync.md](docs/agent-rules/08-caching-localstorage-sync.md) | Offline LocalStorage fallback, `cacheWithExpiry`, real-time cloud sync, avatar caching & anti-wipe (C12) |
 | **09** | [09-courier-booking-lifecycle.md](docs/agent-rules/09-courier-booking-lifecycle.md) | Order ingestion → Parsing → Validation → PostEx V3 Booking → Tracking → Advice → Loadsheet |
 | **10** | [10-ai-address-parser.md](docs/agent-rules/10-ai-address-parser.md) | Groq LLaMA-3 prompt engineering, Pakistani address phonetic matching, city normalization |
 | **11** | [11-storage-files-export.md](docs/agent-rules/11-storage-files-export.md) | Excel (.xlsx) bulk import/export, PostEx PDF loadsheet generation, thermal airway bills |

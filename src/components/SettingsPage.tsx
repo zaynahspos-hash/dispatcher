@@ -63,7 +63,11 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   const handleManualSave = async () => {
     setSaving(true)
     try {
-      updateSetting(draftSettings)
+      const toSave = { ...draftSettings }
+      if (settings.avatar_url && !toSave.avatar_url) {
+        toSave.avatar_url = settings.avatar_url
+      }
+      updateSetting(toSave)
       if (onSave) {
         onSave()
       }

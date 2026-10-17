@@ -3,6 +3,7 @@ import { UserAvatar } from './UserAvatar'
 import { useToast } from './Toast'
 import { Settings } from '../../utils/groqParser'
 import { useAvatarUpload } from '../../hooks/useAvatarUpload'
+import { clearCachedAvatar } from '../../utils/avatarCache'
 import { PasswordSubTab } from './PasswordSubTab'
 import { 
   MoonIcon, 
@@ -157,6 +158,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (user?.id) clearCachedAvatar(user.id)
+                        if (user?.email) clearCachedAvatar(user.email)
                         updateSetting('avatar_url', '')
                         toast.info('Profile photo removed.')
                       }}

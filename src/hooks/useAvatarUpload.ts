@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { useToast } from '../components/common/Toast'
 import { Settings } from '../utils/groqParser'
+import { setCachedAvatar } from '../utils/avatarCache'
 
 export function useAvatarUpload(
   user: any,
@@ -45,6 +46,8 @@ export function useAvatarUpload(
               }
 
               const userId = user?.id || 'guest'
+              const userEmail = user?.email || ''
+              const localDataUrl = canvas.toDataURL('image/webp', 0.85)
               const filePath = `${userId}/avatar-${Date.now()}.webp`
 
               const { error: uploadErr } = await supabase.storage
@@ -56,8 +59,9 @@ export function useAvatarUpload(
 
               if (uploadErr) {
                 console.warn('[Avatar] Cloud upload failed, saving fallback locally:', uploadErr.message)
-                const fallbackDataUrl = canvas.toDataURL('image/webp', 0.82)
-                updateSetting('avatar_url', fallbackDataUrl)
+                setCachedAvatar(userId, localDataUrl, localDataUrl)
+                if (userEmail) setCachedAvatar(userEmail, localDataUrl, localDataUrl)
+                updateSetting('avatar_url', localDataUrl)
                 toast.success('Profile photo updated.')
                 setUploadingAvatar(false)
                 return
@@ -66,10 +70,21 @@ export function useAvatarUpload(
               const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
               const permanentUrl = `${urlData.publicUrl}?t=${Date.now()}`
 
+              // Immediately warm the cache with the new permanentUrl and localDataUrl
+              setCachedAvatar(userId, permanentUrl, localDataUrl)
+              if (userEmail) setCachedAvatar(userEmail, permanentUrl, localDataUrl)
+
+              // Sync to Supabase Auth metadata so user session always holds avatar
+              if (user?.id) {
+                supabase.auth.updateUser({ data: { avatar_url: permanentUrl } }).catch(e => {
+                  console.warn('[Avatar] Auth metadata sync non-blocking error:', e)
+                })
+              }
+
               updateSetting('avatar_url', permanentUrl)
               toast.success('Profile photo updated.')
               setUploadingAvatar(false)
-            }, 'image/webp', 0.82)
+            }, 'image/webp', 0.85)
           } catch (err: any) {
             setUploadingAvatar(false)
             toast.error(err.message || 'Image processing failed')
