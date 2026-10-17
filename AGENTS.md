@@ -59,7 +59,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **14** | [14-design-system.md](docs/agent-rules/14-design-system.md) | Tailwind v4 tokens, Shopify/modern courier aesthetics, dark/light mode, card anatomy |
 | **15** | [15-shared-components-ui-modules.md](docs/agent-rules/15-shared-components-ui-modules.md) | Shared UI components: SearchableDropdown, Modal/Drawer, StatusBadge, Toast, StatsCard |
 | **16** | [16-multi-system-architecture.md](docs/agent-rules/16-multi-system-architecture.md) | Multi-tenant SaaS isolation, zero cross-tenant data sharing, admin vs user RBAC |
-| **17** | [17-mobile-native-app-style.md](docs/agent-rules/17-mobile-native-app-style.md) | Native app feel: 44px touch targets, bottom sheets, scroll snap prevention, sticky action bars |
+| **17** | [17-mobile-native-app-style.md](docs/agent-rules/17-mobile-native-app-style.md) | Native app feel: 44px touch targets, bottom sheets, scroll snap prevention, M13 no-scrollbar & concise chips, M14 card collapse/expand & admin drawer |
 | **18** | [18-multi-domain-rules.md](docs/agent-rules/18-multi-domain-rules.md) | Warehouse pickup codes, return codes, dynamic origins, multi-store mapping |
 | **19** | [19-navigation-state-restoration.md](docs/agent-rules/19-navigation-state-restoration.md) | Tab state preservation, scroll position restoration, session continuity |
 | **20** | [20-error-diagnostics-matrix.md](docs/agent-rules/20-error-diagnostics-matrix.md) | Instant troubleshooting: PostEx errors (400/401/500), Groq rate limits, Supabase RLS 404/403 |

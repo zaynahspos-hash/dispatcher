@@ -65,8 +65,8 @@ export function ResultsDesktopGrid({
   })
 
   return (
-    <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden">
-      <div className="overflow-x-auto min-h-[380px] pb-24">
+    <div className="hidden lg:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden w-full max-w-full min-w-0">
+      <div className="overflow-x-auto min-h-[380px] pb-24 max-w-full min-w-0">
         <table
           className="text-xs border-collapse table-fixed select-none"
           style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}

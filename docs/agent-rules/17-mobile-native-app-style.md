@@ -73,3 +73,60 @@ useEffect(() => {
   - Always enforce `min-w-0` and `w-full` on all flex child `<input>` and `<textarea>` elements to prevent HTML default minimum-width blowing out horizontal viewport bounds on 375px+ screens.
   - Multi-line textareas must use `resize-none break-words leading-relaxed` and dynamically calculate line rows based on text length.
 
+---
+
+## 8. RULE M12 — Absolute Zero Viewport Blowout & Breakpoint Synchronization (MANDATORY)
+1. **Root Viewport Guards**:
+   - `html, body, #root` must always enforce `overflow-x: hidden; max-width: 100vw; width: 100%;` in `src/index.css`.
+   - The root application layout shell must declare `w-full max-w-full overflow-hidden`, **NEVER `w-screen`** (which evaluates to `100vw` and ignores scrollbar gutter widths).
+2. **Main Canvas Boundary Isolation**:
+   - The primary `<main>` element must declare `overflow-y-auto overflow-x-hidden min-w-0 max-w-full` so wide nested tables or buttons can never scroll the primary page horizontally.
+3. **Unified Table/Card Breakpoint Synchronization Across All Tabs**:
+   - **Handheld Mobile & Tablet (< 1024px)**: Must ALWAYS render touch-optimized mobile cards (`lg:hidden`). Never render wide 1400px spreadsheet grids on screens under 1024px where the desktop sidebar is hidden.
+   - **Desktop (>= 1024px)**: Render full Excel spreadsheet grids (`hidden lg:block`) with self-contained internal horizontal scrolling (`overflow-x-auto min-w-0 max-w-full`).
+9. Touch-Swipe Mobile Action Toolbars:
+   - All multi-button toolbars (`Add Row`, `Export XLSX`, `Airway Vault`, `Expand Defaults`, `Auto-Fit`, `Clear All`) must use a dedicated touch-scroll track on mobile:
+   ```tsx
+   <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar scroll-smooth touch-pan-x py-0.5 max-w-full min-w-0">
+   ```
+   - This ensures buttons stay on a single thumb-scrollable row without expanding parent card boundaries or pushing page margins.
+
+---
+
+## 9. RULE M13 — Apple iOS Touch Tracks, Anti-Box Fragmentation & Shortened Chips (ENFORCED)
+1. **Absolute Ban on Mobile Scrollbar Tracks**:
+   - Native browser gray/white scrollbar tracks under horizontal chip bars or button rows are permanently banned on mobile.
+   - All horizontal scroll strips must declare `overflow-x-auto no-scrollbar scroll-smooth touch-pan-x`.
+   - In `src/index.css`, custom scrollbars must be strictly scoped to desktop (`@media (min-width: 1024px)`), and mobile scrollbars must be completely hidden with `display: none !important; width: 0 !important; height: 0 !important;`.
+2. **Concise, High-Signal Filter Chips**:
+   - Filter labels must be brief and concise to prevent horizontal clutter on handheld screens:
+     - Use `Pending (N)` instead of `Pending for Load Sheet N`
+     - Use `In Transit (N)` instead of `InTransit N`
+     - Use `All (N)` instead of `All Dispatched N`
+     - Use `Failed (N)` instead of `Failed Bookings N`
+3. **Anti-Box Fragmentation & Double-Line Text Prevention**:
+   - Avoid creating fragmented stacked boxes for summary metrics. Use cohesive responsive stat grids or single-line flex rows.
+   - Text summaries containing counts, parcel tallies, and amounts must never wrap into broken double-line stacks on 375px+ screens.
+4. **Zero Duplicate Selection Bars**:
+   - If a global or top-level selection bar (e.g., `ResultsSelectionBar.tsx`) appears when rows are selected, any internal or card-level selection bars must automatically hide (`!selected || selected.size === 0`) to prevent dual-stacked selection bars.
+
+---
+
+## 10. RULE M14 — Mobile Card Collapse/Expand & Admin Panel UX (ENFORCED)
+1. **Parcels Staging Mobile Card Collapse/Expand**:
+   - Mobile parcel cards (`< 1024px`) must support two-tier expansion:
+     - **Bulk Collapse All / Expand All**: Toggled via the top toolbar button (`Expand All` / `Collapse All`).
+     - **1-by-1 Individual Card Toggle**: Operators can tap any collapsed summary strip (`#1 ref-id Rs. COD • Customer Name • City`) or chevron icon to expand/collapse that specific card independently.
+   - Collapsed cards must occupy a compact ~48px row with quick-action delete and status indicators.
+2. **Admin Panel Mobile Isolation & Bottom Sheet Drawer**:
+   - Never auto-select merchants on initial page load on mobile (`< 1024px`). Mobile users must see the full merchant directory first.
+   - On `< 1024px`, tapping a merchant opens an Apple iOS-style slide-up Bottom Sheet Drawer (`fixed inset-0 z-50 bg-black/60`) with drag indicator and close button. Never render merchant details below the list on mobile.
+   - On desktop (`>= 1024px`), retain the 2-column split-screen layout with auto-selection and empty placeholder card.
+3. **Mobile Customer Directory Invariant**:
+   - Never hide customer tables on mobile without providing a mobile-native card view (`sm:hidden`).
+   - Mobile customer cards must include direct 1-tap WhatsApp chat links and merchant store tags.
+4. **Desktop Layout Invariant**:
+   - Desktop spreadsheet grids (`>= 1024px`) with column resizing, drag handles, and multi-column editing must remain 100% untouched and functional whenever mobile changes are made.
+
+
+

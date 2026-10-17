@@ -16,35 +16,44 @@ export const AdminStatsBar: React.FC<AdminStatsBarProps> = ({
   totalCustomers
 }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800/80 shadow-xs">
-      <div className="p-3.5 sm:p-4">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Merchants</span>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalUsers}</span>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 w-full">
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Merchants</span>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          <span className="text-lg sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalUsers}</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Registered</span>
         </div>
       </div>
-      <div className="p-3.5 sm:p-4">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Today</span>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">{activeUsersTodayCount}</span>
+
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Today</span>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          <span className="text-lg sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">{activeUsersTodayCount}</span>
+          <span className="text-[10px] text-slate-400 font-semibold">Online</span>
         </div>
       </div>
-      <div className="p-3.5 sm:p-4">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total AI Parses</span>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalAIparses}</span>
+
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">AI Parses</span>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          <span className="text-lg sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalAIparses}</span>
+          <span className="text-[10px] text-slate-400 font-semibold">Orders</span>
         </div>
       </div>
-      <div className="p-3.5 sm:p-4">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Booked</span>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">{totalBookings}</span>
+
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Booked</span>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          <span className="text-lg sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">{totalBookings}</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Live CNs</span>
         </div>
       </div>
-      <div className="p-3.5 sm:p-4 col-span-2 sm:col-span-1">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Customers</span>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalCustomers}</span>
+
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs col-span-2 sm:col-span-1">
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Customers</span>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          <span className="text-lg sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalCustomers}</span>
+          <span className="text-[10px] text-slate-400 font-semibold">Directory</span>
         </div>
       </div>
     </div>

@@ -159,7 +159,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full min-w-0">
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
@@ -190,7 +190,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
         <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-2">
           1-Click Sample Templates (Tap to Test)
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x pb-1">
           {TEMPLATES.map(tmpl => (
             <button
               key={tmpl.id}
@@ -198,7 +198,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
                 setText(tmpl.text)
                 toast.info('Template Loaded', tmpl.label)
               }}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300 transition cursor-pointer shadow-xs active:scale-95"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300 transition cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
             >
               {tmpl.label}
             </button>

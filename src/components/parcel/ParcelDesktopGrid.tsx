@@ -76,9 +76,9 @@ export function ParcelDesktopGrid({
   const totalTableWidth = Object.values(widths).reduce((a, b) => a + b, 0)
 
   return (
-    <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden">
+    <div className="hidden lg:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden w-full max-w-full min-w-0">
       {/* Horizontal scroll container with interactive Excel resizable column widths */}
-      <div className="overflow-x-auto min-h-[400px] pb-32">
+      <div className="overflow-x-auto min-h-[400px] pb-32 max-w-full min-w-0">
         <table className="text-xs border-collapse table-fixed select-none" style={{ width: `${totalTableWidth}px`, minWidth: `${totalTableWidth}px` }}>
           <colgroup>
             <col style={{ width: `${widths.checkbox}px` }} />

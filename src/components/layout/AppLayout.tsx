@@ -92,7 +92,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const currentTabObj = tabs.find(t => t.id === activeTab) || tabs[0]
 
   return (
-    <div className="h-screen w-screen flex bg-[#f8fafc] dark:bg-[#070b12] text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-200">
+    <div className="h-screen w-full max-w-full flex bg-[#f8fafc] dark:bg-[#070b12] text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-200">
       
       {/* 1. Desktop Sidebar */}
       <DesktopSidebar
@@ -109,7 +109,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* ========================================================
           2. MAIN CONTENT WRAPPER
           ======================================================== */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full h-full overflow-hidden">
         
         {/* Top Header / Portal Navbar */}
         <header className="pt-[max(env(safe-area-inset-top),0.75rem)] pb-2.5 min-h-[calc(3.75rem+max(env(safe-area-inset-top),0.75rem))] px-3.5 sm:px-6 lg:px-8 bg-white dark:bg-[#0c121e] border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-20 transition-colors duration-200">
@@ -214,8 +214,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </header>
 
         {/* Scrollable Main Application Canvas (Generous mobile pb to clear bottom bar) */}
-        <main className="flex-1 overflow-y-auto overscroll-y-none px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 pb-[calc(110px+max(env(safe-area-inset-bottom),20px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
-          <div className={`w-full space-y-6 transition-all duration-200 ${
+        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-y-none min-w-0 max-w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 pb-[calc(110px+max(env(safe-area-inset-bottom),20px))] lg:pb-12 bg-[#f8fafc] dark:bg-[#070b12] transition-colors duration-200">
+          <div className={`w-full min-w-0 max-w-full space-y-5 transition-all duration-200 ${
             isSidebarCollapsed ? 'max-w-none' : 'max-w-[1720px] 2xl:max-w-none'
           }`}>
             {children}
@@ -259,7 +259,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           ======================================================== */}
       <nav 
         aria-label="Mobile Navigation"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#0c121e] border-t border-slate-200/90 dark:border-slate-800 flex items-center justify-around pb-[max(env(safe-area-inset-bottom),6px)] h-[calc(60px+max(env(safe-area-inset-bottom),6px))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.5)] select-none"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 w-full max-w-full bg-white dark:bg-[#0c121e] border-t border-slate-200/90 dark:border-slate-800 flex items-center justify-around pb-[max(env(safe-area-inset-bottom),6px)] h-[calc(60px+max(env(safe-area-inset-bottom),6px))] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.5)] select-none"
       >
         {mobileBottomTabs.map(tab => {
           const isActive = activeTab === tab.id

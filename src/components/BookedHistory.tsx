@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Settings } from '../utils/groqParser'
-import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon } from './Icons'
+import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon, RefreshIcon } from './Icons'
 import { BookedParcel, StatusFilterType } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
@@ -128,39 +128,39 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   }, [history])
 
   return (
-    <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200">
+    <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
       {/* Header and Sync Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 border-b border-slate-100 dark:border-slate-800 pb-5">
+      <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Booked Parcels History</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-            Showing {filteredParcels.length} booked orders stored in this browser
-          </p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>Booked History</span>
+            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              {filteredParcels.length}
+            </span>
+          </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleRefreshAll}
-            disabled={isSyncingAll || isLoading}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98"
-          >
-            {isSyncingAll ? (
-              <>
-                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span>{syncProgress}</span>
-              </>
-            ) : (
-              <>
-                <SyncIcon size={14} />
-                <span>Refresh Active Statuses</span>
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleRefreshAll}
+          disabled={isSyncingAll || isLoading}
+          className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0"
+        >
+          {isSyncingAll ? (
+            <>
+              <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span className="text-[11px]">{syncProgress}</span>
+            </>
+          ) : (
+            <>
+              <RefreshIcon size={13} />
+              <span>Refresh Statuses</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Advanced Filter Component */}

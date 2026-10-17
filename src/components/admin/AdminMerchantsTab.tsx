@@ -25,7 +25,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
   const [showCredentials, setShowCredentials] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    if (!selectedUser && users.length > 0) {
+    if (!selectedUser && users.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 1024) {
       onSelectUser(users[0])
     }
   }, [users, selectedUser, onSelectUser])
@@ -44,8 +44,129 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
     totalItems: totalLogs, paginatedItems: pagedLogs
   } = usePagination({ items: selectedUserLogs, initialPageSize: 10, storageKey: 'admin_logs' })
 
+  const renderMerchantDetails = (isMobileModal = false) => {
+    if (!selectedUser) return null
+    return (
+      <div className={`bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 ${isMobileModal ? 'border-0' : 'rounded-2xl shadow-2xs'} overflow-hidden flex flex-col`}>
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <UserAvatar email={selectedUser.email} avatarUrl={(selectedUser.settings as any)?.avatar_url || (selectedUser.settings as any)?.settings?.avatar_url} size="md" />
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">Merchant Configuration</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{selectedUser.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedUser(null)}
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className={`p-4 sm:p-5 space-y-6 ${isMobileModal ? 'max-h-[70vh]' : 'max-h-[600px]'} overflow-y-auto text-xs`}>
+          {/* PostEx Token */}
+          <div>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">PostEx Credentials</h4>
+            <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
+              <p className="text-[10px] text-slate-400 font-bold uppercase">PostEx API Token</p>
+              <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all mt-1 pr-10">
+                {selectedUser.settings?.settings?.postex_token ? (
+                  showCredentials[`postex_${selectedUser.id}`] ? (
+                    selectedUser.settings.settings.postex_token
+                  ) : (
+                    '••••••••••••••••••••••••'
+                  )
+                ) : (
+                  <span className="text-slate-400 italic">Not configured</span>
+                )}
+              </p>
+              {selectedUser.settings?.settings?.postex_token && (
+                <button
+                  onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+                >
+                  {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Courier Settings & Codes */}
+          <div>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Courier Settings & Codes</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Pickup Code</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
+                  {selectedUser.settings?.settings?.postex_pickup || 'N/A'}
+                </p>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Return Code</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
+                  {selectedUser.settings?.settings?.postex_return || 'N/A'}
+                </p>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Return City</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 truncate">
+                  {selectedUser.settings?.settings?.postex_return_city || 'N/A'}
+                </p>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Order Type</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
+                  {selectedUser.settings?.settings?.postex_type || 'Normal'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Logs */}
+          <div>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Recent Merchant Activity ({selectedUserLogs.length})</h4>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              {selectedUserLogs.length === 0 ? (
+                <p className="p-4 text-center text-slate-400 text-xs">No activity logs recorded.</p>
+              ) : (
+                pagedLogs.map(l => (
+                  <div key={l.id} className="p-3 flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 uppercase text-[10px]">
+                        {l.action.replace('_', ' ')}
+                      </span>
+                      {l.details && <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{l.details}</p>}
+                    </div>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <SharedPagination
+              currentPage={logsPage}
+              totalItems={totalLogs}
+              pageSize={logsPageSize}
+              onPageChange={setLogsPage}
+              onPageSizeChange={setLogsPageSize}
+              pageSizeOptions={[5, 10, 25, 50]}
+              itemLabel="activity logs"
+              className="mt-3"
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full max-w-full min-w-0">
       
       {/* Left Column: Users List */}
       <div className="lg:col-span-1 bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
@@ -103,11 +224,19 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {(() => {
+                      const hasToken = !!(u.settings as any)?.settings?.postex_token
+                      return hasToken ? (
+                        <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">API Live</span>
+                      ) : (
+                        <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">No API</span>
+                      )
+                    })()}
                     {u.role === 'admin' && (
                       <span className="text-[9px] bg-rose-500/10 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-bold uppercase">Admin</span>
                     )}
                     <span className="text-[10px] bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
-                      {userActionsCount}
+                      {userActionsCount} actions
                     </span>
                   </div>
                 </button>
@@ -117,126 +246,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
         </div>
       </div>
 
-      {/* Right Column: Selected Merchant Details */}
-      <div className="lg:col-span-2 space-y-6">
+      {/* Right Column: Selected Merchant Details (Desktop Split Screen) */}
+      <div className="hidden lg:block lg:col-span-2 space-y-6">
         {selectedUser ? (
-          <>
-            <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
-              <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <UserAvatar email={selectedUser.email} avatarUrl={(selectedUser.settings as any)?.avatar_url || (selectedUser.settings as any)?.settings?.avatar_url} size="md" />
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">Merchant Configuration</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px] sm:max-w-xs">{selectedUser.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-4 sm:p-5 space-y-6 max-h-[600px] overflow-y-auto text-xs">
-                {/* PostEx Token */}
-                <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">PostEx Credentials</h4>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">PostEx API Token</p>
-                    <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all mt-1 pr-10">
-                      {selectedUser.settings?.settings?.postex_token ? (
-                        showCredentials[`postex_${selectedUser.id}`] ? (
-                          selectedUser.settings.settings.postex_token
-                        ) : (
-                          '••••••••••••••••••••••••'
-                        )
-                      ) : (
-                        <span className="text-slate-400 italic">Not configured</span>
-                      )}
-                    </p>
-                    {selectedUser.settings?.settings?.postex_token && (
-                      <button
-                        onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
-                      >
-                        {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Courier Settings & Codes */}
-                <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Courier Settings & Codes</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">Pickup Code</p>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                        {selectedUser.settings?.settings?.postex_pickup || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">Return Code</p>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                        {selectedUser.settings?.settings?.postex_return || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">Return City</p>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 truncate">
-                        {selectedUser.settings?.settings?.postex_return_city || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">Order Type</p>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                        {selectedUser.settings?.settings?.postex_type || 'Normal'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Activity Logs */}
-                <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Recent Merchant Activity ({selectedUserLogs.length})</h4>
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                    {selectedUserLogs.length === 0 ? (
-                      <p className="p-4 text-center text-slate-400 text-xs">No activity logs recorded.</p>
-                    ) : (
-                      pagedLogs.map(l => (
-                        <div key={l.id} className="p-3 flex items-center justify-between text-xs">
-                          <div className="space-y-0.5">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 uppercase text-[10px]">
-                              {l.action.replace('_', ' ')}
-                            </span>
-                            {l.details && <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{l.details}</p>}
-                          </div>
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <SharedPagination
-                    currentPage={logsPage}
-                    totalItems={totalLogs}
-                    pageSize={logsPageSize}
-                    onPageChange={setLogsPage}
-                    onPageSizeChange={setLogsPageSize}
-                    pageSizeOptions={[5, 10, 25, 50]}
-                    itemLabel="activity logs"
-                    className="mt-3"
-                  />
-                </div>
-
-              </div>
-            </div>
-          </>
+          renderMerchantDetails(false)
         ) : (
           <div className="bg-white dark:bg-[#0c121e] border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl py-20 text-center">
             <h4 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Select a Merchant</h4>
@@ -245,6 +258,18 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
         )}
       </div>
 
+      {/* Mobile Drawer Overlay: Bottom Sheet for Selected Merchant */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 lg:hidden animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setSelectedUser(null)} />
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#0c121e] rounded-t-2xl sm:rounded-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl z-10 border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200">
+            <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
+            {renderMerchantDetails(true)}
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
+

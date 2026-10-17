@@ -23,7 +23,7 @@ export const ResultsSelectionBar: React.FC<ResultsSelectionBarProps> = ({
   if (selectedCount === 0) return null
 
   return (
-    <div className="p-2.5 sm:p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-fade-in mb-3">
+    <div className="p-2.5 sm:p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-fade-in mb-3 w-full max-w-full min-w-0">
       <div className="flex items-center gap-2.5 w-full sm:w-auto">
         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

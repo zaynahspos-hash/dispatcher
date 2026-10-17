@@ -87,17 +87,17 @@ export function HistoryFilterBar({
   }
 
   const tabs = [
-    { id: 'pending_loadsheet', label: 'Pending for Load Sheet', count: counts.pendingLoadsheet },
+    { id: 'pending_loadsheet', label: 'Pending', count: counts.pendingLoadsheet },
     { id: 'all', label: 'All', count: counts.all },
     { id: 'booked', label: 'Booked', count: counts.booked },
-    { id: 'intransit', label: 'InTransit', count: counts.inTransit },
+    { id: 'intransit', label: 'In Transit', count: counts.inTransit },
     { id: 'delivered', label: 'Delivered', count: counts.delivered },
     { id: 'returned', label: 'Returned', count: counts.returned },
     { id: 'cancelled', label: 'Cancelled', count: counts.cancelled }
   ] as const
 
   return (
-    <div className="space-y-3.5 mb-5">
+    <div className="space-y-3.5 mb-5 w-full max-w-full min-w-0">
       {/* Search & Filter Trigger Bar */}
       <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-2.5 sm:p-4 shadow-xs">
         <div className="flex items-center gap-2">

@@ -282,7 +282,7 @@ export default function BookingResults({
   }
 
   return (
-    <div className="space-y-3.5 transition-colors duration-200">
+    <div className="space-y-3.5 transition-colors duration-200 w-full min-w-0 max-w-full">
       {/* 1. Integrated KPI Summary & Action Toolbar */}
       <ResultsKPIBar
         totalResults={results.length}
@@ -369,6 +369,7 @@ export default function BookingResults({
             isWhatsAppSent={waTracker.isSent}
             onMarkWhatsAppSent={waTracker.markSent}
             onToggleWhatsAppSent={waTracker.toggleSent}
+            expandDefaults={expandDefaults}
           />
 
           {/* Shared Unified Pagination */}

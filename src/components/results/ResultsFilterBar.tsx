@@ -26,9 +26,9 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
   onClearFilters
 }) => {
   const tabs = [
-    { id: 'all' as const, label: 'All Dispatched', count: counts.all },
+    { id: 'all' as const, label: 'All', count: counts.all },
     { id: 'success' as const, label: 'Booked', count: counts.booked },
-    { id: 'error' as const, label: 'Failed Bookings', count: counts.failed },
+    { id: 'error' as const, label: 'Failed', count: counts.failed },
     { id: 'manual' as const, label: 'Drafts', count: counts.drafts },
     { id: 'cancelled' as const, label: 'Cancelled', count: counts.cancelled }
   ]
@@ -36,7 +36,7 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
   const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all'
 
   return (
-    <div className="space-y-3 mb-2">
+    <div className="space-y-3 mb-2 w-full max-w-full min-w-0">
       {/* Search Input Bar */}
       <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-2.5 sm:p-3.5 shadow-xs">
         <div className="flex items-center gap-2">

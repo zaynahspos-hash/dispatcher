@@ -73,6 +73,13 @@ export default function ParcelTable({
     setAutoExpandLines(prev => {
       const next = !prev
       localStorage.setItem('zaynah_table_auto_expand_lines', String(next))
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        if (next) {
+          toast.success('All Cards Expanded', 'All mobile parcel cards expanded for quick editing.')
+        } else {
+          toast.info('All Cards Collapsed', 'All mobile parcel cards collapsed into compact summary strips.')
+        }
+      }
       return next
     })
   }
@@ -305,12 +312,14 @@ export default function ParcelTable({
         copies: p => String(p.airwayBillCopy || 1)
       }
     )
-    triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
-    toast.success('Auto-Fitted & Expanded', 'Fitted columns and expanded all rows to maximum text.')
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
+      toast.success('Auto-Fitted & Expanded', 'Fitted columns and expanded all rows to maximum text.')
+    }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full min-w-0">
       {/* 1. KPI Summary Bar & Dispatch Action Toolbar */}
       <ParcelKPIBar
         totalParcels={parcels.length}

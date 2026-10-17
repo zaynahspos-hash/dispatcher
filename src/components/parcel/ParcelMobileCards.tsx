@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Parcel } from '../../utils/groqParser'
 import { PlusIcon, TrashIcon, RefreshIcon } from '../Icons'
-import { POPULAR_CITIES } from './cityAutocomplete'
+import { MobileCityDropdown } from './MobileCityDropdown'
+import { ParcelExtraDetails } from './ParcelExtraDetails'
 
 interface ParcelMobileCardsProps {
   parcels: Parcel[]
@@ -50,8 +51,32 @@ export function ParcelMobileCards({
   expandDefaults,
   autoExpandLines = false
 }: ParcelMobileCardsProps) {
+  // Local card expansion overrides so individual card toggles work reliably
+  const [cardOverrides, setCardOverrides] = useState<Record<number, boolean>>({})
+  const [extraDetailsOpen, setExtraDetailsOpen] = useState<Record<number, boolean>>({})
+
+  // When bulk expand/collapse is triggered via top toolbar, reset individual card overrides so ALL cards follow the bulk state
+  useEffect(() => {
+    setCardOverrides({})
+  }, [autoExpandLines])
+
+  useEffect(() => {
+    setExtraDetailsOpen({})
+  }, [expandDefaults])
+
+  const handleToggleCard = (idx: number) => {
+    setCardOverrides(prev => {
+      const current = prev[idx] !== undefined ? prev[idx] : !!autoExpandLines
+      return { ...prev, [idx]: !current }
+    })
+  }
+
+  const toggleExtraDetails = (idx: number) => {
+    setExtraDetailsOpen(prev => ({ ...prev, [idx]: !prev[idx] }))
+  }
+
   return (
-    <div className="sm:hidden space-y-3">
+    <div className="lg:hidden space-y-3 w-full max-w-full min-w-0">
       {/* Mobile Select All Bar */}
       {parcels.length > 0 && toggleAll && (
         <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">
@@ -84,7 +109,8 @@ export function ParcelMobileCards({
       {parcels.map((parcel, i) => {
         const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
         const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
-        const isExpanded = expandDefaults || expandedRow === i
+        const isExpanded = cardOverrides[i] !== undefined ? cardOverrides[i] : !!autoExpandLines
+        const isExtraOpen = extraDetailsOpen[i] !== undefined ? extraDetailsOpen[i] : !!expandDefaults
 
         return (
           <div
@@ -132,22 +158,63 @@ export function ParcelMobileCards({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black font-mono px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
                   Rs. {parcel.total || 0}
                 </span>
                 <button
+                  type="button"
                   onClick={() => deleteParcel(i)}
                   title="Delete Row"
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer active:scale-95"
                 >
                   <TrashIcon size={14} />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleCard(i)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer active:scale-95"
+                  title={isExpanded ? 'Collapse card' : 'Expand card'}
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Mobile Input Fields Grid */}
-            <div className="space-y-3">
+            {/* Collapsed State Summary Line */}
+            {!isExpanded && (
+              <div
+                onClick={() => handleToggleCard(i)}
+                className="flex items-center justify-between text-xs pt-0.5 cursor-pointer hover:opacity-80 transition"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-bold text-slate-900 dark:text-white truncate">
+                    {parcel.name || 'Unnamed Recipient'}
+                  </span>
+                  <span className="text-slate-400">•</span>
+                  <span className="font-mono text-[11px] text-slate-500">{parcel.phone || 'No phone'}</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    {parcel.city || 'No City'}
+                  </span>
+                </div>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0 ml-2">
+                  Edit &rarr;
+                </span>
+              </div>
+            )}
+
+            {/* Mobile Input Fields Grid (Visible when isExpanded) */}
+            {isExpanded && (
+            <div className="space-y-3 pt-1 animate-in fade-in duration-100">
               {/* Row 1: Customer Name & Phone */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
@@ -207,42 +274,14 @@ export function ParcelMobileCards({
 
                   {/* Mobile City Autocomplete Dropdown */}
                   {editingCity?.row === i && editingCity?.isMobile && filteredCities.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-                      <div className="p-2 bg-slate-50 dark:bg-[#070b12] text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-800">
-                        <span>Matching Cities ({filteredCities.length})</span>
-                        <span className="text-emerald-600 text-[10px] font-medium">Tap to select</span>
-                      </div>
-                      <div className="p-1">
-                        {filteredCities.map(city => (
-                          <button
-                            key={city}
-                            type="button"
-                            onMouseDown={e => {
-                              e.preventDefault()
-                              updateField(i, 'city', city)
-                              setEditingCity(null)
-                            }}
-                            onTouchStart={e => {
-                              e.preventDefault()
-                              updateField(i, 'city', city)
-                              setEditingCity(null)
-                            }}
-                            className={`w-full text-left px-3 py-2 text-xs rounded-lg font-medium cursor-pointer transition-colors flex items-center justify-between ${
-                              parcel.city?.toUpperCase() === city
-                                ? 'bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400'
-                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
-                            }`}
-                          >
-                            <span>{city}</span>
-                            {POPULAR_CITIES.includes(city) && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
-                                Major
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <MobileCityDropdown
+                      currentCity={parcel.city}
+                      filteredCities={filteredCities}
+                      onSelectCity={city => {
+                        updateField(i, 'city', city)
+                        setEditingCity(null)
+                      }}
+                    />
                   )}
                 </div>
 
@@ -318,65 +357,22 @@ export function ParcelMobileCards({
               <div className="pt-1">
                 <button
                   type="button"
-                  onClick={() => setExpandedRow(isExpanded ? null : i)}
+                  onClick={() => toggleExtraDetails(i)}
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{isExpanded ? 'Hide Extra Details' : 'Edit Product & Courier Note'}</span>
+                  <span>{isExtraOpen ? 'Hide Extra Details' : 'Edit Product & Courier Note'}</span>
                 </button>
 
-                {isExpanded && (
-                  <div className="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200/80 dark:border-slate-800 space-y-2.5 animate-in fade-in duration-100">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Product Detail
-                      </label>
-                      <input
-                        value={parcel.detail || ''}
-                        onChange={e => updateField(i, 'detail', e.target.value)}
-                        placeholder="e.g. Lawn Suit / Shoes"
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                        Delivery Note / Instructions
-                      </label>
-                      <input
-                        value={parcel.note || ''}
-                        onChange={e => updateField(i, 'note', e.target.value)}
-                        placeholder="e.g. Call before delivery"
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Weight (kg)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={parcel.weight || 0.5}
-                          onChange={e => updateField(i, 'weight', parseFloat(e.target.value) || 0.5)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                          Airway Copies
-                        </label>
-                        <input
-                          type="number"
-                          value={parcel.airwayBillCopy || 1}
-                          onChange={e => updateField(i, 'airwayBillCopy', parseInt(e.target.value) || 1)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                {isExtraOpen && (
+                  <ParcelExtraDetails
+                    index={i}
+                    parcel={parcel}
+                    updateField={updateField}
+                  />
                 )}
               </div>
             </div>
+            )}
           </div>
         )
       })}

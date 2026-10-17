@@ -153,7 +153,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+    <div className="space-y-6 w-full max-w-5xl min-w-0 mx-auto pb-16">
       
       {/* 1. Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/90 dark:border-slate-800">
@@ -195,7 +195,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       </div>
 
       {/* 2. Modern Segmented Tab Switcher */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-x-auto">
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-x-auto no-scrollbar touch-pan-x">
         <button
           onClick={() => setActiveTab('courier')}
           className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${

@@ -1,4 +1,4 @@
-import { PlusIcon, UploadIcon, SyncIcon, TrashIcon, RefreshIcon, AutoFitIcon } from '../Icons'
+import { PlusIcon, UploadIcon, TruckIcon, TrashIcon, RefreshIcon, AutoFitIcon } from '../Icons'
 
 interface ParcelKPIBarProps {
   totalParcels: number
@@ -136,7 +136,7 @@ export function ParcelKPIBar({
       {/* Action Toolbar */}
       <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
         {/* Secondary Utilities: Add Row, Export, Clear All */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar scroll-smooth touch-pan-x py-0.5 max-w-full min-w-0">
           <button
             onClick={onAddRow}
             className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
@@ -183,7 +183,8 @@ export function ParcelKPIBar({
               title="Auto-fit all column widths and auto-expand rows downward to fit full text • Alt+Click to reset defaults"
             >
               <AutoFitIcon size={14} className={autoExpandLines ? 'text-emerald-600 dark:text-emerald-400 shrink-0' : 'text-slate-500 shrink-0'} />
-              <span>{autoExpandLines ? 'Auto-Fit (Expanded)' : 'Auto-Fit & Expand Text'}</span>
+              <span className="sm:hidden">{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
+              <span className="hidden sm:inline">{autoExpandLines ? 'Auto-Fit (Expanded)' : 'Auto-Fit & Expand Text'}</span>
             </button>
           )}
 
@@ -205,7 +206,7 @@ export function ParcelKPIBar({
               disabled={loading}
               className="flex-1 sm:flex-initial h-9 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 whitespace-nowrap shadow-xs"
             >
-              <SyncIcon size={13} className="shrink-0 text-slate-400" />
+              <TruckIcon size={14} className="shrink-0 text-slate-400" />
               <span>Book Selected ({selectedCount})</span>
             </button>
           )}
@@ -224,7 +225,10 @@ export function ParcelKPIBar({
                 <span>Dispatching...</span>
               </>
             ) : (
-              <span>Book All ({totalParcels}) &rarr;</span>
+              <>
+                <TruckIcon size={14} className="shrink-0 text-white" />
+                <span>Book All ({totalParcels})</span>
+              </>
             )}
           </button>
         </div>

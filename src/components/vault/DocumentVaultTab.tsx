@@ -173,7 +173,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 space-y-4">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 space-y-4 w-full max-w-full min-w-0">
       
       {/* Top Header & Stat Summary */}
       <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -190,7 +190,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
                 {docs.length} Batches
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Organized local storage for PostEx Airway Bills (CNs) and Load Sheets on this device.
             </p>
           </div>
@@ -205,7 +205,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
             title="Index all existing booked parcels from history into CN batches"
           >
             <SyncIcon size={14} className="text-emerald-500" />
-            <span>Sync from Booked History</span>
+            <span>Sync from History</span>
           </button>
 
           {docs.length > 0 && (
@@ -224,7 +224,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
       <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-2xs space-y-3">
         
         {/* Row 1: Document Category Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 border-b border-slate-100 dark:border-slate-800/80">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none pb-1 border-b border-slate-100 dark:border-slate-800/80">
           {[
             { id: 'all' as const, label: 'All Documents', count: docs.length },
             { id: 'airway_bill' as const, label: 'Airway Bills (CNs)', count: airwayCount },
@@ -255,7 +255,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
         {/* Row 2: Date Filters & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Date Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none">
             {[
               { id: 'all' as DateFilter, label: 'All Dates' },
               { id: 'today' as DateFilter, label: 'Today' },
@@ -291,16 +291,16 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
           </div>
         </div>
 
-        {/* Row 3: Filtered View Summary Chips */}
-        <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span>Showing <strong className="text-slate-800 dark:text-slate-200 font-bold">{filteredDocs.length}</strong> document batches</span>
+        {/* Row 3: Filtered View Summary Chips (Clean Single Row on Mobile) */}
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-100 dark:border-slate-800/60">
+          <div className="flex items-center gap-2 flex-wrap text-[11px] sm:text-xs">
+            <span><strong>{filteredDocs.length}</strong> batches</span>
             <span>&bull;</span>
-            <span><strong className="text-slate-800 dark:text-slate-200 font-bold">{totalParcelsFiltered}</strong> Total Parcels</span>
+            <span><strong>{totalParcelsFiltered}</strong> parcels</span>
             {totalCodFiltered > 0 && (
               <>
                 <span>&bull;</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">Total COD: Rs. {totalCodFiltered.toLocaleString()}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">Rs. {totalCodFiltered.toLocaleString()}</span>
               </>
             )}
           </div>
@@ -309,7 +309,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
             <button
               type="button"
               onClick={handleSelectAll}
-              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 cursor-pointer"
+              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-emerald-600 cursor-pointer self-end sm:self-auto px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800"
             >
               {selectedIds.length === filteredDocs.length ? 'Deselect All' : 'Select All'}
             </button>
