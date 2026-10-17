@@ -77,32 +77,18 @@ export function ParcelMobileCards({
 
   return (
     <div className="lg:hidden space-y-3 w-full max-w-full min-w-0">
-      {/* Mobile Select All Bar */}
-      {parcels.length > 0 && toggleAll && (
-        <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">
+      {/* Mobile Select All Bar (Matches Results tab, shows only when none selected) */}
+      {parcels.length > 0 && toggleAll && selected.size === 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">
           <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
             <input
               type="checkbox"
-              ref={el => {
-                if (el) {
-                  el.indeterminate = selected.size > 0 && selected.size < parcels.length
-                }
-              }}
-              checked={selected.size === parcels.length && parcels.length > 0}
+              checked={false}
               onChange={toggleAll}
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
             />
-            <span>Select All ({selected.size}/{parcels.length} selected)</span>
+            <span>Select All ({parcels.length})</span>
           </label>
-          {selected.size > 0 && onDeselectAll && (
-            <button
-              type="button"
-              onClick={onDeselectAll}
-              className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 font-extrabold cursor-pointer transition"
-            >
-              Deselect All
-            </button>
-          )}
         </div>
       )}
 
@@ -332,10 +318,11 @@ export function ParcelMobileCards({
                   </label>
                   <input
                     type="number"
-                    value={parcel.total}
-                    onChange={e => updateField(i, 'total', Number(e.target.value))}
+                    value={parcel.total === 0 ? '' : parcel.total}
+                    onChange={e => updateField(i, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
+                    onFocus={e => e.target.select()}
                     placeholder="0"
-                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 focus:outline-none"
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -345,10 +332,12 @@ export function ParcelMobileCards({
                   </label>
                   <input
                     type="number"
-                    value={parcel.items}
-                    onChange={e => updateField(i, 'items', Number(e.target.value))}
+                    min="1"
+                    value={!parcel.items || parcel.items === 0 ? '' : parcel.items}
+                    onChange={e => updateField(i, 'items', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                    onFocus={e => e.target.select()}
                     placeholder="1"
-                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-center font-bold text-slate-800 dark:text-slate-100 focus:outline-none"
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-center font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
               </div>

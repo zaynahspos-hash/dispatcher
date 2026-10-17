@@ -44,9 +44,11 @@ export const ParcelExtraDetails: React.FC<ParcelExtraDetailsProps> = ({
           <input
             type="number"
             step="0.1"
-            value={parcel.weight || 0.5}
-            onChange={e => updateField(index, 'weight', parseFloat(e.target.value) || 0.5)}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
+            value={parcel.weight === 0 ? '' : (parcel.weight ?? '')}
+            onChange={e => updateField(index, 'weight', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+            onFocus={e => e.target.select()}
+            placeholder="0.5"
+            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
         <div>
@@ -55,9 +57,12 @@ export const ParcelExtraDetails: React.FC<ParcelExtraDetailsProps> = ({
           </label>
           <input
             type="number"
-            value={parcel.airwayBillCopy || 1}
-            onChange={e => updateField(index, 'airwayBillCopy', parseInt(e.target.value) || 1)}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
+            min="1"
+            value={parcel.airwayBillCopy === 0 ? '' : (parcel.airwayBillCopy ?? '')}
+            onChange={e => updateField(index, 'airwayBillCopy', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+            onFocus={e => e.target.select()}
+            placeholder="1"
+            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
       </div>

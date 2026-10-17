@@ -53,9 +53,8 @@ export function ResultsDesktopGrid({
     },
     onMeasureCol: (colKey) => {
       const lengths = measureMaxContentLengths({ [colKey]: colKey }, results, {
-        refId: r => r.order_ref_number, customer: r => r.customer_name,
-        phone: r => r.customer_phone, city: r => r.delivery_city,
-        address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
+        refId: r => r.order_ref_number, customer: r => r.customer_name, phone: r => r.customer_phone,
+        city: r => r.delivery_city, address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
         orderType: r => r.order_type || 'Normal (COD)', weight: r => `${r.order_weight || 0.5} kg`,
         detail: r => r.order_detail, note: r => r.transaction_notes,
         copies: r => String(r.pickup_address_code || 1), statusTracking: r => `${r.tracking_number || ''} ${r.order_status || ''}`
@@ -246,9 +245,11 @@ export function ResultsDesktopGrid({
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       type="number"
-                      value={r.total}
+                      value={r.total === 0 ? '' : r.total}
                       disabled={isBooked}
-                      onChange={e => updateField(r.id, 'total', Number(e.target.value))}
+                      onChange={e => updateField(r.id, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
+                      onFocus={e => e.target.select()}
+                      placeholder="0"
                       className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
                     />
                   </td>

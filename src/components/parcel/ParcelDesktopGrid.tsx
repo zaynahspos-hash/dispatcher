@@ -327,8 +327,10 @@ export function ParcelDesktopGrid({
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0">
                     <input
                       type="number"
-                      value={parcel.total}
-                      onChange={e => updateField(i, 'total', Number(e.target.value))}
+                      value={parcel.total === 0 ? '' : parcel.total}
+                      onChange={e => updateField(i, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
+                      onFocus={e => e.target.select()}
+                      placeholder="0"
                       className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                     />
                   </td>
@@ -337,8 +339,11 @@ export function ParcelDesktopGrid({
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       type="number"
-                      value={parcel.items}
-                      onChange={e => updateField(i, 'items', Number(e.target.value))}
+                      min="1"
+                      value={!parcel.items || parcel.items === 0 ? '' : parcel.items}
+                      onChange={e => updateField(i, 'items', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                      onFocus={e => e.target.select()}
+                      placeholder="1"
                       className="w-full h-10 px-2 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                     />
                   </td>

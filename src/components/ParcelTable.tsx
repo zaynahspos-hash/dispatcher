@@ -7,15 +7,13 @@ import { PlusIcon, HistoryIcon } from './Icons'
 import { useToast } from './common/Toast'
 import { getFilteredCities } from './parcel/cityAutocomplete'
 import { ParcelKPIBar } from './parcel/ParcelKPIBar'
+import { ParcelSelectionBar } from './parcel/ParcelSelectionBar'
 import { ParcelDesktopGrid } from './parcel/ParcelDesktopGrid'
 import { ParcelMobileCards } from './parcel/ParcelMobileCards'
 import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import {
-  buildHistoryIdSet,
-  detectSerialConflicts,
-  resolveAllSerialConflicts,
-  getNextAvailableSerial,
-  cleanSerialId
+  buildHistoryIdSet, detectSerialConflicts, resolveAllSerialConflicts,
+  getNextAvailableSerial, cleanSerialId
 } from '../utils/orderSerialHelper'
 
 interface ParcelTableProps {
@@ -147,6 +145,16 @@ export default function ParcelTable({
     toast.info('Row Removed', 'Parcel deleted from staging grid.')
   }
 
+  function deleteSelected() {
+    if (selected.size === 0) return
+    if (window.confirm(`Remove ${selected.size} selected staged order(s)?`)) {
+      const count = selected.size
+      setParcels(prev => prev.filter((_, i) => !selected.has(i)))
+      setSelected(new Set())
+      toast.info('Rows Removed', `${count} selected parcel(s) removed from staging.`)
+    }
+  }
+
   function clearAll() {
     if (parcels.length === 0) return
     if (window.confirm(`Clear all ${parcels.length} staged parcels from staging grid?`)) {
@@ -228,18 +236,10 @@ export default function ParcelTable({
   function exportExcel() {
     if (parcels.length === 0) return
     const data = parcels.map(p => ({
-      'Order Reference Number': p.id,
-      'Order Amount': p.total,
-      'Order Detail': p.detail,
-      'Customer Name': p.name,
-      'Customer Phone': p.phone,
-      'Order Address': p.address,
-      'City': p.city,
-      'Items': p.items,
-      'Airway Bill Copies': p.airwayBillCopy,
-      'Notes': p.note,
-      'Order Type (Normal/Reversed/Replacement/Overland)': p.orderType,
-      'Booking Weight': p.weight,
+      'Order Reference Number': p.id, 'Order Amount': p.total, 'Order Detail': p.detail,
+      'Customer Name': p.name, 'Customer Phone': p.phone, 'Order Address': p.address,
+      'City': p.city, 'Items': p.items, 'Airway Bill Copies': p.airwayBillCopy,
+      'Notes': p.note, 'Order Type (Normal/Reversed/Replacement/Overland)': p.orderType, 'Booking Weight': p.weight,
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
@@ -290,26 +290,12 @@ export default function ParcelTable({
       return
     }
     const lengths = measureMaxContentLengths(
-      {
-        refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
-        address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS',
-        orderType: 'ORDER TYPE', weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL',
-        note: 'TRANSACTION NOTE', copies: 'COPIES'
-      },
+      { refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY', address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS', orderType: 'ORDER TYPE', weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'TRANSACTION NOTE', copies: 'COPIES' },
       parcels,
       {
-        refId: p => p.id,
-        customer: p => p.name,
-        phone: p => p.phone,
-        city: p => p.city,
-        address: p => p.address,
-        cod: p => `Rs. ${p.total || 0}`,
-        items: p => String(p.items || 1),
-        orderType: p => p.orderType || 'Normal',
-        weight: p => `${p.weight || 0.5} kg`,
-        detail: p => p.detail,
-        note: p => p.note,
-        copies: p => String(p.airwayBillCopy || 1)
+        refId: p => p.id, customer: p => p.name, phone: p => p.phone, city: p => p.city, address: p => p.address,
+        cod: p => `Rs. ${p.total || 0}`, items: p => String(p.items || 1), orderType: p => p.orderType || 'Normal',
+        weight: p => `${p.weight || 0.5} kg`, detail: p => p.detail, note: p => p.note, copies: p => String(p.airwayBillCopy || 1)
       }
     )
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
@@ -342,7 +328,17 @@ export default function ParcelTable({
         loading={loading}
       />
 
-      {/* 2. Desktop Excel Spreadsheet Grid */}
+      {/* 2. Selection Action Bar (Matches ResultsSelectionBar) */}
+      <ParcelSelectionBar
+        selectedCount={selected.size}
+        totalCount={parcels.length}
+        onDeselectAll={() => setSelected(new Set())}
+        onDeleteSelected={deleteSelected}
+        onBookSelected={() => onBookSelected(selectedList)}
+        loading={loading}
+      />
+
+      {/* 3. Desktop Excel Spreadsheet Grid */}
       <ParcelDesktopGrid
         parcels={parcels}
         selected={selected}

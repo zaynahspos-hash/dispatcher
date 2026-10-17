@@ -25,8 +25,10 @@ export function LogisticsDefaultsCells({
           type="number"
           step="0.1"
           disabled={disabled}
-          value={weight ?? 0.5}
-          onChange={e => onUpdate('weight', parseFloat(e.target.value) || 0.5)}
+          value={weight === 0 ? '' : (weight ?? '')}
+          onChange={e => onUpdate('weight', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+          onFocus={e => e.target.select()}
+          placeholder="0.5"
           className="w-full min-w-0 h-10 px-2 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
         />
       </td>
@@ -82,8 +84,10 @@ export function LogisticsDefaultsCells({
           min="1"
           max="5"
           disabled={disabled}
-          value={copies || 1}
-          onChange={e => onUpdate('airwayBillCopy', parseInt(e.target.value, 10) || 1)}
+          value={copies === 0 ? '' : (copies ?? '')}
+          onChange={e => onUpdate('airwayBillCopy', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+          onFocus={e => e.target.select()}
+          placeholder="1"
           className="w-full min-w-0 h-10 px-1.5 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
         />
       </td>
