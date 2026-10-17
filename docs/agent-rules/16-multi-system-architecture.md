@@ -40,3 +40,18 @@ Zaynahs Courier Manager · B2B Multi-Tenant SaaS Isolation · Role-Based Access 
   - Can audit global `usage_logs`, inspect tenant health, and view cross-tenant customer CRM for fraud detection.
   - Admin operations are strictly audit-logged in `usage_logs`.
 - **Secret Protection**: Never expose the Supabase `service_role` key in frontend code. All admin operations use standard JWT authentication checked by `is_admin()`.
+
+---
+
+## 5. Multi-Tenant Architecture & Isolated Database Concept (RULE MT-ISOLATE)
+- **Official System Name**: **Multi-Tenant Architecture** (specifically the **Database-per-Tenant / Isolated Database Model / Silo Model**).
+- **Core Operating Mechanics**:
+  - **Independent Tenant Data Space**: Every tenant (e.g. Sarmad and Ali) operates within their own isolated data environment as if they have their own completely separate database.
+  - **Absolute Segregation**: Tenant data remains 100% segregated and independent; there is zero data sharing or bleed between merchants.
+  - **Identical ID Conflict Freedom**: If two tenants have the exact same custom order ID, customer phone number, or tracking reference (e.g. both have Order ID `1` or `tv-1001`), there is **ZERO conflict, error, or collision**. Each entity is strictly scoped to that tenant's identifier.
+  - **Zero Cross-Tenant Visibility**: A tenant can never view, search, or access another tenant's orders, customer directory, or courier configurations.
+- **Multi-Tenancy 3 Core Architecture Models Reference**:
+  1. **Database-per-Tenant (Silo Model)**: Each tenant has their own dedicated or isolated virtual database. Maximum isolation, zero leakage, highest enterprise security. This is our primary architecture model.
+  2. **Schema-per-Tenant**: Single database engine with separate PostgreSQL schemas per tenant.
+  3. **Shared Database, Shared Schema**: Shared tables partitioned logically via `user_id` composite keys and enforced at the PostgreSQL kernel layer via Row Level Security (RLS) policies (`auth.uid() = user_id`).
+- **Short Definition**: *Multi-Tenant System with Database-per-Tenant (Isolated Database) approach.*
