@@ -172,7 +172,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
               type="button"
               onClick={handleDiscardChanges}
               disabled={saving}
-              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold active:scale-98 transition cursor-pointer"
+              className="h-8.5 px-3.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-medium active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
               Discard
             </button>
@@ -182,9 +182,9 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
             type="button"
             onClick={handleManualSave}
             disabled={saving}
-            className={`h-9 px-4 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-xs active:scale-98 transition cursor-pointer ${
+            className={`h-8.5 px-4 rounded-full font-semibold text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer ${
               hasChanges
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 ring-2 ring-emerald-500/30'
                 : 'bg-emerald-600/90 hover:bg-emerald-600 text-white'
             }`}
           >
@@ -194,11 +194,11 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
         </div>
       </div>
 
-      {/* 2. Modern Segmented Tab Switcher */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-x-auto no-scrollbar touch-pan-x">
+      {/* 2. Modern iOS Segmented Tab Switcher */}
+      <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 overflow-x-auto no-scrollbar touch-pan-x">
         <button
           onClick={() => setActiveTab('courier')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'courier'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -210,7 +210,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
 
         <button
           onClick={() => setActiveTab('ai')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'ai'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -222,7 +222,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
 
         <button
           onClick={() => setActiveTab('whatsapp')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'whatsapp'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -236,7 +236,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
 
         <button
           onClick={() => setActiveTab('defaults')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'defaults'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'

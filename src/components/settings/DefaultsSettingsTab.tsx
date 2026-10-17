@@ -38,7 +38,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
             step="0.1"
             value={settings.default_weight || '0.5'}
             onChange={e => updateSetting('default_weight', e.target.value)}
-            className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
         </div>
 
@@ -50,7 +50,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
             type="number"
             value={settings.default_items || '1'}
             onChange={e => updateSetting('default_items', e.target.value)}
-            className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
         </div>
 
@@ -61,7 +61,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
           <select
             value={settings.default_order_type || 'Normal'}
             onChange={e => updateSetting('default_order_type', e.target.value)}
-            className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 cursor-pointer transition"
           >
             {ORDER_TYPES.map(t => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -78,7 +78,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
           <input
             value={settings.default_product || 'Apparel & Goods'}
             onChange={e => updateSetting('default_product', e.target.value)}
-            className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
         </div>
 
@@ -89,7 +89,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
           <input
             value={settings.default_note || 'Call before delivery'}
             onChange={e => updateSetting('default_note', e.target.value)}
-            className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
         </div>
       </div>
@@ -115,7 +115,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
               placeholder="e.g. tv-, ord-, ZN-"
               value={settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'}
               onChange={e => updateSetting('order_id_prefix', e.target.value)}
-              className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono transition"
             />
           </div>
 
@@ -128,7 +128,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
               placeholder="e.g. 1001 or 12345"
               value={settings.order_id_next_num || '1001'}
               onChange={e => updateSetting('order_id_next_num', e.target.value)}
-              className="w-full h-9 px-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono transition"
             />
           </div>
         </div>

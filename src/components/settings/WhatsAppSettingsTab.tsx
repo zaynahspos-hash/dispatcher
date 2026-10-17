@@ -62,7 +62,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               rows={5}
               value={settings.whatsapp_template || DEFAULT_TEMPLATE}
               onChange={e => updateSetting('whatsapp_template', e.target.value)}
-              className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono leading-relaxed"
+              className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono leading-relaxed transition"
             />
           </div>
 
@@ -80,7 +80,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                     const current = settings.whatsapp_template || DEFAULT_TEMPLATE
                     updateSetting('whatsapp_template', `${current} ${tag}`)
                   }}
-                  className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/10 hover:text-emerald-600 text-slate-600 dark:text-slate-300 font-mono text-[11px] font-semibold transition cursor-pointer border border-slate-200/80 dark:border-slate-700/80"
+                  className="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono text-[11px] font-medium transition-all active:scale-95 cursor-pointer border border-slate-200/80 dark:border-slate-700/80"
                 >
                   {tag}
                 </button>
@@ -107,7 +107,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               value={settings.whatsapp_note || DEFAULT_NOTE}
               onChange={e => updateSetting('whatsapp_note', e.target.value)}
               placeholder="e.g. SIM active reminder + Review follow-up..."
-              className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
+              className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 leading-relaxed transition"
             />
           </div>
         </div>

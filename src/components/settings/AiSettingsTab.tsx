@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Settings } from '../../utils/groqParser'
-import { ExternalLinkIcon } from '../Icons'
+import { ExternalLinkIcon, LockIcon } from '../Icons'
 
 export const PROVIDER_METADATA: Record<string, {
   name: string
@@ -101,19 +101,23 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   updateSetting('ai_model', meta.defaultModel)
                   setIsEditingKey(false)
                 }}
-                className={`p-3 rounded-2xl border text-left transition cursor-pointer active:scale-98 flex flex-col justify-between min-h-[76px] ${
+                className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer active:scale-97 flex flex-col justify-between min-h-[78px] ${
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20'
-                    : 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                    ? 'border-emerald-500/80 bg-emerald-50/60 dark:bg-emerald-950/20 text-slate-900 dark:text-white ring-1 ring-emerald-500/30 shadow-xs'
+                    : 'border-slate-200/90 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
-                  <p className="text-xs font-bold truncate">{meta.name}</p>
+                  <p className="text-xs font-semibold truncate">{meta.name}</p>
                   {isSelected && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs" />
                   )}
                 </div>
-                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mt-1">
+                <span className={`text-[10px] block mt-1 ${
+                  isSelected
+                    ? 'font-semibold text-emerald-700 dark:text-emerald-400'
+                    : 'font-medium text-slate-400 dark:text-slate-500'
+                }`}>
                   {meta.badge}
                 </span>
               </button>
@@ -134,10 +138,10 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   key={m}
                   type="button"
                   onClick={() => updateSetting('ai_model', m)}
-                  className={`h-8 px-3 rounded-xl text-xs font-mono font-semibold transition cursor-pointer active:scale-95 ${
+                  className={`h-8 px-3.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer active:scale-95 ${
                     isModelActive
-                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-semibold'
+                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80'
                   }`}
                 >
                   {m}
@@ -165,30 +169,35 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
           </div>
 
           {currentKey && !isEditingKey ? (
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold tracking-widest">
-                    ••••••••••••••••••••••••••••••••
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Active & Configured
-                  </span>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/90 dark:bg-[#070b12] border border-slate-200/90 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 min-w-0 overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <LockIcon size={14} />
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Secured & locked. Plain text is hidden for merchant safety.
-                </p>
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="font-mono text-xs text-slate-800 dark:text-slate-200 font-bold tracking-wider shrink-0">
+                      •••• •••• ••••
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active & Configured
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Secured & locked. Plain text is hidden.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
                 <button
                   type="button"
                   onClick={() => {
                     setTempKey(currentKey)
                     setIsEditingKey(true)
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition cursor-pointer"
+                  className="h-8 px-3.5 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200/90 dark:border-slate-700 shadow-2xs active:scale-95 transition-all cursor-pointer"
                 >
                   Change Key
                 </button>
@@ -201,20 +210,20 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                       setTempKey('')
                     }
                   }}
-                  className="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition cursor-pointer"
+                  className="h-8 px-3.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium border border-rose-500/20 active:scale-95 transition-all cursor-pointer"
                 >
                   Remove
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <input
                 type="password"
                 value={tempKey}
                 onChange={e => setTempKey(e.target.value)}
                 placeholder={`Paste your ${activeMeta.name} API Key...`}
-                className="w-full h-9 px-3.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
               />
               <div className="flex items-center gap-2">
                 <button
@@ -224,7 +233,7 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                     setIsEditingKey(false)
                   }}
                   disabled={!tempKey.trim()}
-                  className="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition disabled:opacity-40 cursor-pointer shadow-xs"
+                  className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs"
                 >
                   Save Key
                 </button>
@@ -232,7 +241,7 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsEditingKey(false)}
-                    className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    className="h-8.5 px-3.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -241,22 +250,34 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onTestAi}
-                disabled={testingAi || !currentKey}
-                className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-40 cursor-pointer shadow-sm shadow-emerald-600/20"
-              >
-                <span>Test AI Connection</span>
-              </button>
-              {aiPingResult && (
-                <span className={`text-xs font-bold ${aiPingResult.startsWith('Live') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
-                  {aiPingResult}
+          <div className="flex items-center gap-3 pt-1 flex-wrap">
+            <button
+              type="button"
+              onClick={onTestAi}
+              disabled={testingAi || !currentKey}
+              className="h-9 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-97 text-white font-semibold text-xs flex items-center gap-2 transition-all disabled:opacity-40 cursor-pointer shadow-sm shadow-emerald-600/20"
+            >
+              {testingAi ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Testing Connection...
                 </span>
+              ) : (
+                <span>Test AI Connection</span>
               )}
-            </div>
+            </button>
+            {aiPingResult && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                aiPingResult.startsWith('Live')
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+              }`}>
+                {aiPingResult}
+              </span>
+            )}
           </div>
         </div>
       </div>

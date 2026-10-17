@@ -172,15 +172,14 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
             >
               {isUserBlocked ? 'Activate Account' : 'Pause Account'}
             </button>
-            {selectedUser.role !== 'admin' && (
-              <button
-                onClick={() => { setDeleteConfirmText(''); setIsDeleteDialogOpen(true) }}
-                disabled={isActionBusy}
-                className="h-7 px-2.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition cursor-pointer disabled:opacity-50"
-              >
-                Delete
-              </button>
-            )}
+            <button
+              onClick={() => { setDeleteConfirmText(''); setIsDeleteDialogOpen(true) }}
+              disabled={isActionBusy}
+              className="h-7 px-2.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
+              title="Delete Merchant & Wipe All Data"
+            >
+              Delete
+            </button>
           </div>
         </div>
 

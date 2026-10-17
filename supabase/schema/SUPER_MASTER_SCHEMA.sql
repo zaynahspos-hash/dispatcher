@@ -431,9 +431,9 @@ BEGIN
 
   INSERT INTO public.usage_logs (user_id, action, details, created_at)
   VALUES (
-    auth.uid(),
-    'admin_toggle_merchant_status',
-    'Set merchant ' || target_user_id::text || ' status to ' || new_status,
+    target_user_id,
+    'account_status',
+    'Account status changed to ' || new_status || ' by administrator',
     NOW()
   );
 
