@@ -284,8 +284,6 @@ export default function ParcelTable({
   const handleAutoFitColumns = (e?: React.MouseEvent) => {
     if (e?.altKey) {
       triggerTableReset('parcel_desktop_grid_col_widths')
-      setAutoExpandLines(false)
-      localStorage.setItem('zaynah_table_auto_expand_lines', 'false')
       toast.info('Column Widths Reset', 'Reset column widths to default.')
       return
     }
@@ -300,7 +298,7 @@ export default function ParcelTable({
     )
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
       triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
-      toast.success('Auto-Fitted & Expanded', 'Fitted columns and expanded all rows to maximum text.')
+      toast.success('Column Widths Auto-Fitted', 'Adjusted column widths to maximum text length.')
     }
   }
 

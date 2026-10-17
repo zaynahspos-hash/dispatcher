@@ -7,7 +7,8 @@ import {
   ActionStatusState,
   getStatusCategory,
   isCancelledStatus,
-  determineNewStatus
+  determineNewStatus,
+  isCancellable
 } from '../components/history/types'
 
 interface UseBookedHistoryOperationsProps {
@@ -139,47 +140,32 @@ export function useBookedHistoryOperations({
 
   const handleCancelSelected = async () => {
     if (selectedIds.length === 0) return
-    if (!window.confirm(`Are you sure you want to cancel ${selectedIds.length} selected bookings?`)) return
-    setIsLoading(true)
-    setIsCancellingAll(true)
-    setCancelProgress(`Cancelling 0/${selectedIds.length}...`)
-    setActionStatus(null)
-
-    let successCount = 0
-    let failCount = 0
-
+    const cancellable = history.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking))
+    if (cancellable.length === 0) {
+      setActionStatus({ type: 'error', message: 'None of the selected parcels can be cancelled (already in-transit, manifested, or dispatched).' })
+      return
+    }
+    if (!window.confirm(`Cancel ${cancellable.length} eligible booking(s)? (Dispatched & in-transit orders will be skipped)`)) return
+    setIsLoading(true); setIsCancellingAll(true); setCancelProgress(`Cancelling 0/${cancellable.length}...`); setActionStatus(null)
+    let successCount = 0, failCount = 0, current = 0
     const updatedHistory = [...history]
-    const total = selectedIds.length
-    let current = 0
-
-    for (const tracking of selectedIds) {
-      current++
-      setCancelProgress(`Cancelling ${current}/${total}...`)
+    for (const parcel of cancellable) {
+      current++; setCancelProgress(`Cancelling ${current}/${cancellable.length}...`)
       try {
-        const res = await cancelOrder(settings.postex_token, tracking)
+        const res = await cancelOrder(settings.postex_token, parcel.tracking)
         if (res.statusCode === '200' || res.statusCode === 200 || res.statusCode === '0200' || res.statusMessage === 'SUCCESSFULLY OPERATED' || res.statusMessage === 'Success') {
           successCount++
-          const idx = updatedHistory.findIndex(p => p.tracking === tracking)
-          if (idx !== -1) {
-            updatedHistory[idx] = { ...updatedHistory[idx], status: 'cancelled' }
-          }
-        } else {
-          failCount++
-        }
-      } catch {
-        failCount++
-      }
+          const idx = updatedHistory.findIndex(p => p.tracking === parcel.tracking)
+          if (idx !== -1) updatedHistory[idx] = { ...updatedHistory[idx], status: 'cancelled' }
+        } else { failCount++ }
+      } catch { failCount++ }
     }
-
-    onUpdateHistory(updatedHistory)
-    setSelectedIds([])
+    onUpdateHistory(updatedHistory); setSelectedIds([])
     setActionStatus({
       type: successCount > 0 ? 'success' : 'error',
-      message: `Cancelled ${successCount} bookings successfully.${failCount > 0 ? ` Failed to cancel ${failCount} bookings.` : ''}`
+      message: `Cancelled ${successCount} booking(s) successfully.${failCount > 0 ? ` Failed to cancel ${failCount} bookings.` : ''}`
     })
-    setIsLoading(false)
-    setIsCancellingAll(false)
-    setCancelProgress('')
+    setIsLoading(false); setIsCancellingAll(false); setCancelProgress('')
   }
 
   const handleCancelSingle = async (tracking: string) => {

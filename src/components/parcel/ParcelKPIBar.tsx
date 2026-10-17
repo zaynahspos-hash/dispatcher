@@ -168,23 +168,33 @@ export function ParcelKPIBar({
             </button>
           )}
 
-          {(onAutoFitColumns || onToggleAutoExpandLines) && (
+          {/* Desktop Only: Horizontal Column Auto-Fit */}
+          {onAutoFitColumns && (
             <button
               type="button"
-              onClick={(e) => {
-                if (onToggleAutoExpandLines) onToggleAutoExpandLines()
-                if (onAutoFitColumns) onAutoFitColumns(e)
-              }}
-              className={`flex-1 sm:flex-initial h-9 px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap ${
+              onClick={onAutoFitColumns}
+              className="hidden sm:inline-flex h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
+            >
+              <AutoFitIcon size={14} className="text-emerald-500 shrink-0" />
+              <span>Auto-Fit</span>
+            </button>
+          )}
+
+          {/* Mobile Only: Expand / Collapse All Cards Downward */}
+          {onToggleAutoExpandLines && (
+            <button
+              type="button"
+              onClick={onToggleAutoExpandLines}
+              className={`sm:hidden flex-1 h-9 px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap ${
                 autoExpandLines
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
-              title="Auto-fit all column widths and auto-expand rows downward to fit full text • Alt+Click to reset defaults"
+              title="Toggle expand or collapse all mobile cards downward"
             >
               <AutoFitIcon size={14} className={autoExpandLines ? 'text-emerald-600 dark:text-emerald-400 shrink-0' : 'text-slate-500 shrink-0'} />
-              <span className="sm:hidden">{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
-              <span className="hidden sm:inline">{autoExpandLines ? 'Auto-Fit (Expanded)' : 'Auto-Fit & Expand Text'}</span>
+              <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
             </button>
           )}
 

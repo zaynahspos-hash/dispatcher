@@ -1,5 +1,5 @@
 import { BookingResult } from '../BookingResults'
-import { TrashIcon, CancelIcon, CheckIcon, SyncIcon, WhatsAppIcon } from '../Icons'
+import { TrashIcon, CancelIcon, CheckIcon, SyncIcon, WhatsAppIcon, TruckIcon } from '../Icons'
 import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
@@ -350,11 +350,11 @@ export function ResultsDesktopGrid({
                         <button
                           type="button"
                           onClick={() => onBookSingle(r)}
-                          className="h-7.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-2xs transition flex items-center gap-1 active:scale-95"
-                          title="Book on PostEx V3"
+                          className="w-7.5 h-7.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition shadow-2xs border border-emerald-600 active:scale-95 cursor-pointer"
+                          title="Book order with PostEx"
+                          aria-label="Book order"
                         >
-                          <SyncIcon size={11} />
-                          <span>Book</span>
+                          <TruckIcon size={14} className="text-white" />
                         </button>
                       )}
 

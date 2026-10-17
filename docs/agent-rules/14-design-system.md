@@ -89,5 +89,30 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
 - **Resilient Non-Breakable Grid & Text Flow**:
   - Table cells and card blocks must never blowout or cause uncommanded horizontal body scrollbars.
   - All input wrappers and flex containers within data grids must include `min-w-0` and `overflow-hidden`.
-  - When auto-expansion is activated (`autoExpandLines`), rows must smoothly expand downward (`neche tak`) to render complete addresses and descriptions without truncation or ellipsis clipping.
+
+---
+
+### 7. Rule DS7 — Uniform Table Action Squircle Buttons & Anti-AI Pill Mandate
+- **Table Row Action Cells Geometry**:
+  - All action buttons inside data grid cells (Booking, WhatsApp, Delete, Cancel) MUST use uniform `w-7.5 h-7.5 rounded-xl` (30x30px) squircle icon buttons with clean semantic iconography:
+    - **Single Order Booking**: `TruckIcon` (`w-7.5 h-7.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white`).
+    - **WhatsApp Notification**: `WhatsAppIcon` (`w-7.5 h-7.5 rounded-xl border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600`).
+    - **Row Deletion**: `TrashIcon` (`w-7.5 h-7.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30`).
+    - **Shipment Cancellation**: `CancelIcon` (`w-7.5 h-7.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/70 dark:bg-rose-950/30 text-rose-600`).
+- **Strictly Banned**:
+  - Asymmetrical text pills (e.g., `[↻ Book]` sandwiched beside 30x30 squircle icon buttons) in table cells are permanently forbidden. They disrupt visual rhythm and look like AI-generated slop.
+
+---
+
+### 8. Rule DS8 — Desktop Horizontal Column Auto-Fit vs Mobile Vertical Card Accordion
+- **Desktop Data Grids (>= 1024px)**:
+  - All cell inputs MUST maintain clean, uniform single-line Excel height (`h-10` flush inputs).
+  - Multi-line `<textarea>` elements in desktop grid cells are strictly banned.
+  - Clicking `[↔ Auto-Fit]` expands column widths forward **HORIZONTALLY** (`triggerTableAutoFit`) based on maximum text content length so names, cities, and addresses are completely visible without clipping.
+  - Alt+Click on `[↔ Auto-Fit]` resets column widths to default.
+- **Mobile Card Lists (< 1024px)**:
+  - Mobile cards use **vertical accordion expansion downwards** (`neche ki taraf`).
+  - Mobile action toolbar provides `[Expand All / Collapse All]` to smoothly toggle all cards downwards simultaneously.
+  - Tapping an individual card or clicking `View Extra Details` / `Hide Extra Details` expands the card downwards to reveal full address, product details, notes, and weights without horizontal table clipping.
+
 

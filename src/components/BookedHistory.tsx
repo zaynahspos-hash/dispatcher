@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Settings } from '../utils/groqParser'
 import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon, RefreshIcon } from './Icons'
-import { BookedParcel, StatusFilterType } from './history/types'
+import { BookedParcel, StatusFilterType, isCancellable } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
@@ -197,6 +197,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       <HistorySelectionBar
         selectedCount={selectedIds.length}
         totalCount={paginatedParcels.length}
+        cancellableCount={history.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
         onGenerateLoadSheet={handleGenerateLoadSheet}

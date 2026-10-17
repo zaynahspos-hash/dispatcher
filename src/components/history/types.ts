@@ -143,13 +143,29 @@ export const getStatusCategory = (status: string, tracking: string): StatusFilte
   return 'booked'
 }
 
-export const isCancellable = (status: string, hasLoadSheet?: boolean) => {
+export const isCancellable = (status: string, hasLoadSheet?: boolean, tracking?: string) => {
   if (!status) return false
   if (hasLoadSheet) return false // CRITICAL: Once a load sheet is generated, PostEx portal blocks cancellation!
   if (isCancelledStatus(status)) return false
-  const s = status.toLowerCase()
-  if (s.includes('deliver') || s.includes('return')) return false
-  const cat = getStatusCategory(status, '')
+  const s = status.toLowerCase().trim()
+  if (
+    s.includes('deliver') ||
+    s.includes('return') ||
+    s.includes('transit') ||
+    s.includes('depart') ||
+    s.includes('arrive') ||
+    s.includes('warehouse') ||
+    s.includes('hub') ||
+    s.includes('station') ||
+    s.includes('out for delivery') ||
+    s.includes('waiting for delivery') ||
+    s.includes('dispatched') ||
+    s.includes('picked') ||
+    s.includes('review')
+  ) {
+    return false
+  }
+  const cat = getStatusCategory(status, tracking || 'dummy')
   if (cat === 'intransit' || cat === 'delivered' || cat === 'returned' || cat === 'cancelled') return false
   return true
 }

@@ -4,6 +4,7 @@ import { PrintIcon, CancelIcon } from '../Icons'
 interface HistorySelectionBarProps {
   selectedCount: number
   totalCount: number
+  cancellableCount?: number
   onDeselectAll: () => void
   onPrintSelected: () => void
   onGenerateLoadSheet: () => void
@@ -16,6 +17,7 @@ interface HistorySelectionBarProps {
 export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
   selectedCount,
   totalCount,
+  cancellableCount,
   onDeselectAll,
   onPrintSelected,
   onGenerateLoadSheet,
@@ -25,6 +27,9 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
   cancelProgress
 }) => {
   if (selectedCount === 0) return null
+
+  const showCancelButton = cancellableCount === undefined ? true : cancellableCount > 0
+  const effectiveCancelCount = cancellableCount !== undefined ? cancellableCount : selectedCount
 
   return (
     <div className="p-2.5 sm:p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-fade-in mb-3.5">
@@ -64,27 +69,30 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
           <span>Load Sheet ({selectedCount})</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onCancelSelected}
-          disabled={isLoading || isCancellingAll}
-          className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-rose-500/20 cursor-pointer disabled:opacity-50 whitespace-nowrap active:scale-98"
-        >
-          {isCancellingAll ? (
-            <>
-              <svg className="animate-spin h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span>{cancelProgress}</span>
-            </>
-          ) : (
-            <>
-              <CancelIcon size={13} />
-              <span>Cancel Selected ({selectedCount})</span>
-            </>
-          )}
-        </button>
+        {showCancelButton && (
+          <button
+            type="button"
+            onClick={onCancelSelected}
+            disabled={isLoading || isCancellingAll}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-rose-500/20 cursor-pointer disabled:opacity-50 whitespace-nowrap active:scale-98"
+            title="Cancel newly booked orders before courier pickup/scan"
+          >
+            {isCancellingAll ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>{cancelProgress}</span>
+              </>
+            ) : (
+              <>
+                <CancelIcon size={13} />
+                <span>Cancel Bookings ({effectiveCancelCount})</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

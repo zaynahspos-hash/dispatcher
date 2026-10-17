@@ -206,7 +206,7 @@ export function HistoryTableRow({
                 )}
               </a>
             )}
-            {isCancellable(parcel.status) && (
+            {isCancellable(parcel.status, parcel.loadsheet_generated, parcel.tracking) && (
               <button
                 type="button"
                 onClick={() => onCancel(parcel.tracking)}

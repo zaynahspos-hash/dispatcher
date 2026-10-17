@@ -135,17 +135,19 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
-              title="Toggle display of logistics defaults: Weight, Product Detail, Transaction Note, and Copies"
+              title="Toggle display of logistics defaults on desktop or expand/collapse cards on mobile"
             >
-              <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
+              <span className="sm:hidden">{expandDefaults ? 'Collapse All' : 'Expand All'}</span>
+              <span className="hidden sm:inline">{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
             </button>
           )}
 
+          {/* Desktop Only: Horizontal Column Auto-Fit */}
           {onAutoFitColumns && (
             <button
               type="button"
               onClick={onAutoFitColumns}
-              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              className="hidden sm:inline-flex h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
               title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
             >
               <AutoFitIcon size={14} className="text-emerald-500 shrink-0" />

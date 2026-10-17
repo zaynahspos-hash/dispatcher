@@ -234,24 +234,14 @@ export function ParcelDesktopGrid({
                     </div>
                   </td>
 
-                  {/* Customer Name */}
+                  {/* Customer Name (Single-line flush Excel input) */}
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
-                    {autoExpandLines ? (
-                      <textarea
-                        rows={Math.min(3, Math.max(1, Math.ceil((parcel.name || '').length / 20)))}
-                        value={parcel.name || ''}
-                        onChange={e => updateField(i, 'name', e.target.value)}
-                        placeholder="Recipient Name"
-                        className="w-full min-w-0 p-2.5 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset resize-none leading-snug break-words"
-                      />
-                    ) : (
-                      <input
-                        value={parcel.name || ''}
-                        onChange={e => updateField(i, 'name', e.target.value)}
-                        placeholder="Recipient Name"
-                        className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
-                      />
-                    )}
+                    <input
+                      value={parcel.name || ''}
+                      onChange={e => updateField(i, 'name', e.target.value)}
+                      placeholder="Recipient Name"
+                      className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                    />
                   </td>
 
                   {/* Phone Number */}
@@ -303,24 +293,14 @@ export function ParcelDesktopGrid({
                     )}
                   </td>
 
-                  {/* Address (Expands vertically when autoExpandLines is active) */}
+                  {/* Address (Single-line flush Excel input) */}
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
-                    {autoExpandLines ? (
-                      <textarea
-                        rows={Math.min(5, Math.max(1, Math.ceil((parcel.address || '').length / 28)))}
-                        value={parcel.address || ''}
-                        onChange={e => updateField(i, 'address', e.target.value)}
-                        placeholder="House, street, area..."
-                        className="w-full min-w-0 p-2.5 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset resize-none leading-relaxed break-words"
-                      />
-                    ) : (
-                      <input
-                        value={parcel.address || ''}
-                        onChange={e => updateField(i, 'address', e.target.value)}
-                        placeholder="House, street, area..."
-                        className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
-                      />
-                    )}
+                    <input
+                      value={parcel.address || ''}
+                      onChange={e => updateField(i, 'address', e.target.value)}
+                      placeholder="House, street, area..."
+                      className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                    />
                   </td>
 
                   {/* COD Amount (Right Aligned Font Mono) */}
@@ -368,7 +348,6 @@ export function ParcelDesktopGrid({
                       detail={parcel.detail}
                       note={parcel.note}
                       copies={parcel.airwayBillCopy}
-                      autoExpandLines={autoExpandLines}
                       onUpdate={(field, val) => updateField(i, field, val)}
                     />
                   )}
