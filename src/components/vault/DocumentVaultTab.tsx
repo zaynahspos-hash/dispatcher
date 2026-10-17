@@ -84,7 +84,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   const filteredDocs = useMemo(() => {
     const now = new Date()
     const todayStr = now.toISOString().split('T')[0]
-    const yesterday = new Date(now.getTime() - 86400000).toISOString().split('T')[0]
+    const yesterdayStr = new Date(now.getTime() - 86400000).toISOString().split('T')[0]
 
     return docs.filter(doc => {
       if (categoryFilter !== 'all' && doc.type !== categoryFilter) return false
