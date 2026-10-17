@@ -47,16 +47,27 @@ export const isUnbookedStatus = (status: string) => {
   return s === 'unbooked' || s.includes('cancel')
 }
 
+export const isDeliveredStatus = (status: string) => {
+  if (!status) return false
+  const s = status.toLowerCase()
+  if (s.includes('out for delivery') || s.includes('waiting for delivery') || s.includes('pending delivery') || s.includes('attempt')) {
+    return false
+  }
+  return s.includes('delivered') || s === 'deliver'
+}
+
 export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   if (isCancelledStatus(status)) return 'Cancelled'
+  if (isDeliveredStatus(status)) return 'Delivered'
   const s = (status || '').toLowerCase()
-  if (s.includes('deliver')) return 'Delivered'
-  if (s.includes('return')) return 'Returned'
+  if (s.includes('return') && !s.includes('return to sender requested')) return 'Returned'
   if (isUnderReview(status)) return 'Under Review'
   if (
     s.includes('transit') ||
     s.includes('out for delivery') ||
+    s.includes('waiting for delivery') ||
     s.includes('dispatched') ||
+    s.includes('depart') ||
     s.includes('route') ||
     s.includes('warehouse') ||
     s.includes('hub') ||
@@ -92,15 +103,16 @@ export const determineNewStatus = (currentStatus: string, fetchedStatus: string)
 
 export const getStatusCategory = (status: string, tracking: string): StatusFilterType => {
   if (isCancelledStatus(status)) return 'cancelled'
+  if (isDeliveredStatus(status)) return 'delivered'
   
   const s = (status || '').toLowerCase()
-  if (s.includes('deliver')) return 'delivered'
-  if (s.includes('return')) return 'returned'
+  if (s.includes('return') && !s.includes('return to sender requested')) return 'returned'
   
-  // Transit statuses (courier handling, moving, warehouse, dispatch, review)
+  // Transit statuses (courier handling, moving, warehouse, dispatch, departure, delivery out, review)
   if (
     s.includes('transit') || 
     s.includes('dispatch') || 
+    s.includes('depart') ||
     s.includes('ship') || 
     s.includes('arrive') || 
     s.includes('pick') || 
@@ -112,6 +124,7 @@ export const getStatusCategory = (status: string, tracking: string): StatusFilte
     s.includes('en-route') ||
     s.includes('en route') ||
     s.includes('out for delivery') ||
+    s.includes('waiting for delivery') ||
     s.includes('hub') ||
     s.includes('station')
   ) {

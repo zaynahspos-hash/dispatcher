@@ -22,6 +22,15 @@ const isPlaceholder = (val: string) => {
   return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
 }
 
+const getLatestPostExStatus = (dist: any): string => {
+  const list = dist?.transactionStatusHistory
+  if (Array.isArray(list) && list.length > 0) {
+    const msg = list[list.length - 1]?.transactionStatusMessage
+    if (typeof msg === 'string' && msg.trim()) return msg.trim()
+  }
+  return dist?.transactionStatus || dist?.orderStatus || 'Booked'
+}
+
 export function useBookedHistoryOperations({
   settings,
   history,
@@ -31,17 +40,13 @@ export function useBookedHistoryOperations({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [actionStatus, setActionStatus] = useState<ActionStatusState | null>(null)
-
-  // Status Sync & Advice States
   const [syncingTracking, setSyncingTracking] = useState<string | null>(null)
   const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false)
   const [syncProgress, setSyncProgress] = useState<string>('')
   const [isCancellingAll, setIsCancellingAll] = useState<boolean>(false)
   const [cancelProgress, setCancelProgress] = useState<string>('')
-
-  // Shipper Advice States
   const [adviceParcel, setAdviceParcel] = useState<BookedParcel | null>(null)
-  const [adviceStatusId, setAdviceStatusId] = useState<number>(2) // 2 = Retry Attempt, 1 = Return Requested
+  const [adviceStatusId, setAdviceStatusId] = useState<number>(2) // 2 = Retry, 1 = Return
   const [adviceRemarks, setAdviceRemarks] = useState<string>('')
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState<boolean>(false)
   const [adviceError, setAdviceError] = useState<string | null>(null)
@@ -208,7 +213,7 @@ export function useBookedHistoryOperations({
     try {
       const res = await trackOrder(settings.postex_token, tracking)
       if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-        const rawStatus = res.dist?.transactionStatus || res.dist?.orderStatus || 'Booked'
+        const rawStatus = getLatestPostExStatus(res.dist)
         const customerName = res.dist?.customerName || ''
         const customerPhone = res.dist?.customerPhone || ''
         const cityName = res.dist?.cityName || ''
@@ -270,7 +275,7 @@ export function useBookedHistoryOperations({
         try {
           const res = await trackOrder(settings.postex_token, item.tracking)
           if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-            const rawStatus = res.dist?.transactionStatus || res.dist?.orderStatus || 'Booked'
+            const rawStatus = getLatestPostExStatus(res.dist)
             const customerName = res.dist?.customerName || ''
             const customerPhone = res.dist?.customerPhone || ''
             const cityName = res.dist?.cityName || ''

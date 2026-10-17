@@ -95,9 +95,11 @@ export class PostExProvider implements ICourierProvider {
   ): Promise<CourierTrackingStatus> {
     const token = credentials.postex_token || credentials.token
     const res = await trackOrder(token || '', trackingNumber)
+    const historyList = res?.dist?.transactionStatusHistory || []
+    const latestStatus = Array.isArray(historyList) && historyList.length > 0 ? historyList[historyList.length - 1]?.transactionStatusMessage : null
     return {
       trackingNumber,
-      status: res?.dist?.orderStatus || res?.dist?.transactionStatus || 'Unknown',
+      status: latestStatus || res?.dist?.orderStatus || res?.dist?.transactionStatus || 'Unknown',
       statusCode: String(res?.statusCode || ''),
       statusMessage: res?.statusMessage
     }
