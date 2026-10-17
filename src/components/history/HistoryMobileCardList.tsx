@@ -51,7 +51,7 @@ export function HistoryMobileCardList({
   }
 
   return (
-    <div className="lg:hidden flex flex-col gap-3">
+    <div className="lg:hidden flex flex-col gap-3 w-full max-w-full min-w-0">
       {/* Mobile Unified Selection Bar */}
       {paginatedParcels.length > 0 && selectedIds.length === 0 && (
         <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">

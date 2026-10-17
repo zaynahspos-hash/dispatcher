@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Settings } from '../utils/groqParser'
 import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon, RefreshIcon } from './Icons'
 import { BookedParcel, StatusFilterType } from './history/types'
@@ -9,17 +9,11 @@ import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
-import { useResizableColumns, measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
 
 export type { BookedParcel }
-
-const DEFAULT_HISTORY_WIDTHS = {
-  checkbox: 44, consignee: 170, tracking: 155, destination: 170,
-  bookingDate: 120, cod: 110, status: 130, action: 110
-}
 
 interface BookedHistoryProps {
   settings: Settings
@@ -29,52 +23,12 @@ interface BookedHistoryProps {
 }
 
 export function BookedHistory({ settings, history, onUpdateHistory, userId }: BookedHistoryProps) {
-  const { widths: colWidths, getResizerProps } = useResizableColumns({
-    storageKey: 'history_desktop_grid_col_widths',
-    defaultWidths: DEFAULT_HISTORY_WIDTHS,
-    minWidths: {
-      checkbox: 28, consignee: 40, tracking: 40, destination: 40,
-      bookingDate: 40, cod: 40, status: 40, action: 50
-    },
-    onMeasureCol: (colKey) => {
-      const lengths = measureMaxContentLengths({ [colKey]: colKey }, history, {
-        consignee: h => `${h.customer_name || ''} ${h.customer_phone || ''}`,
-        tracking: h => h.tracking_number || '',
-        destination: h => `${h.delivery_city || ''} ${h.delivery_address || ''}`,
-        bookingDate: h => h.booking_date || '',
-        cod: h => `Rs. ${h.invoice_amount || 0}`,
-        status: h => h.order_status || ''
-      })
-      return lengths[colKey] || 12
-    }
-  })
-
-  const handleAutoFitColumns = (e?: React.MouseEvent) => {
-    if (e?.altKey) {
-      triggerTableReset('history_desktop_grid_col_widths')
-      return
-    }
-    const lengths = measureMaxContentLengths(
-      {
-        consignee: 'CONSIGNEE / RECIPIENT',
-        tracking: 'TRACKING NUMBER',
-        destination: 'DESTINATION & CITY',
-        bookingDate: 'BOOKING DATE',
-        cod: 'COD (RS.)',
-        status: 'SHIPMENT STATUS'
-      },
-      history,
-      {
-        consignee: h => `${h.customer_name || ''} ${h.customer_phone || ''}`,
-        tracking: h => h.tracking_number || '',
-        destination: h => `${h.delivery_city || ''} ${h.delivery_address || ''}`,
-        bookingDate: h => h.booking_date || '',
-        cod: h => `Rs. ${h.invoice_amount || 0}`,
-        status: h => h.order_status || ''
-      }
-    )
-    triggerTableAutoFit('history_desktop_grid_col_widths', lengths)
-  }
+  // Purge any legacy fixed-pixel column widths from localStorage so layout is 100% responsive
+  useEffect(() => {
+    try {
+      localStorage.removeItem('history_desktop_grid_col_widths')
+    } catch {}
+  }, [])
 
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('pending_loadsheet')
   const [searchQuery, setSearchQuery] = useState('')
@@ -198,7 +152,6 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         uniqueCities={uniqueCities} handleClearFilters={handleClearFilters}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         whatsappFilter={whatsappFilter} setWhatsappFilter={setWhatsappFilter}
-        onAutoFitColumns={handleAutoFitColumns}
         counts={counts}
       />
 
@@ -264,16 +217,22 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {/* Desktop Table with interactive resizers */}
-          <div className="hidden lg:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
-            <table
-              className="w-full text-left text-xs border-collapse table-fixed select-none"
-              style={{ minWidth: Object.values(colWidths).reduce((a, b) => a + b, 0) }}
-            >
-              <colgroup><col style={{ width: `${colWidths.checkbox}px` }} /><col style={{ width: `${colWidths.consignee}px` }} /><col style={{ width: `${colWidths.tracking}px` }} /><col style={{ width: `${colWidths.destination}px` }} /><col style={{ width: `${colWidths.bookingDate}px` }} /><col style={{ width: `${colWidths.cod}px` }} /><col style={{ width: `${colWidths.status}px` }} /><col style={{ width: `${colWidths.action}px` }} /></colgroup>
+          {/* Desktop Table: 100% Non-Movable Responsive Layout */}
+          <div className="hidden lg:block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full">
+            <table className="w-full min-w-0 max-w-full text-left text-xs border-collapse table-fixed select-none">
+              <colgroup>
+                <col style={{ width: '42px' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '11%' }} />
+              </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
-                  <th className="p-3 text-center relative">
+                  <th className="p-3 text-center">
                     <input
                       type="checkbox"
                       ref={el => {
@@ -291,32 +250,13 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                       }}
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
                     />
-                    <div {...getResizerProps('checkbox')} />
                   </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
-                    Consignee
-                    <div {...getResizerProps('consignee')} />
-                  </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
-                    Tracking Info
-                    <div {...getResizerProps('tracking')} />
-                  </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
-                    Destination
-                    <div {...getResizerProps('destination')} />
-                  </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
-                    Booking Date
-                    <div {...getResizerProps('bookingDate')} />
-                  </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right relative">
-                    COD Amount
-                    <div {...getResizerProps('cod')} />
-                  </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 relative">
-                    Status
-                    <div {...getResizerProps('status')} />
-                  </th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Consignee</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Destination</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Booking Date</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right">COD Amount</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Status</th>
                   <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-center">Action</th>
                 </tr>
               </thead>
@@ -341,6 +281,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                     isWhatsAppSent={waTracker.isSent(parcel.tracking) || waTracker.isSent(parcel.id)}
                     onMarkWhatsAppSent={waTracker.markSent}
                     onToggleWhatsAppSent={waTracker.toggleSent}
+                    autoExpandLines={autoExpandLines}
                   />
                 ))}
               </tbody>

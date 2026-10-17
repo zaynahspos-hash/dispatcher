@@ -47,7 +47,7 @@ export function HistoryMobileCard({
   const canCancel = isCancellable(parcel.status, parcel.loadsheet_generated)
 
   return (
-    <div className={`bg-white dark:bg-[#0c121e] border rounded-2xl p-3.5 transition-all shadow-xs ${
+    <div className={`bg-white dark:bg-[#0c121e] border rounded-2xl p-3.5 transition-all shadow-xs w-full max-w-full min-w-0 ${
       isSelected
         ? 'border-emerald-500/50 ring-1 ring-emerald-500/20 bg-emerald-500/[0.02]'
         : 'border-slate-200/80 dark:border-slate-800'

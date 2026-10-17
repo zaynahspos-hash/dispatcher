@@ -102,7 +102,7 @@ export function HistoryFilterBar({
       <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-2.5 sm:p-4 shadow-xs">
         <div className="flex items-center gap-2">
           {/* Main Search Input */}
-          <div className="relative flex-1 flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
+          <div className="relative flex-1 min-w-0 flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
             <span className="pl-3 text-slate-400 dark:text-slate-500 shrink-0">
               <SearchIcon size={16} />
             </span>

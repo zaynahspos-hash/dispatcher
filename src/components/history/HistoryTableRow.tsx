@@ -24,6 +24,7 @@ interface HistoryTableRowProps {
   isWhatsAppSent?: boolean
   onMarkWhatsAppSent?: (tracking: string, id?: string) => void
   onToggleWhatsAppSent?: (tracking: string) => void
+  autoExpandLines?: boolean
 }
 
 export function HistoryTableRow({
@@ -38,7 +39,8 @@ export function HistoryTableRow({
   whatsappTemplate,
   isWhatsAppSent,
   onMarkWhatsAppSent,
-  onToggleWhatsAppSent
+  onToggleWhatsAppSent,
+  autoExpandLines = false
 }: HistoryTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -76,38 +78,40 @@ export function HistoryTableRow({
             />
           </div>
         </td>
-        <td className="p-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-slate-900 dark:text-white text-xs">{parcel.name}</span>
+        <td className="p-3 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span className={`font-semibold text-slate-900 dark:text-white text-xs ${autoExpandLines ? 'break-words' : 'truncate max-w-[125px] 2xl:max-w-none'}`}>
+              {parcel.name}
+            </span>
             {effectiveWhatsAppSent ? (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
                 Sent
               </span>
             ) : (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 shrink-0">
                 WA Pending
               </span>
             )}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5">{parcel.phone}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5 truncate">{parcel.phone}</div>
         </td>
-        <td className="p-3">
+        <td className="p-3 min-w-0">
           <a
             href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs flex items-center gap-1"
+            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs flex items-center gap-1 truncate"
           >
-            <span>{parcel.tracking}</span>
-            <ExternalLinkIcon size={11} className="opacity-70" />
+            <span className="truncate">{parcel.tracking}</span>
+            <ExternalLinkIcon size={11} className="opacity-70 shrink-0" />
           </a>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">Ref: {parcel.id}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">Ref: {parcel.id}</div>
         </td>
-        <td className="p-3">
-          <div className="font-semibold text-slate-800 dark:text-slate-100 text-xs">{parcel.city}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs">{parcel.address}</div>
+        <td className="p-3 min-w-0">
+          <div className={`font-semibold text-slate-800 dark:text-slate-100 text-xs ${autoExpandLines ? 'break-words' : 'truncate'}`}>{parcel.city}</div>
+          <div className={`text-[11px] text-slate-500 dark:text-slate-400 ${autoExpandLines ? 'break-words whitespace-normal leading-tight mt-0.5' : 'truncate max-w-full'}`}>{parcel.address}</div>
         </td>
-        <td className="p-3 text-slate-600 dark:text-slate-400 font-medium text-xs">
+        <td className="p-3 min-w-0 text-slate-600 dark:text-slate-400 font-medium text-xs whitespace-nowrap">
           {new Date(parcel.bookingDate).toLocaleString('en-GB', {
             day: 'numeric',
             month: 'short',
@@ -115,11 +119,11 @@ export function HistoryTableRow({
             minute: '2-digit'
           })}
         </td>
-        <td className="p-3 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs">
+        <td className="p-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
           Rs. {parcel.total.toLocaleString()}
         </td>
-        <td className="p-3">
-          <div className="flex items-center gap-1.5">
+        <td className="p-3 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             {(() => {
               const cat = getStatusCategory(parcel.status, parcel.tracking)
               const underReview = isUnderReview(parcel.status)
@@ -136,7 +140,7 @@ export function HistoryTableRow({
 
               return (
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
+                  className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border truncate max-w-full ${badgeColor}`}
                 >
                   {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
                 </span>
@@ -147,7 +151,7 @@ export function HistoryTableRow({
               onClick={() => onSyncStatus(parcel.tracking)}
               disabled={isSyncing}
               title="Sync real-time status from PostEx"
-              className="w-6 h-6 rounded-md text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center"
+              className="w-6 h-6 rounded-md text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center shrink-0"
             >
               {isSyncing ? (
                 <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
@@ -160,7 +164,7 @@ export function HistoryTableRow({
             </button>
           </div>
         </td>
-        <td className="p-3 text-center">
+        <td className="p-3 text-center min-w-0">
           <div className="flex items-center justify-center gap-1.5">
             {isCancelledStatus(parcel.status) ? (
               <div
