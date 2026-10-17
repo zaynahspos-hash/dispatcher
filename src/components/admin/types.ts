@@ -2,6 +2,8 @@ export interface UserProfile {
   id: string
   email: string
   role: string
+  status?: string // 'active' | 'suspended'
+  is_blocked?: boolean
   created_at: string
   settings?: {
     settings: any

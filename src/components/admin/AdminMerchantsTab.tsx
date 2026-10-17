@@ -3,6 +3,8 @@ import { UserProfile, LogEntry } from './types'
 import { UserAvatar } from '../common/UserAvatar'
 import { SharedPagination } from '../common/SharedPagination'
 import { usePagination } from '../../hooks/usePagination'
+import { supabase } from '../../utils/supabaseClient'
+import { AdminDeleteMerchantModal } from './AdminDeleteMerchantModal'
 
 interface AdminMerchantsTabProps {
   users: UserProfile[]
@@ -23,6 +25,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
 }) => {
   const [filterEmail, setFilterEmail] = useState('')
   const [showCredentials, setShowCredentials] = useState<Record<string, boolean>>({})
+  const [isActionBusy, setIsActionBusy] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; error?: boolean } | null>(null)
 
   useEffect(() => {
     if (!selectedUser && users.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 1024) {
@@ -34,6 +40,80 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
     setShowCredentials(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  const handleTogglePause = async (u: UserProfile) => {
+    const isCurrentlyBlocked = !!(u.is_blocked || u.status === 'suspended' || (u.settings as any)?.settings?.is_blocked)
+    const nextStatus = isCurrentlyBlocked ? 'active' : 'suspended'
+    setIsActionBusy(true)
+    setFeedbackMsg(null)
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_toggle_tenant_status', {
+        target_user_id: u.id,
+        new_status: nextStatus
+      })
+
+      if (rpcErr) {
+        // Fallback directly to tables
+        await supabase.from('users').update({
+          status: nextStatus,
+          is_blocked: nextStatus === 'suspended'
+        }).eq('id', u.id)
+
+        const existingSettings = (u.settings as any)?.settings || {}
+        await supabase.from('user_settings').upsert({
+          user_id: u.id,
+          settings: { ...existingSettings, is_blocked: nextStatus === 'suspended' },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' })
+      }
+
+      setFeedbackMsg({
+        text: nextStatus === 'suspended'
+          ? `Merchant ${u.email} has been PAUSED (access blocked).`
+          : `Merchant ${u.email} has been ACTIVATED (access restored).`
+      })
+
+      if (selectedUser?.id === u.id) {
+        setSelectedUser({ ...u, status: nextStatus, is_blocked: nextStatus === 'suspended' })
+      }
+      onRefresh()
+    } catch (err: any) {
+      setFeedbackMsg({ text: err.message || 'Failed to update merchant status.', error: true })
+    } finally {
+      setIsActionBusy(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser || deleteConfirmText.trim() !== 'DELETE') return
+    setIsActionBusy(true)
+    setFeedbackMsg(null)
+
+    try {
+      const { error: rpcErr } = await supabase.rpc('admin_delete_tenant_cascade', {
+        target_user_id: selectedUser.id
+      })
+
+      if (rpcErr) {
+        await Promise.all(['booked_history', 'customers', 'usage_logs', 'user_settings'].map(t =>
+          supabase.from(t).delete().eq('user_id', selectedUser.id)
+        ))
+        await supabase.from('users').delete().eq('id', selectedUser.id)
+      }
+
+      setIsDeleteDialogOpen(false)
+      setDeleteConfirmText('')
+      const deletedEmail = selectedUser.email
+      setSelectedUser(null)
+      onRefresh()
+      setFeedbackMsg({ text: `Merchant ${deletedEmail} and all data cascade wiped.` })
+    } catch (err: any) {
+      setFeedbackMsg({ text: err.message || 'Failed to delete merchant.', error: true })
+    } finally {
+      setIsActionBusy(false)
+    }
+  }
+
   const filteredUsers = users.filter(u => 
     u.email.toLowerCase().includes(filterEmail.toLowerCase())
   )
@@ -43,6 +123,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
     currentPage: logsPage, setCurrentPage: setLogsPage, pageSize: logsPageSize, setPageSize: setLogsPageSize,
     totalItems: totalLogs, paginatedItems: pagedLogs
   } = usePagination({ items: selectedUserLogs, initialPageSize: 10, storageKey: 'admin_logs' })
+
+  const isUserBlocked = selectedUser
+    ? !!(selectedUser.is_blocked || selectedUser.status === 'suspended' || (selectedUser.settings as any)?.settings?.is_blocked)
+    : false
 
   const renderMerchantDetails = (isMobileModal = false) => {
     if (!selectedUser) return null
@@ -66,6 +150,45 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
             </svg>
           </button>
         </div>
+
+        {/* Action Bar: Pause / Activate & Delete */}
+        <div className="px-4 py-2 bg-slate-50/80 dark:bg-slate-900/70 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400">Status:</span>
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              isUserBlocked ? 'text-amber-500 bg-amber-500/10 border border-amber-500/30' : 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/30'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isUserBlocked ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+              {isUserBlocked ? 'Paused' : 'Active'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTogglePause(selectedUser)}
+              disabled={isActionBusy}
+              className={`h-7 px-3 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                isUserBlocked ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs' : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              {isUserBlocked ? 'Activate Account' : 'Pause Account'}
+            </button>
+            {selectedUser.role !== 'admin' && (
+              <button
+                onClick={() => { setDeleteConfirmText(''); setIsDeleteDialogOpen(true) }}
+                disabled={isActionBusy}
+                className="h-7 px-2.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition cursor-pointer disabled:opacity-50"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
+
+        {feedbackMsg && (
+          <div className={`px-4 py-2 text-xs font-medium ${feedbackMsg.error ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+            {feedbackMsg.text}
+          </div>
+        )}
 
         <div className={`p-4 sm:p-5 space-y-6 ${isMobileModal ? 'max-h-[70vh]' : 'max-h-[600px]'} overflow-y-auto text-xs`}>
           {/* PostEx Token */}
@@ -99,30 +222,17 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
           <div>
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Courier Settings & Codes</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Pickup Code</p>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                  {selectedUser.settings?.settings?.postex_pickup || 'N/A'}
-                </p>
-              </div>
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Return Code</p>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                  {selectedUser.settings?.settings?.postex_return || 'N/A'}
-                </p>
-              </div>
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Return City</p>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 truncate">
-                  {selectedUser.settings?.settings?.postex_return_city || 'N/A'}
-                </p>
-              </div>
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                <p className="text-[9px] text-slate-400 font-bold uppercase">Order Type</p>
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
-                  {selectedUser.settings?.settings?.postex_type || 'Normal'}
-                </p>
-              </div>
+              {[
+                { label: 'Pickup Code', val: selectedUser.settings?.settings?.postex_pickup || 'N/A' },
+                { label: 'Return Code', val: selectedUser.settings?.settings?.postex_return || 'N/A' },
+                { label: 'Return City', val: selectedUser.settings?.settings?.postex_return_city || 'N/A' },
+                { label: 'Order Type', val: selectedUser.settings?.settings?.postex_type || 'Normal' }
+              ].map(item => (
+                <div key={item.label} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <p className="text-[9px] text-slate-400 font-bold uppercase">{item.label}</p>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 truncate">{item.val}</p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -224,14 +334,16 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {(() => {
-                      const hasToken = !!(u.settings as any)?.settings?.postex_token
-                      return hasToken ? (
-                        <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">API Live</span>
-                      ) : (
-                        <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">No API</span>
-                      )
-                    })()}
+                    {!!(u.is_blocked || u.status === 'suspended' || (u.settings as any)?.settings?.is_blocked) ? (
+                      <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold">Paused</span>
+                    ) : (
+                      <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">Active</span>
+                    )}
+                    {!!(u.settings as any)?.settings?.postex_token ? (
+                      <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded font-bold">API Live</span>
+                    ) : (
+                      <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">No API</span>
+                    )}
                     {u.role === 'admin' && (
                       <span className="text-[9px] bg-rose-500/10 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-bold uppercase">Admin</span>
                     )}
@@ -268,6 +380,17 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <AdminDeleteMerchantModal
+        isOpen={isDeleteDialogOpen}
+        merchant={selectedUser}
+        confirmText={deleteConfirmText}
+        onConfirmTextChange={setDeleteConfirmText}
+        onCancel={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isBusy={isActionBusy}
+      />
 
     </div>
   )

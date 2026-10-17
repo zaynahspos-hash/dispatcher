@@ -28,6 +28,8 @@ export default function AdminPanel() {
           id, 
           email, 
           role, 
+          status,
+          is_blocked,
           created_at,
           settings:user_settings (settings)
         `)
@@ -38,6 +40,8 @@ export default function AdminPanel() {
         id: u.id,
         email: u.email,
         role: u.role,
+        status: u.status || 'active',
+        is_blocked: !!(u.is_blocked || (u.settings as any)?.settings?.is_blocked),
         created_at: u.created_at,
         settings: u.settings
       })))

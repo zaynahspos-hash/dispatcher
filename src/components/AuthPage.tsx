@@ -40,6 +40,9 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
   const [successMsg, setSuccessMsg] = useState('')
   const [isResetEmailSent, setIsResetEmailSent] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isAwaitingConfirmation, setIsAwaitingConfirmation] = useState(false)
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false)
 
   // Direct token and OTP verification states for reset flow
   const [otpCode, setOtpCode] = useState('')
@@ -50,6 +53,19 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
     const checkUrl = () => {
       const h = window.location.hash || ''
       const s = window.location.search || ''
+
+      if (h.includes('type=signup') || s.includes('type=signup')) {
+        setSuccessMsg('Email verified successfully! Setting up your session...')
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            ensureUserProfile(session.user)
+            localStorage.setItem('has_logged_in', 'true')
+            setTimeout(() => onSuccess(), 800)
+          }
+        })
+        return
+      }
+
       if (
         h.includes('recovery') ||
         h.includes('type=recovery') ||
@@ -266,10 +282,13 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       if (mode === 'signup') {
         const cleanEmail = email.trim().toLowerCase()
 
-        // 1. First attempt direct Supabase sign up (auto-confirms and returns session immediately)
+        // 1. Supabase sign up with confirmation redirect
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/#type=signup`
+          }
         })
 
         if (!signUpError && signUpData?.user) {
@@ -277,9 +296,13 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
             await ensureUserProfile(signUpData.user)
             localStorage.setItem('has_logged_in', 'true')
             setSuccessMsg('Account created successfully! Logging you in...')
-            setTimeout(() => {
-              onSuccess()
-            }, 600)
+            setTimeout(() => onSuccess(), 600)
+            return
+          } else {
+            // Email confirmation is required by Supabase
+            setIsAwaitingConfirmation(true)
+            setUnconfirmedEmail(cleanEmail)
+            setSuccessMsg(`Confirmation email sent to ${cleanEmail}! Please check your inbox and verify your email to activate your account.`)
             return
           }
         }
@@ -296,52 +319,34 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
               await ensureUserProfile(signInData.user)
               localStorage.setItem('has_logged_in', 'true')
               setSuccessMsg('Welcome back! Logging you in...')
-              setTimeout(() => {
-                onSuccess()
-              }, 600)
+              setTimeout(() => onSuccess(), 600)
+              return
+            }
+            if (signInError && (signInError.message || '').toLowerCase().includes('email not confirmed')) {
+              setIsAwaitingConfirmation(true)
+              setUnconfirmedEmail(cleanEmail)
+              setErrorMsg('Your email is not verified yet. Please check your inbox for the confirmation link.')
               return
             }
             throw new Error('This email is already registered. Please sign in or click "Forgot password?".')
           }
 
-          // 3. If rate-limited (429), use serverless registration fallback
-          try {
-            const res = await fetch('/api/auth/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: cleanEmail, password })
-            })
-            const regJson = await res.json()
-            if (!res.ok) {
-              throw new Error(regJson.error || 'Registration failed.')
-            }
-          } catch (e: any) {
-            throw new Error(e.message || signUpError.message)
-          }
-        }
-
-        // 4. Complete login session
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        })
-
-        if (signInError) throw signInError
-
-        if (signInData?.user) {
-          await ensureUserProfile(signInData.user)
-          localStorage.setItem('has_logged_in', 'true')
-          setSuccessMsg('Account created successfully! Logging you in...')
-          setTimeout(() => {
-            onSuccess()
-          }, 600)
+          throw new Error(signUpError.message || 'Registration failed.')
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         })
-        if (error) throw error
+        if (error) {
+          if ((error.message || '').toLowerCase().includes('email not confirmed')) {
+            setIsAwaitingConfirmation(true)
+            setUnconfirmedEmail(email.trim().toLowerCase())
+            setErrorMsg('Your email has not been confirmed yet. Please verify via the link sent to your inbox.')
+            return
+          }
+          throw error
+        }
 
         if (data.user) {
           await ensureUserProfile(data.user)
@@ -357,6 +362,28 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = (unconfirmedEmail || email).trim().toLowerCase()
+    if (!targetEmail) return
+    setIsResendingConfirmation(true)
+    setErrorMsg('')
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/#type=signup`
+        }
+      })
+      if (error) throw error
+      setSuccessMsg(`Fresh confirmation link sent to ${targetEmail}! Please check your inbox.`)
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to resend confirmation email.')
+    } finally {
+      setIsResendingConfirmation(false)
     }
   }
 
@@ -410,7 +437,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
         </div>
 
         {/* Tab Segment Controls (Sign In / Create Account) - Hidden during Forgot Password or Reset Password */}
-        {mode !== 'forgot' && mode !== 'reset' && (
+        {mode !== 'forgot' && mode !== 'reset' && !isAwaitingConfirmation && (
           <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800/80 mb-6">
             <button
               type="button"
@@ -682,6 +709,41 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
               </button>
             </div>
           </form>
+        ) : isAwaitingConfirmation ? (
+          /* Email Confirmation Waiting Screen */
+          <div className="space-y-4 text-center py-2 animate-in fade-in duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-white tracking-tight">Confirm Your Email</h3>
+            <p className="text-xs text-slate-400 leading-relaxed px-2">
+              We sent a verification link to <span className="text-emerald-400 font-mono font-semibold">{unconfirmedEmail}</span>. Please click the link in your email to activate your account.
+            </p>
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={isResendingConfirmation}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isResendingConfirmation ? 'Sending Link...' : 'Resend Confirmation Email'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAwaitingConfirmation(false)
+                  setMode('signin')
+                  setErrorMsg('')
+                  setSuccessMsg('')
+                }}
+                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-xs transition cursor-pointer"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          </div>
         ) : (
           /* 3. Sign In & Create Account Forms */
           <form onSubmit={handleSubmit} className="space-y-4">

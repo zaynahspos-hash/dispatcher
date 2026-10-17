@@ -16,9 +16,14 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
+  is_blocked BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended'));
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT false;
 
 -- Table: user_settings
 -- Stores encrypted/tokenized tenant settings (PostEx token, Groq key, pickup codes)
@@ -263,7 +268,12 @@ BEGIN
   NEW.email_change_token_current := COALESCE(NEW.email_change_token_current, '');
   NEW.phone_change := COALESCE(NEW.phone_change, '');
   NEW.phone_change_token := COALESCE(NEW.phone_change_token, '');
-  NEW.email_confirmed_at := COALESCE(NEW.email_confirmed_at, NOW());
+  
+  -- Auto-confirm ONLY designated system admin accounts. All regular merchant users require email confirmation!
+  IF LOWER(NEW.email) = ANY(ARRAY['shoaibzaynah@gmail.com', 'zaynahspos@gmail.com', 'totvoguepk@gmail.com']) THEN
+    NEW.email_confirmed_at := COALESCE(NEW.email_confirmed_at, NOW());
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -272,6 +282,10 @@ DROP TRIGGER IF EXISTS tr_ensure_auth_user_integrity ON auth.users;
 CREATE TRIGGER tr_ensure_auth_user_integrity
 BEFORE INSERT OR UPDATE ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.ensure_auth_user_integrity();
+
+-- Drop rogue auto-confirm triggers if lingering in the database
+DROP TRIGGER IF EXISTS trigger_auto_confirm_user ON auth.users;
+DROP FUNCTION IF EXISTS public.auto_confirm_new_user();
 
 -- Trigger Function 2: Ensure auth.identities record exists for every user
 CREATE OR REPLACE FUNCTION public.ensure_auth_identity()
@@ -282,14 +296,25 @@ BEGIN
   ) VALUES (
     gen_random_uuid(),
     NEW.id,
-    jsonb_build_object('sub', NEW.id::text, 'email', NEW.email, 'email_verified', true, 'phone_verified', false),
+    jsonb_build_object(
+      'sub', NEW.id::text, 
+      'email', NEW.email, 
+      'email_verified', (NEW.email_confirmed_at IS NOT NULL), 
+      'phone_verified', false
+    ),
     'email',
     NEW.id::text,
     NOW(),
     NOW(),
     NOW()
   ) ON CONFLICT (provider_id, provider) DO UPDATE
-  SET updated_at = NOW();
+  SET identity_data = jsonb_build_object(
+        'sub', NEW.id::text, 
+        'email', NEW.email, 
+        'email_verified', (NEW.email_confirmed_at IS NOT NULL), 
+        'phone_verified', false
+      ),
+      updated_at = NOW();
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
   RETURN NEW;
@@ -372,4 +397,92 @@ CREATE POLICY "Users can delete their avatars"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'avatars');
+
+-- ==============================================================================
+-- 10. MULTI-TENANT ADMIN RPC FUNCTIONS (CASCADE DELETE & PAUSE/UNPAUSE)
+-- ==============================================================================
+
+-- Function: admin_toggle_tenant_status (Pause / Unpause Merchant)
+CREATE OR REPLACE FUNCTION public.admin_toggle_tenant_status(target_user_id UUID, new_status TEXT)
+RETURNS JSONB AS $$
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied. Admin privileges required.';
+  END IF;
+
+  IF target_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'You cannot pause your own admin account.';
+  END IF;
+
+  IF new_status NOT IN ('active', 'suspended') THEN
+    RAISE EXCEPTION 'Invalid status. Must be active or suspended.';
+  END IF;
+
+  UPDATE public.users
+  SET status = new_status,
+      is_blocked = (new_status = 'suspended'),
+      updated_at = NOW()
+  WHERE id = target_user_id;
+
+  UPDATE public.user_settings
+  SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{is_blocked}', to_jsonb(new_status = 'suspended')),
+      updated_at = NOW()
+  WHERE user_id = target_user_id;
+
+  INSERT INTO public.usage_logs (user_id, action, details, created_at)
+  VALUES (
+    auth.uid(),
+    'admin_toggle_merchant_status',
+    'Set merchant ' || target_user_id::text || ' status to ' || new_status,
+    NOW()
+  );
+
+  RETURN jsonb_build_object('success', true, 'status', new_status, 'is_blocked', (new_status = 'suspended'));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function: admin_delete_tenant_cascade (Cascade Wipe All Data on Merchant Deletion)
+CREATE OR REPLACE FUNCTION public.admin_delete_tenant_cascade(target_user_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+  v_count_customers INT := 0;
+  v_count_logs INT := 0;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied. Admin privileges required.';
+  END IF;
+
+  IF target_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'You cannot delete your own admin account.';
+  END IF;
+
+  SELECT COUNT(*) INTO v_count_customers FROM public.customers WHERE user_id = target_user_id;
+  SELECT COUNT(*) INTO v_count_logs FROM public.usage_logs WHERE user_id = target_user_id;
+
+  -- 1. Wipe from Storage (avatars, documents)
+  DELETE FROM storage.objects 
+  WHERE (name LIKE target_user_id::text || '/%' OR name LIKE target_user_id::text || '.%' OR owner = target_user_id::text);
+
+  -- 2. Wipe tenant rows from all application tables
+  DELETE FROM public.booked_history WHERE user_id = target_user_id;
+  DELETE FROM public.customers WHERE user_id = target_user_id;
+  DELETE FROM public.usage_logs WHERE user_id = target_user_id;
+  DELETE FROM public.user_settings WHERE user_id = target_user_id;
+  DELETE FROM public.users WHERE id = target_user_id;
+
+  -- 3. Delete from Supabase Auth (identities & users)
+  DELETE FROM auth.identities WHERE user_id = target_user_id;
+  DELETE FROM auth.users WHERE id = target_user_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'deleted_user_id', target_user_id,
+    'customers_deleted', v_count_customers,
+    'logs_deleted', v_count_logs
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.admin_toggle_tenant_status(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_delete_tenant_cascade(UUID) TO authenticated;
 

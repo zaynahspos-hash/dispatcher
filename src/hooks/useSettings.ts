@@ -128,6 +128,7 @@ export function useSettings() {
   // Start with DEFAULTS — we'll hydrate from DB once we know who the user is
   const [settings, setSettings] = useState<Settings>(DEFAULTS)
   const [user, setUser] = useState<any>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
   const [initialAuthChecked, setInitialAuthChecked] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -173,6 +174,18 @@ export function useSettings() {
         const cached = readAllLocal(currentUser.id)
         setSettings(cached)
         return
+      }
+
+      // Check if merchant account has been paused by admin
+      try {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('status, is_blocked')
+          .eq('id', currentUser.id)
+          .maybeSingle()
+        setIsBlocked(!!(userRow?.is_blocked || userRow?.status === 'suspended' || (data?.settings as any)?.is_blocked))
+      } catch {
+        setIsBlocked(!!((data?.settings as any)?.is_blocked))
       }
 
       if (data && data.settings) {
@@ -310,6 +323,7 @@ export function useSettings() {
     settings,
     updateSetting,
     user,
+    isBlocked,
     loadingSettings: loading,
     initialAuthChecked,
     forceSyncSettings,

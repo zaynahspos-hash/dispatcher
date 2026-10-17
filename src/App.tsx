@@ -28,6 +28,7 @@ import { MobileInstallBanner } from './components/layout/MobileInstallBanner'
 import { GlobalLoadingOverlay } from './components/layout/GlobalLoadingOverlay'
 import { InstallGuideModal } from './components/layout/InstallGuideModal'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { SuspendedMerchantScreen } from './components/common/SuspendedMerchantScreen'
 
 const ADMIN_EMAILS = [
   'shoaibzaynah@gmail.com',
@@ -39,7 +40,7 @@ const ADMIN_EMAILS = [
 
 
 export default function App() {
-  const { settings, updateSetting, user, initialAuthChecked, logout } = useSettings()
+  const { settings, updateSetting, user, isBlocked, initialAuthChecked, logout } = useSettings()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
   // PWA install lifecycle
@@ -229,6 +230,10 @@ export default function App() {
         )}
       </>
     )
+  }
+
+  if (isBlocked && !isAdmin) {
+    return <SuspendedMerchantScreen email={user.email} onLogout={logout} />
   }
 
   return (
