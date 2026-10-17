@@ -83,8 +83,12 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
           </div>
         </div>
 
-        <div className="p-3.5 sm:p-4">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div
+          onClick={onOpenVault}
+          className="p-3.5 sm:p-4 cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition group"
+          title="Open Document Vault Tab"
+        >
+          <span className="text-[11px] font-bold text-slate-400 group-hover:text-emerald-500 transition uppercase tracking-wider block">
             Airway Document Vault
           </span>
           <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -134,7 +138,6 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
               title="Toggle display of logistics defaults: Weight, Product Detail, Transaction Note, and Copies"
             >
               <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
-              <span className="text-[10px] font-mono">{expandDefaults ? '▲' : '▼'}</span>
             </button>
           )}
 
@@ -146,7 +149,7 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
               title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
             >
               <AutoFitIcon size={14} className="text-emerald-500 shrink-0" />
-              <span>Auto-Fit ↔</span>
+              <span>Auto-Fit</span>
             </button>
           )}
 
@@ -179,7 +182,7 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
               ) : (
                 <>
                   <PrintIcon size={14} />
-                  <span>Print Airway Bills ({bookedCount}) →</span>
+                  <span>Print Airway Bills ({bookedCount})</span>
                 </>
               )}
             </button>

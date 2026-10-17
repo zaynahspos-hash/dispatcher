@@ -61,3 +61,15 @@ useEffect(() => {
 - **`backdrop-blur-*` is strictly forbidden across the entire application.**
 - Blur filters force the mobile GPU to re-composite all pixels underneath during scrolling, resulting in frame drops, battery drain, and visual jitter.
 - Use high-contrast solid/opacity fills (`bg-white/95`, `bg-slate-900/95`, `bg-black/60`).
+
+---
+
+## 7. RULE M11 — Zero Broken Layouts & Full Content Auto-Expansion Guarantee
+- **Zero Truncation on Operational Data**: Mobile cards and parcel rows must never cut off critical courier delivery addresses or notes.
+- **Auto-Fit & Expand Text Toggle**: The single-click Auto button must synchronously:
+  1. Trigger dynamic vertical expansion (`autoExpandLines`) across all rows so lines auto-wrap and show full multi-line text without manual clicking.
+  2. Auto-fit column widths horizontally to match the longest content item.
+- **Strict Mobile Input Boundary Control**:
+  - Always enforce `min-w-0` and `w-full` on all flex child `<input>` and `<textarea>` elements to prevent HTML default minimum-width blowing out horizontal viewport bounds on 375px+ screens.
+  - Multi-line textareas must use `resize-none break-words leading-relaxed` and dynamically calculate line rows based on text length.
+

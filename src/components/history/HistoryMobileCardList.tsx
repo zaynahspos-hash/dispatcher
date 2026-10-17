@@ -82,7 +82,7 @@ export function HistoryMobileCardList({
           onOpenAdvice={onOpenAdvice}
           whatsappNote={whatsappNote}
           whatsappTemplate={whatsappTemplate}
-          isWhatsAppSent={isWhatsAppSent ? (isWhatsAppSent(parcel.tracking, parcel.id)) : false}
+          isWhatsAppSent={Boolean(parcel.whatsapp_sent || parcel.whatsappSent || (isWhatsAppSent ? isWhatsAppSent(parcel.tracking, parcel.id) : false))}
           onMarkWhatsAppSent={onMarkWhatsAppSent}
           onToggleWhatsAppSent={onToggleWhatsAppSent}
         />

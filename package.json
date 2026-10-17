@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "setup": "node scripts/setup.js",
+    "setup:clone": "node scripts/setup.js",
     "db:setup": "node scripts/deploySchema.js",
     "auth:emails": "node scripts/updateEmailTemplates.js"
   },

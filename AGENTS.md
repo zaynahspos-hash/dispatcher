@@ -20,7 +20,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 7. **Mobile-First ALWAYS (RULE M1)** — Every screen, table, modal, drawer, filter, and action bar is engineered for handheld mobile devices first (375px+). Desktop is an expansive enhancement.
 8. **Data Integrity & No Hallucinations (RULE AI-INTEG)** — Customer phone numbers, addresses, COD amounts, and courier tracking numbers must NEVER be guessed or fabricated. If Groq AI extraction has missing fields or low confidence, surface them explicitly to the user for manual confirmation.
 9. **TypeScript Strict Mode** — Every file must be `.ts` or `.tsx`. Zero `any` types allowed in production paths. Clean, explicit interfaces for all API payloads and state objects.
-10. **No Fake / Anti-AI Slop (RULE ANTI-AI)** — Zero generic mockup placeholders, zero fake lorem ipsum, zero artificial duplicate components. Write real, resilient, battle-tested production logic.
+10. **No Fake / Anti-AI Slop & Zero Developer Trivia (RULE ANTI-AI / NO-TRIVIA)** — Zero generic mockup placeholders, zero fake lorem ipsum, zero artificial duplicate components, and absolute ZERO technical developer brag notes in merchant UI (e.g., "compressed to 10-20 KB WebP on Supabase Storage", "Manual Save Mode"). Real, clean enterprise SaaS interface without AI-generated clutter.
 11. **Single Source of Truth (SSOT1)** — Exactly ONE shared module per responsibility:
    - Courier API → `src/utils/postexApi.ts`
    - AI Address Extraction → `src/utils/groqParser.ts`
@@ -32,6 +32,9 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 13. **Zero Backdrop-Blur Thrashing (RULE M10b)** — App-wide ban on `backdrop-blur-*` on scrolling layers and sticky action bars to prevent mobile GPU repaints and stutter. Use high-contrast solid/opacity layers instead (`bg-white/95`, `bg-[#0f172a]/95`, `bg-black/60`).
 14. **Agent Executes Autonomously** — Run terminal builds, type checks, and verifications autonomously. Never ask the user to run routine commands unless external physical authentication or interactive credentials are required.
 15. **Zero Auto-Push & Ask First (RULE G4)** — NEVER execute `git push` or deploy code autonomously under any circumstance. All pending tasks, queues, and bug fixes must be inspected and completely resolved first. Explicitly ask the user for permission before pushing code to GitHub or deploying.
+16. **Apple Modern Minimalist UI & Non-Breakable UX (RULE APPLE-UI / DS6)** — Strict clean, disciplined Apple-grade aesthetics. Over-colored neon gradients, rainbow backgrounds, and garish AI-generated slop are permanently forbidden. Color palettes are strictly restrained: clean slate/neutral bases with refined emerald, amber, and rose accents. Layouts MUST NEVER break or overflow horizontally on mobile (375px+). All tables and cards must support automatic row height expansion (`autoExpandLines`) so text is never truncated or hidden from handheld merchant operators.
+17. **Human-Readable Clean Code & Organized Multi-Courier Extensibility (RULE 34 / ARCH-READABLE)** — All code files must be clean, human-readable, and easily understandable by human developers (< 400 lines, explicit variable and function names, meaningful comments, zero unreadable shortcuts). Folders must remain strictly organized courier-wise (`src/couriers/`). PostEx V3 is the 100% active production courier today; additional couriers (Trax, Leopards, TCS) are prepared as pluggable adapters for future activation without cluttering current UI or breaking core booking.
+18. **1-Command Clone & Master Setup via Supabase API (RULE SETUP-1CMD)** — Single-command automated setup (`npm run setup` / `scripts/setup.js`) deploys `SUPER_MASTER_SCHEMA.sql` directly to Supabase via API/pooler, verifies Row Level Security (RLS) on all public tables, bootstraps storage buckets, deploys dark auth email templates, and checks build health with 0 manual dashboard intervention.
 
 ---
 
@@ -66,13 +69,13 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **24** | [24-vercel-build-security.md](docs/agent-rules/24-vercel-build-security.md) | Build safety, safe client initialization, zero unhandled rejections |
 | **25** | [25-ai-seo-copywriting-engine.md](docs/agent-rules/25-ai-seo-copywriting-engine.md) | AI address intelligence, customer profiling, WhatsApp notification copy |
 | **26** | [26-project-reference-table.md](docs/agent-rules/26-project-reference-table.md) | Master reference: PostEx endpoints, Groq models, Supabase snake_case tables, and headers |
-| **27** | [27-single-source-of-truth.md](docs/agent-rules/27-single-source-of-truth.md) | SSOT enforcement across city lists, order status definitions, and configuration settings |
+| **27** | [27-single-source-of-truth.md](docs/agent-rules/27-single-source-of-truth.md) | SSOT enforcement, feature graduation rule (zero duplicate legacy modals), and single source registries |
 | **28** | [28-traffic-analytics.md](docs/agent-rules/28-traffic-analytics.md) | Usage logs audit trail, retention auto-cleanup, parcel metrics |
 | **29** | [29-product-search-pagination.md](docs/agent-rules/29-product-search-pagination.md) | Instant parcel search, status pills filtering, large dataset pagination |
 | **30** | [30-sorting-reordering.md](docs/agent-rules/30-sorting-reordering.md) | Multi-column sorting, status grouping, bulk checkbox actions |
-| **31** | [31-modal-overlay-system.md](docs/agent-rules/31-modal-overlay-system.md) | Responsive bottom sheet drawer & dialog system, focus lock, zero blur |
+| **31** | [31-modal-overlay-system.md](docs/agent-rules/31-modal-overlay-system.md) | Responsive bottom sheet drawer & dialog system, focus lock, zero blur, modals banned when dedicated tab exists |
 | **32** | [32-anti-ai-quality-engineering.md](docs/agent-rules/32-anti-ai-quality-engineering.md) | Anti-AI slop protocols: real data validation, zero placeholder code, deep defensive patterns |
-| **33** | [33-zero-emojis-and-safe-areas.md](docs/agent-rules/33-zero-emojis-and-safe-areas.md) | Zero emojis UI rule, mobile safe-area insets, admin whitelist scoping, local PDF document vault |
+| **33** | [33-zero-emojis-and-safe-areas.md](docs/agent-rules/33-zero-emojis-and-safe-areas.md) | Absolute zero emojis and unicode symbols in UI, mobile safe-area insets, admin whitelist scoping, local PDF document vault |
 | **34** | [34-clean-code-error-handling-and-courier-extensibility.md](docs/agent-rules/34-clean-code-error-handling-and-courier-extensibility.md) | Human-readable clean code, zero silent errors policy, folder discipline, pluggable multi-courier engine |
 
 ---

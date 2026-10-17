@@ -1,6 +1,6 @@
 import React from 'react'
 import { TabItem } from './BottomTabBar'
-import { SunIcon, MoonIcon, RefreshIcon } from '../Icons'
+import { SunIcon, MoonIcon, RefreshIcon, SmartphoneIcon } from '../Icons'
 import { UserAvatar } from '../common/UserAvatar'
 
 interface MobileNavDrawerProps {
@@ -16,6 +16,10 @@ interface MobileNavDrawerProps {
   theme: 'light' | 'dark'
   onToggleTheme: () => void
   onLogout: () => void
+  isStandalone?: boolean
+  isInstallable?: boolean
+  onInstallApp?: () => void
+  onOpenInstallGuide?: () => void
 }
 
 export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
@@ -30,7 +34,11 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   onRefreshApp,
   theme,
   onToggleTheme,
-  onLogout
+  onLogout,
+  isStandalone,
+  isInstallable: _isInstallable,
+  onInstallApp,
+  onOpenInstallGuide
 }) => {
   if (!isOpen) return null
 
@@ -119,6 +127,22 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
 
         {/* Footer with Hard Refresh, Theme Toggle & Sign Out */}
         <div className="p-3.5 pb-[max(env(safe-area-inset-bottom),1.25rem)] border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/60 space-y-2 shrink-0">
+          {!isStandalone && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose()
+                if (onInstallApp) onInstallApp()
+                else if (onOpenInstallGuide) onOpenInstallGuide()
+              }}
+              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95"
+            >
+              <SmartphoneIcon size={15} />
+              <span>Install Courier App</span>
+              <span className="text-[9px] bg-emerald-800 text-emerald-100 px-1.5 py-0.5 rounded-full uppercase font-black">App</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {

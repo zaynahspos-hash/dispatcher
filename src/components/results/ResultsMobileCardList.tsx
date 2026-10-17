@@ -159,10 +159,10 @@ export function ResultsMobileCardList({
                           ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
                           : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
                       }`}
-                      title={sent ? 'WhatsApp Sent ✓ • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Order Update (Pending)'}
+                      title={sent ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Order Update (Pending)'}
                     >
                       <WhatsAppIcon size={14} className="fill-current" />
-                      <span>{sent ? 'Sent ✓' : 'WhatsApp'}</span>
+                      <span>{sent ? 'Sent' : 'WhatsApp'}</span>
                     </a>
                   )
                 })()}

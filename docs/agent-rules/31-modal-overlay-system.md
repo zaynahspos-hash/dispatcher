@@ -21,3 +21,10 @@ Unified specifications for popups, confirmation dialogs, and mobile bottom drawe
 - **Backdrop Tap**: Clicking overlay outside modal triggers dismissal.
 - **Scroll Lock**: Body scroll must be locked when modal is open and cleaned up safely to `''` on unmount (RULE M8).
 - **Zero Blur**: Never use `backdrop-blur-*` on modal backdrop. Use `bg-black/60` (RULE M10b).
+
+---
+
+## 3. Scope Discipline & Dedicated Tab Invariant (MODAL2)
+- **Modals are for Transient Actions Only**: Confirmation dialogs, quick single-field edits, auth/reset password, and single-item advice modals.
+- **Strictly Banned When Dedicated Tab Exists**: Agar kisi domain ka dedicated Tab ya Page exist karta hai (e.g., `DocumentVaultTab` on `#vault`, `BookedHistory` on `#history`, `ParcelTable` on `#table`), to us domain ka koi duplicate popup modal banakar ya chhod kar screen par render karna strictly BANNED hai.
+- **KPI Card & Button Trigger Standard**: Kisi bhi dashboard/results/summary bar ka card ya button agar kisi domain ko refer kare to woh popup kholne ke bajaye dedicated Tab par 0ms smooth transition karega (`setActiveTab(...)` / `window.location.hash = ...`).

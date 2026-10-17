@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { CustomerEntry, UserProfile } from './types'
+import { SharedPagination } from '../common/SharedPagination'
+import { usePagination } from '../../hooks/usePagination'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -41,6 +43,12 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 
     return matchesSearch && matchesMerchant && matchesDate
   })
+
+  // DB-Optimized Shared Pagination
+  const {
+    currentPage, setCurrentPage, pageSize, setPageSize,
+    totalItems, paginatedItems: paginatedCustomers
+  } = usePagination({ items: filteredCustomers, initialPageSize: 25, storageKey: 'admin_customers' })
 
   const handleExportCSV = () => {
     if (filteredCustomers.length === 0) return
@@ -167,7 +175,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                 <td colSpan={4} className="text-center py-12 text-slate-400">No customers found in database.</td>
               </tr>
             ) : (
-              filteredCustomers.map(c => {
+              paginatedCustomers.map(c => {
                 const rawPhone = (c.phone || '').replace(/\D/g, '')
                 const waPhone = rawPhone.startsWith('0') ? '92' + rawPhone.slice(1) : rawPhone
                 return (
@@ -197,6 +205,18 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           </tbody>
         </table>
       </div>
+
+      {/* Shared Unified Pagination */}
+      <SharedPagination
+        currentPage={currentPage}
+        totalItems={totalItems}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[10, 25, 50, 100]}
+        itemLabel="customers"
+        className="mt-4"
+      />
     </div>
   )
 }

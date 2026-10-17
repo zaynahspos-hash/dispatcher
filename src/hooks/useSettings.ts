@@ -37,14 +37,15 @@ const DEFAULTS: Settings = {
   kimi_api_key: '',
   kimi_model: 'moonshot-v1-8k',
   mistral_api_key: '',
-  whatsapp_template: 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}',
-  whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!',
+  whatsapp_template: 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}',
+  whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}',
   avatar_url: '',
   order_id_prefix: 'tv-',
   order_id_next_num: '1001',
 }
 
-const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+const DEFAULT_WHATSAPP_TEMPLATE = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
+const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────
 // All keys are namespaced with the user's UUID so that two tenants on the
@@ -61,8 +62,15 @@ function userVersionKey(userId: string) {
 /** Read a single field from localStorage for this user */
 function readLocal(userId: string, field: keyof Settings): string {
   const val = localStorage.getItem(userSettingsKey(userId, field))
-  if (field === 'whatsapp_note' && (!val || val === 'Thank you for shopping with us!')) {
-    return DEFAULT_WHATSAPP_NOTE
+  if (field === 'whatsapp_note') {
+    if (!val || val === 'Thank you for shopping with us!' || !val.includes('\u{1F4F1}') || !val.includes('\u{1F69A}')) {
+      return DEFAULT_WHATSAPP_NOTE
+    }
+  }
+  if (field === 'whatsapp_template') {
+    if (!val || val.includes('Dear {name}, your order has been booked.') || !val.includes('\u2705')) {
+      return DEFAULT_WHATSAPP_TEMPLATE
+    }
   }
   return val || (DEFAULTS[field] as string) || ''
 }
@@ -139,9 +147,9 @@ export function useSettings() {
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('user_settings')      // ✅ snake_case table
+        .from('user_settings')      // [OK] snake_case table
         .select('settings, updated_at')
-        .eq('user_id', currentUser.id)  // ✅ snake_case FK column
+        .eq('user_id', currentUser.id)  // [OK] snake_case FK column
         .maybeSingle()
 
       if (error) {
@@ -158,8 +166,11 @@ export function useSettings() {
         if (!dbSettings.gemini_model || dbSettings.gemini_model.includes('2.0') || dbSettings.gemini_model.includes('1.5') || dbSettings.gemini_model.includes('1.0') || dbSettings.gemini_model === 'custom') {
           dbSettings.gemini_model = 'gemini-3-flash-preview'
         }
-        if (!dbSettings.whatsapp_note || dbSettings.whatsapp_note === 'Thank you for shopping with us!') {
+        if (!dbSettings.whatsapp_note || dbSettings.whatsapp_note === 'Thank you for shopping with us!' || !dbSettings.whatsapp_note.includes('\u{1F4F1}')) {
           dbSettings.whatsapp_note = DEFAULT_WHATSAPP_NOTE
+        }
+        if (!dbSettings.whatsapp_template || dbSettings.whatsapp_template.includes('Dear {name}, your order has been booked.') || !dbSettings.whatsapp_template.includes('\u2705')) {
+          dbSettings.whatsapp_template = DEFAULT_WHATSAPP_TEMPLATE
         }
         const dbUpdatedAt = data.updated_at || ''
         const localVersion = localStorage.getItem(userVersionKey(currentUser.id))
@@ -178,10 +189,10 @@ export function useSettings() {
         setSettings(DEFAULTS)
         // Create a blank record in DB so future updates can upsert into it
         await supabase.from('user_settings').upsert({
-          user_id: currentUser.id,       // ✅ snake_case
+          user_id: currentUser.id,       // [OK] snake_case
           settings: DEFAULTS,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' })    // ✅ snake_case conflict column
+        }, { onConflict: 'user_id' })    // [OK] snake_case conflict column
       }
     } catch (err) {
       console.error('[useSettings] Failed to sync from database:', err)
@@ -226,10 +237,10 @@ export function useSettings() {
         const now = new Date().toISOString()
         // RULE D13: snake_case table + column
         supabase.from('user_settings').upsert({
-          user_id: user.id,           // ✅ snake_case
+          user_id: user.id,           // [OK] snake_case
           settings: updated,
           updated_at: now
-        }, { onConflict: 'user_id' }) // ✅ snake_case
+        }, { onConflict: 'user_id' }) // [OK] snake_case
           .then(({ error }) => {
             if (error) {
               console.error('[updateSetting] Failed to persist to DB:', error)
@@ -249,10 +260,10 @@ export function useSettings() {
       writeAllLocal(user.id, newSettings)
       const now = new Date().toISOString()
       await supabase.from('user_settings').upsert({
-        user_id: user.id,             // ✅ snake_case
+        user_id: user.id,             // [OK] snake_case
         settings: newSettings,
         updated_at: now
-      }, { onConflict: 'user_id' })   // ✅ snake_case
+      }, { onConflict: 'user_id' })   // [OK] snake_case
       localStorage.setItem(userVersionKey(user.id), now)
     }
   }

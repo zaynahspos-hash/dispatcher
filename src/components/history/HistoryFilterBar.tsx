@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon } from '../Icons'
+import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon, CloseIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
 import { StatusFilterType } from './types'
 
@@ -119,7 +119,7 @@ export function HistoryFilterBar({
                 onClick={() => setSearchQuery('')}
                 className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
               >
-                ✕
+                <CloseIcon size={12} />
               </button>
             )}
           </div>
@@ -165,7 +165,7 @@ export function HistoryFilterBar({
               title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
             >
               <AutoFitIcon size={14} className="text-emerald-500" />
-              <span>Auto-Fit ↔</span>
+              <span>Auto-Fit</span>
             </button>
           )}
         </div>

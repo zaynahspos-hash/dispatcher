@@ -4,8 +4,8 @@ import { SmartphoneIcon } from '../Icons'
 interface InstallGuideModalProps {
   isOpen: boolean
   onClose: () => void
-  installGuideTab: 'ios' | 'android'
-  setInstallGuideTab: (tab: 'ios' | 'android') => void
+  installGuideTab: 'desktop' | 'ios' | 'android'
+  setInstallGuideTab: (tab: 'desktop' | 'ios' | 'android') => void
 }
 
 export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
@@ -46,8 +46,19 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
         <div className="flex bg-slate-950/80 p-1 rounded-xl mb-4 border border-slate-800">
           <button
             type="button"
+            onClick={() => setInstallGuideTab('desktop')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
+              installGuideTab === 'desktop'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            PC / Laptop
+          </button>
+          <button
+            type="button"
             onClick={() => setInstallGuideTab('android')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
               installGuideTab === 'android'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -58,19 +69,34 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
           <button
             type="button"
             onClick={() => setInstallGuideTab('ios')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${
               installGuideTab === 'ios'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <SmartphoneIcon size={14} /> iPhone / iPad
+            <SmartphoneIcon size={14} /> iOS
           </button>
         </div>
 
         {/* Instruction Steps */}
         <div className="space-y-4 text-sm text-slate-300">
-          {installGuideTab === 'android' ? (
+          {installGuideTab === 'desktop' ? (
+            <>
+              <p className="leading-relaxed text-xs">Windows, Mac ya Laptop par Zaynahs Courier app install karne ke steps:</p>
+              <ol className="list-decimal list-inside space-y-2.5 text-xs text-slate-200">
+                <li className="leading-relaxed">
+                  Chrome ya Edge ke address bar ke right side par <strong>Install icon (⊕)</strong> par click karein.
+                </li>
+                <li className="leading-relaxed">
+                  Ya top-right mein <strong>three dots menu (⋮)</strong> click karein &rarr; <strong>"Save and share"</strong> &rarr; <strong>"Install Zaynahs Courier"</strong> select karein.
+                </li>
+                <li className="leading-relaxed">
+                  Popup confirmation mein <strong>"Install"</strong> button par click karein. App direct separate desktop window mein launch ho jayegi.
+                </li>
+              </ol>
+            </>
+          ) : installGuideTab === 'android' ? (
             <>
               <p className="leading-relaxed text-xs">Android phone par Zaynahs Courier app install karne ke liye ye steps follow karein:</p>
               <ol className="list-decimal list-inside space-y-2.5 text-xs text-slate-200">

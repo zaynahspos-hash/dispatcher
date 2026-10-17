@@ -55,6 +55,9 @@ export default function ParcelTable({
   const [expandDefaults, setExpandDefaults] = useState<boolean>(() => {
     return localStorage.getItem('zaynah_table_expand_defaults') === 'true'
   })
+  const [autoExpandLines, setAutoExpandLines] = useState<boolean>(() => {
+    return localStorage.getItem('zaynah_table_auto_expand_lines') === 'true'
+  })
   const cityInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
@@ -62,6 +65,14 @@ export default function ParcelTable({
     setExpandDefaults(prev => {
       const next = !prev
       localStorage.setItem('zaynah_table_expand_defaults', String(next))
+      return next
+    })
+  }
+
+  const handleToggleAutoExpandLines = () => {
+    setAutoExpandLines(prev => {
+      const next = !prev
+      localStorage.setItem('zaynah_table_auto_expand_lines', String(next))
       return next
     })
   }
@@ -266,7 +277,9 @@ export default function ParcelTable({
   const handleAutoFitColumns = (e?: React.MouseEvent) => {
     if (e?.altKey) {
       triggerTableReset('parcel_desktop_grid_col_widths')
-      addToast('Reset column widths to default', 'info')
+      setAutoExpandLines(false)
+      localStorage.setItem('zaynah_table_auto_expand_lines', 'false')
+      toast.info('Column Widths Reset', 'Reset column widths to default.')
       return
     }
     const lengths = measureMaxContentLengths(
@@ -278,16 +291,22 @@ export default function ParcelTable({
       },
       parcels,
       {
-        refId: p => p.order_ref_number, customer: p => p.customer_name,
-        phone: p => p.customer_phone, city: p => p.delivery_city,
-        address: p => p.delivery_address, cod: p => `Rs. ${p.invoice_amount || 0}`,
-        items: p => String(p.order_items || 1), orderType: p => p.order_type || 'Normal (COD)',
-        weight: p => `${p.order_weight || 0.5} kg`, detail: p => p.order_detail,
-        note: p => p.transaction_notes, copies: p => String(p.pickup_address_code || 1)
+        refId: p => p.id,
+        customer: p => p.name,
+        phone: p => p.phone,
+        city: p => p.city,
+        address: p => p.address,
+        cod: p => `Rs. ${p.total || 0}`,
+        items: p => String(p.items || 1),
+        orderType: p => p.orderType || 'Normal',
+        weight: p => `${p.weight || 0.5} kg`,
+        detail: p => p.detail,
+        note: p => p.note,
+        copies: p => String(p.airwayBillCopy || 1)
       }
     )
     triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
-    addToast('Auto-fitted all columns to longest text', 'success')
+    toast.success('Auto-Fitted & Expanded', 'Fitted columns and expanded all rows to maximum text.')
   }
 
   return (
@@ -304,6 +323,8 @@ export default function ParcelTable({
         expandDefaults={expandDefaults}
         onToggleExpandDefaults={handleToggleExpandDefaults}
         onAutoFitColumns={handleAutoFitColumns}
+        autoExpandLines={autoExpandLines}
+        onToggleAutoExpandLines={handleToggleAutoExpandLines}
         onAddRow={addRow}
         onExportExcel={exportExcel}
         onClearAll={clearAll}
@@ -332,6 +353,7 @@ export default function ParcelTable({
         conflictReasons={conflictInfo.conflictReasons}
         onResolveSingleRow={handleResolveSingleRow}
         expandDefaults={expandDefaults}
+        autoExpandLines={autoExpandLines}
       />
 
       {/* 3. Mobile Handheld Editing Cards (RULE M1) */}
@@ -356,6 +378,7 @@ export default function ParcelTable({
         conflictReasons={conflictInfo.conflictReasons}
         onResolveSingleRow={handleResolveSingleRow}
         expandDefaults={expandDefaults}
+        autoExpandLines={autoExpandLines}
       />
     </div>
   )

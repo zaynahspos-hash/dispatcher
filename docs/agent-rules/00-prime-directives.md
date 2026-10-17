@@ -59,3 +59,10 @@ These directives are permanently active on every task, prompt, refactor, and bug
 - **NEVER run `git push` or deploy automatically under any condition.**
 - Inspect and resolve all pending tasks and user questions first.
 - Only push or deploy when the user explicitly gives approval in their prompt.
+
+## 13. Apple Modern UI/UX Standard & Zero Over-Colored Slop (RULE APPLE-UI / DS6)
+- The entire SaaS application must reflect modern Apple minimalist aesthetics: clean typography, calibrated spacing, disciplined contrast, and subtle borders.
+- Over-colored neon rainbow gradients, gaudy AI slop styling, and saturated clown palettes are permanently forbidden.
+- Layouts must be robust and non-breakable across all screen widths from mobile (375px+) to ultra-wide desktop.
+- Complete operational content (addresses, product details, notes) must remain fully viewable with dynamic auto-expansion (`autoExpandLines`).
+

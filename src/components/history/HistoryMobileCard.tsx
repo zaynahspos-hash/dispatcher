@@ -38,6 +38,8 @@ export function HistoryMobileCard({
   onMarkWhatsAppSent,
   onToggleWhatsAppSent
 }: HistoryMobileCardProps) {
+  const effectiveWhatsAppSent = Boolean(parcel.whatsapp_sent || parcel.whatsappSent || isWhatsAppSent)
+
   return (
     <div className="bg-white dark:bg-[#0c121e] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition">
       {/* Top Row: Checkbox, Name, Status Badge, Sync */}
@@ -52,9 +54,9 @@ export function HistoryMobileCard({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-slate-900 dark:text-white text-sm">{parcel.name}</span>
-              {isWhatsAppSent ? (
+              {effectiveWhatsAppSent ? (
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                  Sent ✓
+                  Sent
                 </span>
               ) : (
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
@@ -171,14 +173,14 @@ export function HistoryMobileCard({
               }
             }}
             className={`flex-1 max-w-[120px] font-bold py-1.5 px-2.5 rounded-lg transition flex items-center justify-center gap-1.5 text-xs cursor-pointer shadow-2xs active:scale-95 ${
-              isWhatsAppSent
+              effectiveWhatsAppSent
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
                 : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
             }`}
-            title={isWhatsAppSent ? 'WhatsApp Sent ✓ • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Message (Pending)'}
+            title={effectiveWhatsAppSent ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Message (Pending)'}
           >
             <WhatsAppIcon size={14} className="fill-current" />
-            <span>{isWhatsAppSent ? 'Sent ✓' : 'WhatsApp'}</span>
+            <span>{effectiveWhatsAppSent ? 'Sent' : 'WhatsApp'}</span>
           </a>
         )}
         {isCancellable(parcel.status) && (

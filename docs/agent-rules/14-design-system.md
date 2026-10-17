@@ -72,3 +72,22 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
   - **Total Count**: Exact total items.
   - **Animated Progress Bar**: Smooth percentage tracking.
   - **Active Step Indicator**: Precise description of what the engine is processing.
+
+---
+
+### 6. Rule DS6 — Apple Modern Minimalist UI & Anti-Overcolored Aesthetics (RULE APPLE-UI)
+- **Apple Modern Minimalist Design Language**:
+  - Crisp, disciplined typography with calibrated font weights (`font-medium`, `font-semibold`, `font-bold`, `font-mono` for financials/serials).
+  - Clean neutral slate foundation: light mode `bg-slate-50` with `bg-white` cards; dark mode `bg-[#070b12]` with `bg-[#0c121e]` cards and subtle borders (`border-slate-200/80 dark:border-slate-800`).
+- **Strict Anti-Overcoloring & Anti-AI Slop Mandate**:
+  - Over-colored neon rainbow gradients, purple/magenta highlights, lime borders, and decorative gimmickry are permanently banned.
+  - Color palette is disciplined and semantic:
+    - **Emerald**: Primary action, confirmed status, matched cities, positive revenue.
+    - **Amber**: Unverified cities, pending shipper advice, duplicate serial warning.
+    - **Rose**: Invalid phone format, deleted rows, booking errors.
+    - **Slate / Zinc**: Neutral borders, secondary actions, informational labels.
+- **Resilient Non-Breakable Grid & Text Flow**:
+  - Table cells and card blocks must never blowout or cause uncommanded horizontal body scrollbars.
+  - All input wrappers and flex containers within data grids must include `min-w-0` and `overflow-hidden`.
+  - When auto-expansion is activated (`autoExpandLines`), rows must smoothly expand downward (`neche tak`) to render complete addresses and descriptions without truncation or ellipsis clipping.
+

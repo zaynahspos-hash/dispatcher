@@ -45,7 +45,8 @@ export function useBookedHistoryFilter({
       else if (cat === 'returned') returned++
       else if (cat === 'cancelled') cancelled++
 
-      if (isWhatsAppSent && (isWhatsAppSent(h.tracking, h.id))) {
+      const sent = Boolean(h.whatsapp_sent || h.whatsappSent || (isWhatsAppSent && isWhatsAppSent(h.tracking, h.id)))
+      if (sent) {
         waSent++
       } else {
         waPending++
@@ -101,8 +102,8 @@ export function useBookedHistoryFilter({
         if (item.city.toUpperCase() !== pickupFilter.toUpperCase()) return false
       }
 
-      if (whatsappFilter && whatsappFilter !== 'all' && isWhatsAppSent) {
-        const sent = isWhatsAppSent(item.tracking, item.id)
+      if (whatsappFilter && whatsappFilter !== 'all') {
+        const sent = Boolean(item.whatsapp_sent || item.whatsappSent || (isWhatsAppSent && isWhatsAppSent(item.tracking, item.id)))
         if (whatsappFilter === 'sent' && !sent) return false
         if (whatsappFilter === 'pending' && sent) return false
       }

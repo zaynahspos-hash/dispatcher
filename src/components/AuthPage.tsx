@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabaseClient'
-import { RefreshIcon } from './Icons'
+import { RefreshIcon, ChevronLeftIcon } from './Icons'
 import { forceAppUpdate } from '../utils/pwaReload'
 
 interface AuthPageProps {
@@ -604,9 +604,10 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                   setErrorMsg('')
                   setSuccessMsg('')
                 }}
-                className="text-xs text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
               >
-                ← Back to Sign In
+                <ChevronLeftIcon size={14} />
+                <span>Back to Sign In</span>
               </button>
             </div>
           </form>
@@ -674,9 +675,10 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
                   setErrorMsg('')
                   setSuccessMsg('')
                 }}
-                className="text-xs text-slate-400 hover:text-white font-medium transition-colors cursor-pointer mt-1"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-medium transition-colors cursor-pointer mt-1"
               >
-                ← Back to Sign In
+                <ChevronLeftIcon size={14} />
+                <span>Back to Sign In</span>
               </button>
             </div>
           </form>

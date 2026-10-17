@@ -5,11 +5,17 @@ import { ORDER_TYPES } from '../ParcelTable'
 interface DefaultsSettingsTabProps {
   settings: Settings
   updateSetting: (key: keyof Settings | Partial<Settings>, value?: string) => void
+  onSave?: () => void
+  saving?: boolean
+  hasChanges?: boolean
 }
 
 export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
   settings,
-  updateSetting
+  updateSetting,
+  onSave,
+  saving,
+  hasChanges
 }) => {
   return (
     <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-5">

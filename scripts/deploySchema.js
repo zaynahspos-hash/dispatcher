@@ -7,18 +7,37 @@ const { Client } = pg
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+function loadEnv() {
+  const envPath = path.resolve(__dirname, '../.env.local')
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n')
+    for (const line of lines) {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/)
+      if (match && !process.env[match[1]]) {
+        process.env[match[1]] = (match[2] || '').trim().replace(/^['"]|['"]$/g, '')
+      }
+    }
+  }
+}
+
 async function run() {
+  loadEnv()
   const schemaPath = path.resolve(__dirname, '../supabase/schema/SUPER_MASTER_SCHEMA.sql')
   const sql = fs.readFileSync(schemaPath, 'utf8')
 
+  const projectRef = process.env.SUPABASE_PROJECT_REF || 'xhwqasbnsfjyxvzwueoo'
+  const dbPassword = process.env.SUPABASE_DB_PASSWORD || 'Zd!q)m0ba+FhWCFjd$wH!t&9#'
+
   const connectionStrings = [
+    process.env.DATABASE_URL,
+    process.env.SUPABASE_DB_URL,
     // Direct host (IPv6 or IPv4)
-    `postgresql://postgres:${encodeURIComponent('Zd!q)m0ba+FhWCFjd$wH!t&9#')}@db.xhwqasbnsfjyxvzwueoo.supabase.co:5432/postgres`,
+    `postgresql://postgres:${encodeURIComponent(dbPassword)}@db.${projectRef}.supabase.co:5432/postgres`,
     // Transaction Pooler (IPv4)
-    `postgresql://postgres.xhwqasbnsfjyxvzwueoo:${encodeURIComponent('Zd!q)m0ba+FhWCFjd$wH!t&9#')}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`,
+    `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`,
     // Session Pooler (IPv4)
-    `postgresql://postgres.xhwqasbnsfjyxvzwueoo:${encodeURIComponent('Zd!q)m0ba+FhWCFjd$wH!t&9#')}@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`
-  ]
+    `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`
+  ].filter(Boolean)
 
   let client = null
   let connected = false

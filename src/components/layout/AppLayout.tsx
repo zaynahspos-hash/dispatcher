@@ -45,9 +45,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   dailyRequests = 0,
   onLogout,
   isSettingsConfigured,
-  isInstallable: _isInstallable,
-  isStandalone: _isStandalone,
-  onInstallApp: _onInstallApp,
+  isInstallable,
+  isStandalone,
+  onInstallApp,
+  onOpenInstallGuide,
   theme,
   onToggleTheme,
   operationalCitiesCount = 500,
@@ -306,6 +307,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         theme={theme}
         onToggleTheme={onToggleTheme}
         onLogout={onLogout}
+        isStandalone={isStandalone}
+        isInstallable={isInstallable}
+        onInstallApp={onInstallApp}
+        onOpenInstallGuide={onOpenInstallGuide}
       />
 
       {/* 5. User Account, Avatar & Privacy Dropdown Menu */}
@@ -323,6 +328,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           }}
           theme={theme}
           onToggleTheme={onToggleTheme}
+          isStandalone={isStandalone}
+          isInstallable={isInstallable}
+          onInstallApp={onInstallApp}
+          onOpenInstallGuide={onOpenInstallGuide}
         />
       )}
 

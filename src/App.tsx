@@ -183,7 +183,7 @@ export default function App() {
     { id: 'paste' as Tab, label: 'Paste', mobileLabel: 'Paste', Icon: PasteIcon, badge: null },
     { id: 'table' as Tab, label: 'Parcels', mobileLabel: 'Parcels', Icon: TableIcon, badge: parcels.length || null },
     { id: 'results' as Tab, label: 'Results', mobileLabel: 'Results', Icon: ResultsIcon, badge: results.length || null },
-    { id: 'history' as Tab, label: 'Booked History', mobileLabel: 'History', Icon: HistoryIcon, badge: history.length || null },
+    { id: 'history' as Tab, label: 'Booked History', mobileLabel: 'History', Icon: HistoryIcon, badge: null },
     { id: 'vault' as Tab, label: 'Document Vault', mobileLabel: 'Vault', Icon: FolderIcon, badge: vaultCount || null },
     { id: 'settings' as Tab, label: 'Settings', mobileLabel: 'Settings', Icon: SettingsIcon, badge: null },
     { id: 'apps' as Tab, label: 'All Apps', mobileLabel: 'Apps', Icon: AppsIcon, badge: null },
@@ -301,6 +301,10 @@ export default function App() {
               cities={operationalCities}
               onBookSingle={handleBookSingle}
               updateSetting={updateSetting}
+              userId={user?.id}
+              history={history}
+              onUpdateHistory={updateHistory}
+              setActiveTab={setActiveTab}
             />
           )}
           {activeTab === 'history' && (
@@ -308,6 +312,7 @@ export default function App() {
               settings={settings}
               history={history}
               onUpdateHistory={updateHistory}
+              userId={user?.id}
             />
           )}
           {activeTab === 'vault' && (
@@ -322,7 +327,6 @@ export default function App() {
             <SettingsPage
               settings={settings}
               updateSetting={updateSetting}
-              onSave={() => setActiveTab('paste')}
               cities={operationalCities}
               user={user}
             />

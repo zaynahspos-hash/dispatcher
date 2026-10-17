@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
+import { ChevronLeftIcon } from './Icons'
 
 interface AuthModalProps {
   onClose: () => void
@@ -371,9 +372,10 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                   setErrorMsg('')
                   setSuccessMsg('')
                 }}
-                className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white cursor-pointer"
               >
-                ← Back to Sign In
+                <ChevronLeftIcon size={14} />
+                <span>Back to Sign In</span>
               </button>
             </div>
           </form>

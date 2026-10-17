@@ -20,7 +20,7 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
   onOpenIOSGuide,
   onDismiss,
 }) => {
-  if (isStandalone || !showBanner || (!isInstallable && !isIOS)) {
+  if (isStandalone || !showBanner) {
     return null
   }
 
@@ -50,14 +50,14 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
           >
             Install
           </button>
-        ) : isIOS ? (
+        ) : (
           <button
             onClick={onOpenIOSGuide}
             className="text-[10px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer"
           >
-            iOS Guide
+            Install Guide
           </button>
-        ) : null}
+        )}
         <button
           onClick={onDismiss}
           className="p-1.5 text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-slate-200/50 dark:hover:bg-gray-800 transition cursor-pointer flex items-center justify-center"

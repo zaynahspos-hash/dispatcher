@@ -81,6 +81,28 @@
       getPickupAddresses(credentials: Record<string, string>): Promise<Array<{ code: string; address: string; city: string }>>
     }
     ```
-- **Zero Core Disruption**:
-  - Adding a new courier (e.g. Trax, Leopards, TCS, M&P, CallCourier) requires creating exactly ONE new file in `src/couriers/providers/<courier>.ts` and registering it in `src/couriers/registry.ts`.
-  - The UI (Dispatch table, Booking results, History, Loadsheet) interacts ONLY with the standard `ICourierProvider`, requiring zero rewrites to existing PostEx booking code.
+- **Zero Core Disruption & Future Expansion Roadmap**:
+  - **Current Production Courier**: PostEx V3 is the 100% active, primary production courier engine across the entire system.
+  - **Future Courier Roadmap (Deferred Activation)**: Additional couriers (Trax, Leopards, TCS, M&P, CallCourier) will be activated in future releases. They must NOT pollute active UI forms or confuse merchants today.
+  - **Isolation Invariant**: When adding any courier in the future, it must live exclusively in `src/couriers/providers/<courier>.ts` and register in `src/couriers/registry.ts`. The core UI (Dispatch table, Booking results, History, Loadsheet) interacts via the unified interface, ensuring ZERO regressions to PostEx bookings.
+
+---
+
+## 5. RULE SETUP-1CMD — 1-COMMAND MASTER SETUP & DATABASE VIA API RUNNER
+- **Master Schema Authority**:
+  - `supabase/schema/SUPER_MASTER_SCHEMA.sql` is the single source of truth for all database tables, columns, constraints, foreign keys, triggers, and Row Level Security (RLS) policies.
+  - All database interactions use lowercase `snake_case` (RULE D13) and UUID primary keys (RULE D14). ZERO Prisma (RULE D7).
+- **1-Command Clone & Setup System (`npm run setup` / `npm run setup:clone`)**:
+  - Any new developer, agent, or tenant cloning the repository must be able to bootstrap the entire project with exactly ONE command:
+    ```bash
+    npm run setup
+    ```
+  - The setup script (`scripts/setup.js`):
+    1. Validates and auto-detects `.env.local` configuration.
+    2. Deploys the complete `SUPER_MASTER_SCHEMA.sql` via Supabase API / PostgreSQL pooler connection without requiring manual SQL editor clicks.
+    3. Verifies that all 5 core tables (`users`, `user_settings`, `booked_history`, `customers`, `usage_logs`) have Row Level Security (RLS) active and verified.
+    4. Bootstraps storage buckets (`avatars`, `airway-bills`, `load-sheets`).
+    5. Deploys dark Apple-grade auth email templates (`updateEmailTemplates.js`).
+    6. Validates the TypeScript production build cleanly.
+- **Portability Invariant**:
+  - Scripts must never hardcode single-environment strings. Connection strings must dynamically read from `process.env.DATABASE_URL`, `process.env.SUPABASE_PROJECT_REF`, and `process.env.SUPABASE_DB_PASSWORD` with safe fallback.

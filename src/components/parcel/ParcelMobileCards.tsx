@@ -24,6 +24,7 @@ interface ParcelMobileCardsProps {
   conflictReasons?: Map<number, 'already_in_db' | 'duplicate_in_table'>
   onResolveSingleRow?: (index: number) => void
   expandDefaults?: boolean
+  autoExpandLines?: boolean
 }
 
 export function ParcelMobileCards({
@@ -46,7 +47,8 @@ export function ParcelMobileCards({
   conflictedIndices,
   conflictReasons,
   onResolveSingleRow,
-  expandDefaults
+  expandDefaults,
+  autoExpandLines = false
 }: ParcelMobileCardsProps) {
   return (
     <div className="sm:hidden space-y-3">
@@ -265,12 +267,22 @@ export function ParcelMobileCards({
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Delivery Address
                 </label>
-                <input
-                  value={parcel.address || ''}
-                  onChange={e => updateField(i, 'address', e.target.value)}
-                  placeholder="House, street, sector, area..."
-                  className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
+                {autoExpandLines ? (
+                  <textarea
+                    rows={Math.min(5, Math.max(2, Math.ceil((parcel.address || '').length / 28)))}
+                    value={parcel.address || ''}
+                    onChange={e => updateField(i, 'address', e.target.value)}
+                    placeholder="House, street, sector, area..."
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none leading-relaxed break-words"
+                  />
+                ) : (
+                  <input
+                    value={parcel.address || ''}
+                    onChange={e => updateField(i, 'address', e.target.value)}
+                    placeholder="House, street, sector, area..."
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                )}
               </div>
 
               {/* Row 4: COD Amount & Items */}
@@ -309,7 +321,7 @@ export function ParcelMobileCards({
                   onClick={() => setExpandedRow(isExpanded ? null : i)}
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{isExpanded ? 'Hide Extra Details ▲' : 'Edit Product & Courier Note ▼'}</span>
+                  <span>{isExpanded ? 'Hide Extra Details' : 'Edit Product & Courier Note'}</span>
                 </button>
 
                 {isExpanded && (

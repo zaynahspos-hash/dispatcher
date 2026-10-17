@@ -17,6 +17,9 @@ interface PostExSettingsTabProps {
   testingPostex: boolean
   postexPingResult: string | null
   onTestPostEx: () => void
+  onSave?: () => void
+  saving?: boolean
+  hasChanges?: boolean
 }
 
 export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
@@ -26,7 +29,10 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
   loadingAddresses,
   testingPostex,
   postexPingResult,
-  onTestPostEx
+  onTestPostEx,
+  onSave,
+  saving,
+  hasChanges
 }) => {
   const [showToken, setShowToken] = useState(false)
 
@@ -146,6 +152,7 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
             </div>
           </div>
         </div>
+
       </div>
 
       {/* Technical Logistics Engine Status */}

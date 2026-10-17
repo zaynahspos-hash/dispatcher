@@ -12,14 +12,11 @@ import { VaultDocumentCard } from './VaultDocumentCard'
 import { BookedParcel } from '../history/types'
 import { Settings } from '../../utils/groqParser'
 import { 
-  FolderIcon, 
-  SearchIcon, 
-  TrashIcon, 
-  SyncIcon, 
-  CopyIcon, 
-  CheckIcon 
+  FolderIcon, SearchIcon, TrashIcon, SyncIcon, CopyIcon, CheckIcon 
 } from '../Icons'
 import { useToast } from '../common/Toast'
+import { SharedPagination } from '../common/SharedPagination'
+import { usePagination } from '../../hooks/usePagination'
 
 interface DocumentVaultTabProps {
   settings: Settings
@@ -87,45 +84,35 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   const filteredDocs = useMemo(() => {
     const now = new Date()
     const todayStr = now.toISOString().split('T')[0]
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().split('T')[0]
 
     return docs.filter(doc => {
-      // Category filter
       if (categoryFilter !== 'all' && doc.type !== categoryFilter) return false
+      if (dateFilter === 'today' && !doc.createdAt.startsWith(todayStr)) return false
+      if (dateFilter === 'yesterday' && !doc.createdAt.startsWith(yesterdayStr)) return false
+      if (dateFilter === '7days' && (now.getTime() - new Date(doc.createdAt).getTime() > 7 * 86400000)) return false
+      if (dateFilter === 'month' && (now.getTime() - new Date(doc.createdAt).getTime() > 30 * 86400000)) return false
 
-      // Date filter
-      if (dateFilter === 'today') {
-        if (!doc.createdAt.startsWith(todayStr)) return false
-      } else if (dateFilter === 'yesterday') {
-        if (!doc.createdAt.startsWith(yesterdayStr)) return false
-      } else if (dateFilter === '7days') {
-        const diffMs = now.getTime() - new Date(doc.createdAt).getTime()
-        if (diffMs > 7 * 24 * 60 * 60 * 1000) return false
-      } else if (dateFilter === 'month') {
-        const diffMs = now.getTime() - new Date(doc.createdAt).getTime()
-        if (diffMs > 30 * 24 * 60 * 60 * 1000) return false
-      }
-
-      // Search filter
       if (search.trim()) {
         const q = search.toLowerCase().trim()
         const matchTitle = doc.batchName.toLowerCase().includes(q)
         const matchCN = doc.trackingNumbers.some(cn => cn.toLowerCase().includes(q))
         const matchNotes = doc.notes?.toLowerCase().includes(q)
         const matchItems = doc.items?.some(i => 
-          i.name?.toLowerCase().includes(q) || 
-          i.phone?.toLowerCase().includes(q) || 
-          i.city?.toLowerCase().includes(q) ||
-          i.orderRef?.toLowerCase().includes(q)
+          i.name?.toLowerCase().includes(q) || i.phone?.toLowerCase().includes(q) || 
+          i.city?.toLowerCase().includes(q) || i.orderRef?.toLowerCase().includes(q)
         )
         if (!matchTitle && !matchCN && !matchNotes && !matchItems) return false
       }
-
       return true
     })
   }, [docs, categoryFilter, dateFilter, search])
+
+  // DB-Optimized Shared Pagination
+  const {
+    currentPage, setCurrentPage, pageSize, setPageSize,
+    totalItems, paginatedItems: paginatedDocs
+  } = usePagination({ items: filteredDocs, initialPageSize: 10, storageKey: 'vault_docs' })
 
   // Counts for tabs
   const airwayCount = useMemo(() => docs.filter(d => d.type === 'airway_bill').length, [docs])
@@ -380,7 +367,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredDocs.map(doc => (
+          {paginatedDocs.map(doc => (
             <VaultDocumentCard
               key={doc.id}
               doc={doc}
@@ -391,6 +378,18 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
               defaultPickupCode={settings.postex_pickup}
             />
           ))}
+
+          {/* Shared Unified Pagination */}
+          <SharedPagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[5, 10, 25, 50]}
+            itemLabel="document batches"
+            className="mt-3"
+          />
         </div>
       )}
 

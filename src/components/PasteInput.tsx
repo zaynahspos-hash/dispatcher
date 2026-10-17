@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import * as XLSX from 'xlsx'
 import { Parcel } from '../utils/groqParser'
-import { PasteIcon, SparklesIcon, UploadIcon, InfoIcon, DownloadIcon } from './Icons'
+import { PasteIcon, SparklesIcon, UploadIcon, InfoIcon, DownloadIcon, CheckIcon } from './Icons'
 import { useToast } from './common/Toast'
 
 interface PasteInputProps {
@@ -350,19 +350,19 @@ Items: 2 Suits"
 
             <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-2.5">
               <li className="flex items-start gap-2">
-                <span className="text-emerald-500 font-bold">✓</span>
+                <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                 <span><strong>Multi-Order Splitting:</strong> Ek sath 50+ messages paste karein, AI automatic alag kar dega.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-500 font-bold">✓</span>
+                <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                 <span><strong>City Normalization:</strong> 500+ PostEx operational cities ke spelling auto-match hote hain.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-500 font-bold">✓</span>
+                <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                 <span><strong>Phone Sanitization:</strong> +92, 92, spaces aur dashes hata kar standard 11 digits format banta hai.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-500 font-bold">✓</span>
+                <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                 <span><strong>Exchange / Non-COD:</strong> Return/replacement detect hote hi COD 0 ho jata hai.</span>
               </li>
             </ul>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { InfoIcon, SyncIcon, HistoryIcon, AlertIcon } from '../Icons'
+import { InfoIcon, SyncIcon, HistoryIcon, AlertIcon, CloseIcon } from '../Icons'
 import { BookedParcel } from './types'
 
 interface ShipperAdviceModalProps {
@@ -43,7 +43,7 @@ export function ShipperAdviceModal({
             onClick={onClose}
             className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-100 dark:bg-gray-950/50 hover:bg-gray-200 dark:hover:bg-gray-800 w-8 h-8 rounded-full flex items-center justify-center transition font-bold cursor-pointer"
           >
-            ✕
+            <CloseIcon size={14} />
           </button>
         </div>
 

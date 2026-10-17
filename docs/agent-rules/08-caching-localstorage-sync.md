@@ -74,3 +74,16 @@ supabase.auth.onAuthStateChange((event) => {
   }
 })
 ```
+
+---
+
+## 5. Multi-Device Sync & Database Protection (RULE C11)
+- **Zero Excessive DB Reads (Rate-Limit & Crash Defense)**:
+  - Do not query Supabase on client-side pagination clicks or tab switching. Pagination must slice local cache in memory.
+  - This guarantees the database cannot be overwhelmed or rate-limited by rapid merchant clicks or bots.
+- **Lightweight Multi-Device Sync on Window Focus**:
+  - When the browser tab regains focus, query only the single scalar `updated_at` column from `booked_history`.
+  - Only when `dbUpdated > lastSync` does the client fetch the newer full dataset in the background and update the cache.
+- **Zero Stale / Zero Missing Data**:
+  - Any local action (booking, cancelling, advice, deletion) instantly writes to local state and updates local timestamp, so fresh data is visible in 0ms while multi-device changes are automatically pulled.
+

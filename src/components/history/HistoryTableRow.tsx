@@ -41,6 +41,7 @@ export function HistoryTableRow({
 }: HistoryTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const effectiveWhatsAppSent = Boolean(parcel.whatsapp_sent || parcel.whatsappSent || isWhatsAppSent)
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
@@ -77,9 +78,9 @@ export function HistoryTableRow({
         <td className="p-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-slate-900 dark:text-white text-xs">{parcel.name}</span>
-            {isWhatsAppSent ? (
+            {effectiveWhatsAppSent ? (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                Sent ✓
+                Sent
               </span>
             ) : (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
@@ -172,18 +173,18 @@ export function HistoryTableRow({
                   }
                 }}
                 className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center transition cursor-pointer relative shadow-2xs active:scale-95 ${
-                  isWhatsAppSent
+                  effectiveWhatsAppSent
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 shadow-sm shadow-emerald-500/25'
                     : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
                 }`}
                 title={
-                  isWhatsAppSent
-                    ? 'WhatsApp Sent ✓ • Click to Re-send (Alt+Click to unmark)'
+                  effectiveWhatsAppSent
+                    ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)'
                     : 'Send WhatsApp tracking to customer (Pending)'
                 }
               >
                 <WhatsAppIcon size={14} className="fill-current" />
-                {isWhatsAppSent && (
+                {effectiveWhatsAppSent && (
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full" />
                 )}
               </a>

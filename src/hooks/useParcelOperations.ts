@@ -359,7 +359,9 @@ export function useParcelOperations({
               orderType: effectiveParcel.orderType || 'Normal',
               tracking: res.dist.trackingNumber,
               bookingDate: new Date().toISOString(),
-              status: 'UNBOOKED'
+              status: 'UNBOOKED',
+              whatsapp_sent: false,
+              whatsappSent: false
             })
           }
         } else {
@@ -407,7 +409,9 @@ export function useParcelOperations({
                   orderType: effectiveParcel.orderType || 'Normal',
                   tracking: retryRes.dist.trackingNumber,
                   bookingDate: new Date().toISOString(),
-                  status: 'UNBOOKED'
+                  status: 'UNBOOKED',
+                  whatsapp_sent: false,
+                  whatsappSent: false
                 })
               }
               continue
@@ -634,7 +638,9 @@ export function useParcelOperations({
             note: parcelToBook.note,
             tracking: res.dist.trackingNumber,
             bookingDate: new Date().toISOString(),
-            status: 'UNBOOKED'
+            status: 'UNBOOKED',
+            whatsapp_sent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent),
+            whatsappSent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent)
           }
           updateHistory([newHistoryItem, ...history])
           logUsage('order_booked', `Successfully booked single parcel for ${parcelToBook.name}. Tracking: ${res.dist.trackingNumber}`)
@@ -723,7 +729,9 @@ export function useParcelOperations({
                 note: parcelToBook.note,
                 tracking: retryRes.dist.trackingNumber,
                 bookingDate: new Date().toISOString(),
-                status: 'UNBOOKED'
+                status: 'UNBOOKED',
+                whatsapp_sent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent),
+                whatsappSent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent)
               }
               updateHistory([newHistoryItem, ...history])
               logUsage('order_booked', `Successfully booked single parcel for ${parcelToBook.name}. Tracking: ${retryRes.dist.trackingNumber}`)

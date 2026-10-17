@@ -1,35 +1,26 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Settings } from '../../utils/groqParser'
 
 interface WhatsAppSettingsTabProps {
   settings: Settings
   updateSetting: (key: keyof Settings | Partial<Settings>, value?: string) => void
+  onSave?: () => void
+  saving?: boolean
+  hasChanges?: boolean
 }
 
-const DEFAULT_TEMPLATE = 'Dear {customer_name}, your order has been booked.\n\nTotal COD: Rs. {order_amount}\nTracking: {portal_link}\n\n{note}'
-const DEFAULT_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
+const DEFAULT_TEMPLATE = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
+const DEFAULT_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
 
 export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
   settings,
   updateSetting
 }) => {
-  const [showSavedFeedback, setShowSavedFeedback] = useState(false)
   const currentTemplate = settings.whatsapp_template || DEFAULT_TEMPLATE
   const currentNote = settings.whatsapp_note || DEFAULT_NOTE
 
-  const handleManualSave = () => {
-    updateSetting({
-      whatsapp_template: currentTemplate,
-      whatsapp_note: currentNote
-    })
-    setShowSavedFeedback(true)
-    setTimeout(() => setShowSavedFeedback(false), 2500)
-  }
-
   const handleResetNote = () => {
     updateSetting('whatsapp_note', DEFAULT_NOTE)
-    setShowSavedFeedback(true)
-    setTimeout(() => setShowSavedFeedback(false), 2500)
   }
 
   const handleResetTemplate = () => {
@@ -37,8 +28,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
       whatsapp_template: DEFAULT_TEMPLATE,
       whatsapp_note: DEFAULT_NOTE
     })
-    setShowSavedFeedback(true)
-    setTimeout(() => setShowSavedFeedback(false), 2500)
   }
 
   return (
@@ -54,12 +43,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 Message sent to customers when clicking the WhatsApp tracking button on booked parcels.
               </p>
             </div>
-            {showSavedFeedback && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold animate-in fade-in duration-200 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Saved to Cloud
-              </span>
-            )}
           </div>
 
           <div>
@@ -76,7 +59,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               </button>
             </div>
             <textarea
-              rows={4}
+              rows={5}
               value={settings.whatsapp_template || DEFAULT_TEMPLATE}
               onChange={e => updateSetting('whatsapp_template', e.target.value)}
               className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono leading-relaxed"
@@ -120,28 +103,55 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               </button>
             </div>
             <textarea
-              rows={4}
+              rows={5}
               value={settings.whatsapp_note || DEFAULT_NOTE}
               onChange={e => updateSetting('whatsapp_note', e.target.value)}
               placeholder="e.g. SIM active reminder + Review follow-up..."
               className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
             />
-          </div>
 
-          {/* Action Footer */}
-          <div className="pt-2 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleManualSave}
-              className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1.5"
-            >
-              <span>Save WhatsApp Alert Settings</span>
-            </button>
-            {showSavedFeedback && (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                Settings saved successfully
+            {/* Quick Emoji Helper Chips */}
+            <div className="pt-2">
+              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Insert Emojis into Note
               </span>
-            )}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { code: 0x1F4F1, label: 'Phone' },
+                  { code: 0x1F514, label: 'Bell' },
+                  { code: 0x1F69A, label: 'Delivery' },
+                  { code: 0x1F4A8, label: 'Speed' },
+                  { code: 0x2B50, label: 'Star' },
+                  { code: 0x1F4DD, label: 'Review' },
+                  { code: 0x23F3, label: 'Wait' },
+                  { code: 0x260E, label: 'Call' },
+                  { code: 0x1F6CD, label: 'Shopping' },
+                  { code: 0x1F60A, label: 'Happy' },
+                  { code: 0x1F389, label: 'Party' },
+                  { code: 0x2705, label: 'Check' },
+                  { code: 0x1F4E6, label: 'Parcel' },
+                  { code: 0x1F50D, label: 'Search' },
+                  { code: 0x1F447, label: 'Down' }
+                ].map(item => {
+                  const emojiChar = String.fromCodePoint(item.code)
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => {
+                        const current = settings.whatsapp_note || DEFAULT_NOTE
+                        updateSetting('whatsapp_note', `${current} ${emojiChar}`)
+                      }}
+                      className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/10 hover:text-emerald-600 text-slate-700 dark:text-slate-300 text-xs font-medium transition cursor-pointer border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1"
+                      title={`Insert ${emojiChar} into customer note`}
+                    >
+                      <span>{emojiChar}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -151,11 +161,11 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
         <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
           Live Customer WhatsApp Preview
         </h4>
-        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-emerald-500/20 text-xs shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
-            postex.pk &bull; Tracking Alert
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-emerald-500/20 text-xs shadow-2xs space-y-2">
+          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block pb-1 border-b border-emerald-500/10">
+            WhatsApp Outgoing Message Preview
           </span>
-          <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[11px] whitespace-pre-wrap">
+          <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[11px] whitespace-pre-wrap font-sans">
             {currentTemplate
               .replace(/{(?:name|customer_name)}/g, 'Fizza Batool')
               .replace(/{(?:amount|order_amount|total)}/g, '2,500')

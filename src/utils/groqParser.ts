@@ -129,12 +129,12 @@ Extract ALL parcels from the WhatsApp text below and return a JSON array.
 RULES:
 - Order ID / Ref: If the message mentions an order number, reference, or invoice ID (e.g. #1024, ORD-99, Ref 55), extract it as "id". If NO order ID is explicitly written, return "" (empty string). NEVER make up or invent fake IDs like ord1, ord2.
 - Name: Customer's full name, properly capitalized.
-- Phone: Always 03XXXXXXXXX format (fix +92 303 → 03035..., remove spaces/dashes)
+- Phone: Always 03XXXXXXXXX format (fix +92 303 -> 03035..., remove spaces/dashes)
 - If multiple phones: first in phone field, rest as "(Alternate: 03XXXXXXXXX)" at end of address
 - City: Extract Pakistani destination city (e.g. Lahore, Karachi, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Gujranwala, Sialkot, Quetta, Hyderabad, etc.).
 - Address: Street address. Do NOT prefix with city name; place city name at end.
 - Total: COD cash amount as number only (0 if advance paid / non-cod).
-- Items: number. If missing → use default_items setting
+- Items: number. If missing -> use default_items setting
 - OrderType: "Normal" or "Replacement" (if keywords: Return/Exchange/Replacement/Changing/Wrong Item)
 - AirwayBillCopy: 1 (default)
 - Note: customer note if given, else use default_note setting

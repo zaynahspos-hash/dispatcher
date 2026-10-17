@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { UserProfile, LogEntry } from './types'
 import { UserAvatar } from '../common/UserAvatar'
+import { SharedPagination } from '../common/SharedPagination'
+import { usePagination } from '../../hooks/usePagination'
 
 interface AdminMerchantsTabProps {
   users: UserProfile[]
@@ -21,8 +23,6 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
 }) => {
   const [filterEmail, setFilterEmail] = useState('')
   const [showCredentials, setShowCredentials] = useState<Record<string, boolean>>({})
-  const [logsPage, setLogsPage] = useState(1)
-  const LOGS_PER_PAGE = 10
 
   useEffect(() => {
     if (!selectedUser && users.length > 0) {
@@ -39,8 +39,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
   )
 
   const selectedUserLogs = selectedUser ? logs.filter(l => l.user_id === selectedUser.id) : []
-  const totalPages = Math.max(1, Math.ceil(selectedUserLogs.length / LOGS_PER_PAGE))
-  const pagedLogs = selectedUserLogs.slice((logsPage - 1) * LOGS_PER_PAGE, logsPage * LOGS_PER_PAGE)
+  const {
+    currentPage: logsPage, setCurrentPage: setLogsPage, pageSize: logsPageSize, setPageSize: setLogsPageSize,
+    totalItems: totalLogs, paginatedItems: pagedLogs
+  } = usePagination({ items: selectedUserLogs, initialPageSize: 10, storageKey: 'admin_logs' })
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -220,25 +222,16 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     )}
                   </div>
 
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        onClick={() => setLogsPage(p => Math.max(1, p - 1))}
-                        disabled={logsPage === 1}
-                        className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold disabled:opacity-40 cursor-pointer"
-                      >
-                        Prev
-                      </button>
-                      <span className="text-xs text-slate-400">Page {logsPage} of {totalPages}</span>
-                      <button
-                        onClick={() => setLogsPage(p => Math.min(totalPages, p + 1))}
-                        disabled={logsPage === totalPages}
-                        className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold disabled:opacity-40 cursor-pointer"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
+                  <SharedPagination
+                    currentPage={logsPage}
+                    totalItems={totalLogs}
+                    pageSize={logsPageSize}
+                    onPageChange={setLogsPage}
+                    onPageSizeChange={setLogsPageSize}
+                    pageSizeOptions={[5, 10, 25, 50]}
+                    itemLabel="activity logs"
+                    className="mt-3"
+                  />
                 </div>
 
               </div>

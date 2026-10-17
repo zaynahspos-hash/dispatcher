@@ -8,8 +8,17 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
   const map = new Map<string, BookedParcel>()
   ;[...local, ...db].forEach(p => {
     const existing = map.get(p.tracking)
-    if (!existing || new Date(p.bookingDate) > new Date(existing.bookingDate)) {
+    if (!existing) {
       map.set(p.tracking, p)
+    } else {
+      const wasSent = Boolean(existing.whatsapp_sent || existing.whatsappSent || p.whatsapp_sent || p.whatsappSent)
+      const latest = new Date(p.bookingDate) > new Date(existing.bookingDate) ? p : existing
+      map.set(p.tracking, {
+        ...latest,
+        whatsapp_sent: wasSent,
+        whatsappSent: wasSent,
+        whatsapp_sent_at: latest.whatsapp_sent_at || existing.whatsapp_sent_at || p.whatsapp_sent_at
+      })
     }
   })
   return Array.from(map.values())
@@ -112,6 +121,39 @@ export function useUserHistorySync(user: User | null) {
           }
         }
       })
+
+    // Lightweight multi-device freshness check on window focus (RULE D15 / C10)
+    const handleFocus = () => {
+      const cacheKey = `booked_history_synced_at_${user.id}`
+      supabase
+        .from('booked_history')
+        .select('updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.updated_at) {
+            const dbUpdated = new Date(data.updated_at).getTime()
+            const lastSync = Number(localStorage.getItem(cacheKey) || 0)
+            if (dbUpdated > lastSync) {
+              supabase
+                .from('booked_history')
+                .select('history, updated_at')
+                .eq('user_id', user.id)
+                .maybeSingle()
+                .then(({ data: fresh }) => {
+                  if (fresh?.history) {
+                    const dbHistory = fresh.history as unknown as BookedParcel[]
+                    setHistory(dbHistory)
+                    setCached(userHistoryKey, dbHistory, getTTL('days', 30))
+                    localStorage.setItem(cacheKey, String(dbUpdated))
+                  }
+                })
+            }
+          }
+        })
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [user])
 
   const updateHistory = (updated: BookedParcel[]) => {
@@ -119,7 +161,10 @@ export function useUserHistorySync(user: User | null) {
 
     if (user) {
       const userHistoryKey = `booked_history_${user.id}`
+      const cacheKey = `booked_history_synced_at_${user.id}`
       setCached(userHistoryKey, updated, getTTL('days', 30))
+      const nowIso = new Date().toISOString()
+      localStorage.setItem(cacheKey, String(new Date(nowIso).getTime()))
 
       // RULE C10: optimistic update above is already done. Now persist to DB.
       // RULE D13: snake_case table 'booked_history', column 'user_id'
@@ -128,7 +173,7 @@ export function useUserHistorySync(user: User | null) {
         .upsert({
           user_id: user.id,
           history: updated,
-          updated_at: new Date().toISOString()
+          updated_at: nowIso
         }, { onConflict: 'user_id' })
         .then(({ error }) => {
           if (error) console.error('Failed to sync history to db:', error)

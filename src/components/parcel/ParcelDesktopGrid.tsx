@@ -24,6 +24,7 @@ interface ParcelDesktopGridProps {
   conflictReasons?: Map<number, 'already_in_db' | 'duplicate_in_table'>
   onResolveSingleRow?: (index: number) => void
   expandDefaults?: boolean
+  autoExpandLines?: boolean
 }
 
 const DEFAULT_PARCEL_WIDTHS = {
@@ -49,33 +50,36 @@ export function ParcelDesktopGrid({
   conflictedIndices,
   conflictReasons,
   onResolveSingleRow,
-  expandDefaults
+  expandDefaults,
+  autoExpandLines = false
 }: ParcelDesktopGridProps) {
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'parcel_desktop_grid_col_widths',
     defaultWidths: DEFAULT_PARCEL_WIDTHS,
     minWidths: {
-      checkbox: 28, index: 28, refId: 40, customer: 40, phone: 40, city: 40, address: 40,
+      checkbox: 28, index: 28, refId: 36, customer: 40, phone: 40, city: 40, address: 40,
       cod: 40, items: 36, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, action: 36
     },
     onMeasureCol: (colKey) => {
       const lengths = measureMaxContentLengths({ [colKey]: colKey }, parcels, {
-        refId: p => p.order_ref_number, customer: p => p.customer_name,
-        phone: p => p.customer_phone, city: p => p.delivery_city,
-        address: p => p.delivery_address, cod: p => `Rs. ${p.invoice_amount || 0}`,
-        items: p => String(p.order_items || 1), orderType: p => p.order_type || 'Normal (COD)',
-        weight: p => `${p.order_weight || 0.5} kg`, detail: p => p.order_detail,
-        note: p => p.transaction_notes, copies: p => String(p.pickup_address_code || 1)
+        refId: p => p.id, customer: p => p.name,
+        phone: p => p.phone, city: p => p.city,
+        address: p => p.address, cod: p => `Rs. ${p.total || 0}`,
+        items: p => String(p.items || 1), orderType: p => p.orderType || 'Normal',
+        weight: p => `${p.weight || 0.5} kg`, detail: p => p.detail,
+        note: p => p.note, copies: p => String(p.airwayBillCopy || 1)
       })
       return lengths[colKey] || 12
     }
   })
 
+  const totalTableWidth = Object.values(widths).reduce((a, b) => a + b, 0)
+
   return (
     <div className="hidden sm:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden">
       {/* Horizontal scroll container with interactive Excel resizable column widths */}
       <div className="overflow-x-auto min-h-[400px] pb-32">
-        <table className="text-xs border-collapse table-fixed select-none" style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}>
+        <table className="text-xs border-collapse table-fixed select-none" style={{ width: `${totalTableWidth}px`, minWidth: `${totalTableWidth}px` }}>
           <colgroup>
             <col style={{ width: `${widths.checkbox}px` }} />
             <col style={{ width: `${widths.index}px` }} />
@@ -200,12 +204,12 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Ref ID (Flush Excel Cell) */}
-                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
-                    <div className="flex items-center h-10 pr-1.5">
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0 ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
+                    <div className="flex items-center min-h-[40px] pr-1.5 min-w-0 overflow-hidden">
                       <input
                         value={parcel.id || ''}
                         onChange={e => updateField(i, 'id', e.target.value)}
-                        className={`flex-1 h-full px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
+                        className={`flex-1 min-w-0 h-full px-2.5 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
                           conflictedIndices?.has(i) ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-slate-800 dark:text-slate-100'
                         }`}
                         title={
@@ -231,22 +235,32 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Customer Name */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
-                    <input
-                      value={parcel.name || ''}
-                      onChange={e => updateField(i, 'name', e.target.value)}
-                      placeholder="Recipient Name"
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
-                    />
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
+                    {autoExpandLines ? (
+                      <textarea
+                        rows={Math.min(3, Math.max(1, Math.ceil((parcel.name || '').length / 20)))}
+                        value={parcel.name || ''}
+                        onChange={e => updateField(i, 'name', e.target.value)}
+                        placeholder="Recipient Name"
+                        className="w-full min-w-0 p-2.5 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset resize-none leading-snug break-words"
+                      />
+                    ) : (
+                      <input
+                        value={parcel.name || ''}
+                        onChange={e => updateField(i, 'name', e.target.value)}
+                        placeholder="Recipient Name"
+                        className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      />
+                    )}
                   </td>
 
                   {/* Phone Number */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0">
                     <input
                       value={parcel.phone || ''}
                       onChange={e => updateField(i, 'phone', e.target.value)}
                       placeholder="03001234567"
-                      className={`w-full h-10 px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
+                      className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
                         isPhoneValid
                           ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
                           : 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-600 focus:ring-rose-500'
@@ -255,7 +269,7 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* City (with live search dropdown) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container overflow-hidden min-w-0">
                     <input
                       ref={editingCity?.row === i && !editingCity?.isMobile ? cityInputRef : undefined}
                       value={parcel.city || ''}
@@ -269,7 +283,7 @@ export function ParcelDesktopGrid({
                         setEditingCity({ row: i, isMobile: false })
                       }}
                       placeholder="Type City..."
-                      className={`w-full h-10 px-3 py-2 bg-transparent text-xs font-semibold focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
+                      className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-semibold focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
                         isCityValid
                           ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
                           : 'bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 focus:ring-amber-500'
@@ -289,23 +303,33 @@ export function ParcelDesktopGrid({
                     )}
                   </td>
 
-                  {/* Address */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
-                    <input
-                      value={parcel.address || ''}
-                      onChange={e => updateField(i, 'address', e.target.value)}
-                      placeholder="House, street, area..."
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
-                    />
+                  {/* Address (Expands vertically when autoExpandLines is active) */}
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
+                    {autoExpandLines ? (
+                      <textarea
+                        rows={Math.min(5, Math.max(1, Math.ceil((parcel.address || '').length / 28)))}
+                        value={parcel.address || ''}
+                        onChange={e => updateField(i, 'address', e.target.value)}
+                        placeholder="House, street, area..."
+                        className="w-full min-w-0 p-2.5 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset resize-none leading-relaxed break-words"
+                      />
+                    ) : (
+                      <input
+                        value={parcel.address || ''}
+                        onChange={e => updateField(i, 'address', e.target.value)}
+                        placeholder="House, street, area..."
+                        className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      />
+                    )}
                   </td>
 
                   {/* COD Amount (Right Aligned Font Mono) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0">
                     <input
                       type="number"
                       value={parcel.total}
                       onChange={e => updateField(i, 'total', Number(e.target.value))}
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
                     />
                   </td>
 
@@ -339,6 +363,7 @@ export function ParcelDesktopGrid({
                       detail={parcel.detail}
                       note={parcel.note}
                       copies={parcel.airwayBillCopy}
+                      autoExpandLines={autoExpandLines}
                       onUpdate={(field, val) => updateField(i, field, val)}
                     />
                   )}

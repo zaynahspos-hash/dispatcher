@@ -58,6 +58,9 @@ interface AiSettingsTabProps {
   testingAi: boolean
   aiPingResult: string | null
   onTestAi: () => void
+  onSave?: () => void
+  saving?: boolean
+  hasChanges?: boolean
 }
 
 export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
@@ -65,7 +68,10 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
   updateSetting,
   testingAi,
   aiPingResult,
-  onTestAi
+  onTestAi,
+  onSave,
+  saving,
+  hasChanges
 }) => {
   const [showAiKeys, setShowAiKeys] = useState(false)
   const activeProvider = settings.ai_provider || 'gemini'
@@ -190,10 +196,6 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   {aiPingResult}
                 </span>
               )}
-            </div>
-
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Tip:</span> Google Gemini gives 1,500 free req/day. Groq delivers &lt;600ms latency.
             </div>
           </div>
         </div>

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { UserAvatar } from './UserAvatar'
-import { supabase } from '../../utils/supabaseClient'
 import { useToast } from './Toast'
 import { Settings } from '../../utils/groqParser'
+import { useAvatarUpload } from '../../hooks/useAvatarUpload'
+import { PasswordSubTab } from './PasswordSubTab'
 import { 
-  CheckIcon, 
   MoonIcon, 
   SunIcon, 
   SettingsIcon,
@@ -22,6 +22,10 @@ export interface UserAccountMenuProps {
   onNavigateToSettings: () => void
   theme: 'light' | 'dark'
   onToggleTheme: () => void
+  isStandalone?: boolean
+  isInstallable?: boolean
+  onInstallApp?: () => void
+  onOpenInstallGuide?: () => void
 }
 
 export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
@@ -33,16 +37,14 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   onLogout,
   onNavigateToSettings,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  isStandalone,
+  isInstallable: _isInstallable,
+  onInstallApp,
+  onOpenInstallGuide
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'password'>('profile')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [pwLoading, setPwLoading] = useState(false)
-  const [pwError, setPwError] = useState('')
-  const [pwSuccess, setPwSuccess] = useState('')
+  const { uploadingAvatar, handleAvatarFile } = useAvatarUpload(user, updateSetting)
 
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -69,125 +71,6 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   }, [isOpen, onClose])
 
   if (!isOpen || !user) return null
-
-  // 1-Click WebP Avatar Compressor & Supabase Storage Uploader (10-20 KB)
-  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image is too large. Please select an image under 5MB.')
-      return
-    }
-
-    setUploadingAvatar(true)
-    try {
-      const reader = new FileReader()
-      reader.onload = (loadEvt) => {
-        const img = new Image()
-        img.onload = async () => {
-          try {
-            const canvas = document.createElement('canvas')
-            const size = 160 // Standard icon avatar size
-            canvas.width = size
-            canvas.height = size
-            const ctx = canvas.getContext('2d')
-            if (!ctx) throw new Error('Canvas rendering context not available')
-
-            // Square center crop
-            const minDim = Math.min(img.width, img.height)
-            const sx = (img.width - minDim) / 2
-            const sy = (img.height - minDim) / 2
-            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size)
-
-            // Convert to lightweight WebP format (10-20 KB)
-            canvas.toBlob(async (blob) => {
-              if (!blob) {
-                toast.error('Failed to encode image to WebP')
-                setUploadingAvatar(false)
-                return
-              }
-
-              const kbSize = (blob.size / 1024).toFixed(1)
-              const userId = user?.id || 'guest'
-              const filePath = `${userId}/avatar-${Date.now()}.webp`
-
-              // 1. Upload to Supabase Storage avatars bucket
-              const { error: uploadErr } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, blob, {
-                  contentType: 'image/webp',
-                  upsert: true
-                })
-
-              if (uploadErr) {
-                console.warn('[Avatar] Cloud upload failed, saving WebP locally:', uploadErr.message)
-                const fallbackDataUrl = canvas.toDataURL('image/webp', 0.82)
-                updateSetting('avatar_url', fallbackDataUrl)
-                toast.success('Avatar updated locally.')
-                setUploadingAvatar(false)
-                return
-              }
-
-              // 2. Get permanent public URL
-              const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-              const permanentUrl = `${urlData.publicUrl}?t=${Date.now()}`
-
-              // 3. Persist to settings
-              updateSetting('avatar_url', permanentUrl)
-              toast.success(`Profile photo saved to cloud storage! (${kbSize} KB WebP)`)
-              setUploadingAvatar(false)
-            }, 'image/webp', 0.82)
-          } catch (err: any) {
-            setUploadingAvatar(false)
-            toast.error(err.message || 'Image processing failed')
-          }
-        }
-        img.src = loadEvt.target?.result as string
-      }
-      reader.readAsDataURL(file)
-    } catch (err: any) {
-      setUploadingAvatar(false)
-      toast.error(err.message || 'Failed to read image file')
-    }
-  }
-
-  // Handle password change
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      setPwError('New passwords do not match.')
-      return
-    }
-    if (newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters.')
-      return
-    }
-    setPwLoading(true)
-    setPwError('')
-    setPwSuccess('')
-    try {
-      if (!user?.email) throw new Error('Session not found. Please log in again.')
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      })
-      if (signInError) throw new Error('Current password is incorrect.')
-
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
-      if (updateError) throw updateError
-
-      setPwSuccess('Password updated successfully!')
-      toast.success('Password Updated', 'Your account credentials have been securely refreshed.')
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (err: any) {
-      setPwError(err.message || 'Failed to update password.')
-      toast.error('Password Update Failed', err.message)
-    } finally {
-      setPwLoading(false)
-    }
-  }
 
   return (
     <>
@@ -266,7 +149,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                   disabled={uploadingAvatar}
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2 disabled:opacity-50"
                 >
-                  {uploadingAvatar ? 'Converting to WebP...' : settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
+                  {uploadingAvatar ? 'Uploading...' : settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
                 </button>
                 {settings.avatar_url && !uploadingAvatar && (
                   <>
@@ -275,7 +158,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                       type="button"
                       onClick={() => {
                         updateSetting('avatar_url', '')
-                        toast.info('Custom photo removed. Synced with Gravatar/Gmail.')
+                        toast.info('Profile photo removed.')
                       }}
                       className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
                     >
@@ -342,13 +225,47 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                 </div>
               </div>
 
-              {/* Cloud Storage Notice */}
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start gap-2 leading-relaxed">
-                <CheckIcon size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <span>
-                  Profile avatar is automatically compressed to <strong>10–20 KB WebP</strong> and permanently stored on Supabase Storage.
-                </span>
-              </div>
+              {/* PWA Install Recommendation (Visible on all devices & OS when not installed in standalone mode) */}
+              {!isStandalone && (
+                <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/10 border border-emerald-500/30 flex items-center justify-between gap-2.5 shadow-2xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img 
+                      src="/apple-touch-icon.png?v=20261014" 
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/favicon-96x96.png?v=20261014' }} 
+                      className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-xs" 
+                      alt="App Logo" 
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white leading-none">
+                          Install Courier App
+                        </span>
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        Full-screen &amp; offline access on Mobile &amp; PC
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      if (onInstallApp) {
+                        onInstallApp()
+                      } else if (onOpenInstallGuide) {
+                        onOpenInstallGuide()
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shrink-0 shadow-xs active:scale-95 transition cursor-pointer"
+                  >
+                    Install
+                  </button>
+                </div>
+              )}
 
               {/* Shortcut to full Settings */}
               <button
@@ -364,68 +281,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               </button>
             </div>
           ) : (
-            <form onSubmit={handleUpdatePassword} className="space-y-3">
-              {pwError && (
-                <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs rounded-xl font-medium">
-                  {pwError}
-                </div>
-              )}
-              {pwSuccess && (
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl font-medium">
-                  {pwSuccess}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  placeholder="Min 6 characters"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  placeholder="Confirm password"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={pwLoading}
-                className="w-full mt-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
-              >
-                {pwLoading ? 'Updating Password...' : 'Save New Password'}
-              </button>
-            </form>
+            <PasswordSubTab user={user} />
           )}
         </div>
 

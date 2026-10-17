@@ -1,5 +1,4 @@
-import React from 'react'
-import { SearchIcon, RefreshIcon } from '../Icons'
+import { SearchIcon, RefreshIcon, CloseIcon } from '../Icons'
 
 export type ResultsStatusFilter = 'all' | 'success' | 'error' | 'manual' | 'cancelled'
 
@@ -58,7 +57,7 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
                 onClick={() => setSearchQuery('')}
                 className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
               >
-                ✕
+                <CloseIcon size={12} />
               </button>
             )}
           </div>

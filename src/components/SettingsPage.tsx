@@ -24,6 +24,9 @@ type SettingsTab = 'courier' | 'ai' | 'whatsapp' | 'defaults'
 
 export default function SettingsPage({ settings, updateSetting, onSave }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('courier')
+  const [draftSettings, setDraftSettings] = useState<Settings>(settings)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [addresses, setAddresses] = useState<MerchantAddress[]>([])
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [testingPostex, setTestingPostex] = useState(false)
@@ -32,15 +35,56 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const toast = useToast()
 
-  const activeProvider = settings.ai_provider || 'gemini'
+  // Sync draft when initial settings load or change externally
+  useEffect(() => {
+    setDraftSettings(settings)
+    setHasChanges(false)
+  }, [settings])
+
+  const handleDraftChange = (keyOrObj: keyof Settings | Partial<Settings>, value?: string) => {
+    setDraftSettings(prev => {
+      let next: Settings
+      if (typeof keyOrObj === 'object') {
+        next = { ...prev, ...keyOrObj }
+      } else {
+        next = { ...prev, [keyOrObj]: value ?? '' }
+      }
+      return next
+    })
+    setHasChanges(true)
+  }
+
+  const handleDiscardChanges = () => {
+    setDraftSettings(settings)
+    setHasChanges(false)
+    toast.info('Changes Discarded', 'Restored previous saved settings.')
+  }
+
+  const handleManualSave = async () => {
+    setSaving(true)
+    try {
+      updateSetting(draftSettings)
+      if (onSave) {
+        onSave()
+      }
+      setHasChanges(false)
+      toast.success('Settings Saved', 'All preferences saved successfully.')
+    } catch (err: any) {
+      toast.error('Save Failed', err.message || 'Could not save settings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const activeProvider = draftSettings.ai_provider || 'gemini'
   const activeMeta = PROVIDER_METADATA[activeProvider] || PROVIDER_METADATA.gemini
 
   // Fetch warehouse pickup addresses on mount if token is configured
   useEffect(() => {
-    if (settings.postex_token) {
-      fetchAddresses(settings.postex_token)
+    if (draftSettings.postex_token) {
+      fetchAddresses(draftSettings.postex_token)
     }
-  }, [settings.postex_token])
+  }, [draftSettings.postex_token])
 
   async function fetchAddresses(token: string) {
     if (!token) return
@@ -49,8 +93,8 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       const res = await getMerchantAddresses(token)
       if (res && Array.isArray(res.dist)) {
         setAddresses(res.dist)
-        if (!settings.postex_pickup && res.dist.length > 0) {
-          updateSetting('postex_pickup', res.dist[0].addressCode)
+        if (!draftSettings.postex_pickup && res.dist.length > 0) {
+          setDraftSettings(prev => ({ ...prev, postex_pickup: res.dist[0].addressCode }))
         }
       }
     } catch (err: any) {
@@ -61,7 +105,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   }
 
   async function testPostEx() {
-    if (!settings.postex_token) {
+    if (!draftSettings.postex_token) {
       toast.error('Token Missing', 'Please enter your PostEx API token first.')
       return
     }
@@ -69,12 +113,12 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
     setPostexPingResult(null)
     const start = performance.now()
     try {
-      const res = await getOrderTypes(settings.postex_token)
+      const res = await getOrderTypes(draftSettings.postex_token)
       const duration = Math.round(performance.now() - start)
       if (Number(res?.statusCode) === 200 || res?.dist) {
         setPostexPingResult(`Connected (${duration}ms)`)
         toast.success('PostEx Connected', `PostEx V3 responded in ${duration}ms. Operational cities active.`)
-        await fetchAddresses(settings.postex_token)
+        await fetchAddresses(draftSettings.postex_token)
       } else {
         throw new Error(res?.statusMessage || 'Invalid API Token')
       }
@@ -88,7 +132,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
 
   async function testAi() {
     const keyField = `${activeProvider}_api_key` as keyof Settings
-    const key = settings[keyField]
+    const key = draftSettings[keyField]
     if (!key) {
       toast.error('API Key Missing', `Please enter your ${activeMeta.name} API key first.`)
       return
@@ -123,22 +167,30 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="h-9 px-3 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1.5 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Auto-Save Active
-          </div>
-          {onSave && (
+          {hasChanges && (
             <button
-              onClick={() => {
-                onSave()
-                toast.success('Settings Saved', 'All preferences saved to cloud storage.')
-              }}
-              className="h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs active:scale-98 transition cursor-pointer"
+              type="button"
+              onClick={handleDiscardChanges}
+              disabled={saving}
+              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold active:scale-98 transition cursor-pointer"
             >
-              <SaveIcon size={14} />
-              <span>Save</span>
+              Discard
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={handleManualSave}
+            disabled={saving}
+            className={`h-9 px-4 rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-xs active:scale-98 transition cursor-pointer ${
+              hasChanges
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                : 'bg-emerald-600/90 hover:bg-emerald-600 text-white'
+            }`}
+          >
+            <SaveIcon size={14} />
+            <span>{saving ? 'Saving...' : 'Save Settings'}</span>
+          </button>
         </div>
       </div>
 
@@ -201,40 +253,51 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       {/* 3. Render Tab Content */}
       {activeTab === 'courier' && (
         <PostExSettingsTab
-          settings={settings}
-          updateSetting={updateSetting}
+          settings={draftSettings}
+          updateSetting={handleDraftChange}
           addresses={addresses}
           loadingAddresses={loadingAddresses}
           testingPostex={testingPostex}
           postexPingResult={postexPingResult}
           onTestPostEx={testPostEx}
+          onSave={handleManualSave}
+          saving={saving}
+          hasChanges={hasChanges}
         />
       )}
 
       {activeTab === 'ai' && (
         <AiSettingsTab
-          settings={settings}
-          updateSetting={updateSetting}
+          settings={draftSettings}
+          updateSetting={handleDraftChange}
           testingAi={testingAi}
           aiPingResult={aiPingResult}
           onTestAi={testAi}
+          onSave={handleManualSave}
+          saving={saving}
+          hasChanges={hasChanges}
         />
       )}
 
       {activeTab === 'whatsapp' && (
         <WhatsAppSettingsTab
-          settings={settings}
-          updateSetting={updateSetting}
+          settings={draftSettings}
+          updateSetting={handleDraftChange}
+          onSave={handleManualSave}
+          saving={saving}
+          hasChanges={hasChanges}
         />
       )}
 
       {activeTab === 'defaults' && (
         <DefaultsSettingsTab
-          settings={settings}
-          updateSetting={updateSetting}
+          settings={draftSettings}
+          updateSetting={handleDraftChange}
+          onSave={handleManualSave}
+          saving={saving}
+          hasChanges={hasChanges}
         />
       )}
-
     </div>
   )
 }

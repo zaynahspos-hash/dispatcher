@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { PlusIcon, HistoryIcon } from './Icons'
 import { Settings } from '../utils/groqParser'
-import { AirwayVaultModal } from './history/AirwayVaultModal'
 import { saveAirwayDocument } from '../utils/localPdfVault'
 import { ResultsKPIBar } from './results/ResultsKPIBar'
 import { ResultsFilterBar, ResultsStatusFilter } from './results/ResultsFilterBar'
@@ -10,7 +9,10 @@ import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
+import { BookedParcel } from './history/types'
 import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
+import { SharedPagination } from './common/SharedPagination'
+import { usePagination } from '../hooks/usePagination'
 
 export interface BookingResult {
   id: string
@@ -28,6 +30,8 @@ export interface BookingResult {
   note?: string
   orderType?: string
   airwayBillCopy?: number
+  whatsapp_sent?: boolean
+  whatsappSent?: boolean
 }
 
 interface BookingResultsProps {
@@ -40,28 +44,20 @@ interface BookingResultsProps {
   cities: string[]
   onBookSingle: (result: BookingResult) => Promise<void>
   updateSetting?: (key: keyof Settings | Partial<Settings>, value?: string) => void
+  userId?: string; history?: BookedParcel[]; onUpdateHistory?: (updated: BookedParcel[]) => void
+  setActiveTab?: (tab: any) => void
 }
 
 const ORDER_TYPES = [
-  { value: 'Normal', label: 'Normal (COD)' },
-  { value: 'Reversed', label: 'Reversed (Pickup)' },
-  { value: 'Replacement', label: 'Replacement (Exchange)' },
-  { value: 'Overland', label: 'Overland (Cargo)' },
+  { value: 'Normal', label: 'Normal (COD)' }, { value: 'Reversed', label: 'Reversed (Pickup)' },
+  { value: 'Replacement', label: 'Replacement (Exchange)' }, { value: 'Overland', label: 'Overland (Cargo)' },
 ]
 
 export default function BookingResults({
-  results,
-  setResults,
-  onPrintLabels,
-  loadingLabels,
-  onCancelShipment,
-  settings,
-  cities,
-  onBookSingle,
-  updateSetting
+  results, setResults, onPrintLabels, loadingLabels, onCancelShipment,
+  settings, cities, onBookSingle, updateSetting, userId, history, onUpdateHistory, setActiveTab
 }: BookingResultsProps) {
   const [cancellingTracking, setCancellingTracking] = useState<string[]>([])
-  const [showVault, setShowVault] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ResultsStatusFilter>('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -69,7 +65,7 @@ export default function BookingResults({
     return localStorage.getItem('zaynah_results_expand_defaults') === 'true'
   })
 
-  const waTracker = useWhatsAppSentTracker(settings?.postex_token)
+  const waTracker = useWhatsAppSentTracker(userId || settings?.postex_token, history, onUpdateHistory)
 
   const handleToggleExpandDefaults = () => {
     setExpandDefaults(prev => {
@@ -77,6 +73,14 @@ export default function BookingResults({
       localStorage.setItem('zaynah_results_expand_defaults', String(next))
       return next
     })
+  }
+
+  const handleOpenVault = () => {
+    if (setActiveTab) {
+      setActiveTab('vault')
+    } else {
+      window.location.hash = '#vault'
+    }
   }
 
   const handleCancel = async (tracking: string) => {
@@ -91,29 +95,19 @@ export default function BookingResults({
 
   const getWhatsAppLink = (parcel: BookingResult) => {
     let cleanPhone = parcel.phone.replace(/\D/g, '')
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '92' + cleanPhone.substring(1)
-    } else if (!cleanPhone.startsWith('92') && cleanPhone.length === 10) {
-      cleanPhone = '92' + cleanPhone
-    }
+    if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1)
+    else if (!cleanPhone.startsWith('92') && cleanPhone.length === 10) cleanPhone = '92' + cleanPhone
 
     const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain taake delivery rider asani se rabta kar sake.\n\nReview dejye ga lazmin is number pe or agar 2-5 din mein parcel receive nahi hota to is number pe rabta karna hai. Happy Shopping!'
-    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' 
+    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
+    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' && settings.whatsapp_note.includes('\u{1F4F1}')
       ? settings.whatsapp_note 
       : defaultNote
 
     const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
-    let template = settings.whatsapp_template || 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
-
-    // Upgrade legacy default templates to include amount
-    if (template.includes('Dear {name}, your order has been booked. You can track it here: {url}')) {
-      template = 'Dear {name}, your order has been booked.\n\nTotal COD: Rs. {amount}\nTracking: {url}\n\n{note}'
-    }
-
-    // Ensure total COD amount is always present
-    if (!template.includes('{amount}') && !template.includes('{order_amount}') && !template.includes('{total}')) {
-      template = `${template}\nTotal COD: Rs. ${formattedTotal}`
+    let template = settings.whatsapp_template || 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
+    if (template.includes('Dear {name}, your order has been booked') || !template.includes('\u2705')) {
+      template = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
     }
 
     template = template
@@ -149,6 +143,12 @@ export default function BookingResults({
         (r.city || '').toLowerCase().includes(q) || (r.tracking || '').toLowerCase().includes(q) || (r.id || '').toLowerCase().includes(q)
     })
   }, [results, statusFilter, searchQuery])
+
+  // DB-Optimized Shared Pagination
+  const {
+    currentPage, setCurrentPage, pageSize, setPageSize,
+    totalItems, paginatedItems: paginatedResults
+  } = usePagination({ items: filteredResults, initialPageSize: 25, storageKey: 'booking_results' })
 
   // Selection handlers
   const toggleSelect = (id: string) => setSelected(prev => {
@@ -191,15 +191,9 @@ export default function BookingResults({
   function exportResultsExcel() {
     const listToExport = selected.size > 0 ? results.filter(r => selected.has(r.id)) : filteredResults
     const data = listToExport.map(r => ({
-      'Name': r.name,
-      'Phone': r.phone,
-      'City': r.city,
-      'Address': r.address,
-      'COD Amount': r.total,
-      'Status': r.status === 'success' ? 'Booked' : r.status === 'cancelled' ? 'Cancelled' : r.status === 'manual' ? 'Draft' : 'Failed',
-      'Tracking Number': r.tracking || '',
-      'Order Type': r.orderType || 'Normal',
-      'Error': r.error || '',
+      Name: r.name, Phone: r.phone, City: r.city, Address: r.address, 'COD Amount': r.total,
+      Status: r.status === 'success' ? 'Booked' : r.status === 'cancelled' ? 'Cancelled' : r.status === 'manual' ? 'Draft' : 'Failed',
+      'Tracking Number': r.tracking || '', 'Order Type': r.orderType || 'Normal', Error: r.error || '',
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
@@ -220,8 +214,7 @@ export default function BookingResults({
     if (isNaN(nextNum)) nextNum = 1001
 
     const newRow: BookingResult = {
-      id: `${prefix}${nextNum}`,
-      name: '', phone: '', city: cities[0] || 'Lahore', address: '', total: 0, status: 'manual',
+      id: `${prefix}${nextNum}`, name: '', phone: '', city: cities[0] || 'Lahore', address: '', total: 0, status: 'manual',
       items: Number(settings.default_items) || 1, weight: Number(settings.default_weight) || 0.5,
       detail: settings.default_product || 'Kids Clothes', note: settings.default_note || 'Call before delivery',
       orderType: 'Normal', airwayBillCopy: 1
@@ -255,12 +248,11 @@ export default function BookingResults({
       },
       results,
       {
-        refId: r => r.order_ref_number, customer: r => r.customer_name,
-        phone: r => r.customer_phone, city: r => r.delivery_city,
-        address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
-        orderType: r => r.order_type || 'Normal (COD)', weight: r => `${r.order_weight || 0.5} kg`,
-        detail: r => r.order_detail, note: r => r.transaction_notes,
-        copies: r => String(r.pickup_address_code || 1), statusTracking: r => `${r.tracking_number || ''} ${r.order_status || ''}`
+        refId: r => r.id, customer: r => r.name, phone: r => r.phone,
+        city: r => r.city, address: r => r.address, cod: r => `Rs. ${r.total || 0}`,
+        orderType: r => r.orderType || 'Normal', weight: r => `${r.weight || 0.5} kg`,
+        detail: r => r.detail, note: r => r.note,
+        copies: r => String(r.airwayBillCopy || 1), statusTracking: r => `${r.tracking || ''} ${r.status || ''}`
       }
     )
     triggerTableAutoFit('results_desktop_grid_col_widths', lengths)
@@ -300,7 +292,7 @@ export default function BookingResults({
         failedCount={failed.length}
         onAddNewResult={handleAddNewResult}
         onExportExcel={exportResultsExcel}
-        onOpenVault={() => setShowVault(true)}
+        onOpenVault={handleOpenVault}
         onClearAll={clearAllResults}
         onPrintAll={handlePrintAll}
         loadingLabels={loadingLabels}
@@ -345,7 +337,7 @@ export default function BookingResults({
       ) : (
         <>
           <ResultsDesktopGrid
-            results={filteredResults}
+            results={paginatedResults}
             selected={selected}
             toggleSelect={toggleSelect}
             toggleAll={toggleAll}
@@ -364,7 +356,7 @@ export default function BookingResults({
           />
 
           <ResultsMobileCardList
-            results={filteredResults}
+            results={paginatedResults}
             selected={selected}
             toggleSelect={toggleSelect}
             toggleAll={toggleAll}
@@ -378,17 +370,21 @@ export default function BookingResults({
             onMarkWhatsAppSent={waTracker.markSent}
             onToggleWhatsAppSent={waTracker.toggleSent}
           />
+
+          {/* Shared Unified Pagination */}
+          <SharedPagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+            itemLabel="results"
+            className="mt-2"
+          />
         </>
       )}
 
-      {/* Airway Bill Document Vault Modal */}
-      {showVault && (
-        <AirwayVaultModal
-          userId={settings.postex_token || 'merchant'}
-          isOpen={showVault}
-          onClose={() => setShowVault(false)}
-        />
-      )}
     </div>
   )
 }

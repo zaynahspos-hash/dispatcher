@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Settings } from '../utils/groqParser'
-import { SyncIcon, HistoryIcon, AlertIcon } from './Icons'
+import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon } from './Icons'
 import { BookedParcel, StatusFilterType } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
@@ -11,6 +11,8 @@ import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
 import { useResizableColumns, measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
+import { SharedPagination } from './common/SharedPagination'
+import { usePagination } from '../hooks/usePagination'
 
 export type { BookedParcel }
 
@@ -23,9 +25,10 @@ interface BookedHistoryProps {
   settings: Settings
   history: BookedParcel[]
   onUpdateHistory: (updated: BookedParcel[]) => void
+  userId?: string
 }
 
-export function BookedHistory({ settings, history, onUpdateHistory }: BookedHistoryProps) {
+export function BookedHistory({ settings, history, onUpdateHistory, userId }: BookedHistoryProps) {
   const { widths: colWidths, getResizerProps } = useResizableColumns({
     storageKey: 'history_desktop_grid_col_widths',
     defaultWidths: DEFAULT_HISTORY_WIDTHS,
@@ -79,9 +82,8 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
   const [toDate, setToDate] = useState('')
   const [statusSelect, setStatusSelect] = useState('all')
   const [pickupFilter, setPickupFilter] = useState('all')
-  const [pageSize, setPageSize] = useState<number>(100)
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
-  const waTracker = useWhatsAppSentTracker(settings?.postex_token)
+  const waTracker = useWhatsAppSentTracker(userId || settings?.postex_token, history, onUpdateHistory)
 
   const handleClearFilters = () => {
     setSearchQuery(''); setFromDate(''); setToDate(''); setStatusSelect('all'); setPickupFilter('all'); setWhatsappFilter('all')
@@ -89,60 +91,36 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
 
   // Filter and dynamic counts hook
   const { counts, filteredParcels } = useBookedHistoryFilter({
-    history,
-    statusFilter,
-    searchQuery,
-    fromDate,
-    toDate,
-    statusSelect,
-    pickupFilter,
-    whatsappFilter,
-    isWhatsAppSent: waTracker.isSent
+    history, statusFilter, searchQuery, fromDate, toDate,
+    statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
   // PostEx operations hook
   const {
-    selectedIds,
-    setSelectedIds,
-    handleSelectAll,
-    handleSelectItem,
-    isLoading,
-    actionStatus,
-    setActionStatus,
-    syncingTracking,
-    isSyncingAll,
-    syncProgress,
-    isCancellingAll,
-    cancelProgress,
-    adviceParcel,
-    setAdviceParcel,
-    adviceStatusId,
-    setAdviceStatusId,
-    adviceRemarks,
-    setAdviceRemarks,
-    isSubmittingAdvice,
-    adviceError,
-    setAdviceError,
-    handlePrintSelected,
-    handleGenerateLoadSheet,
-    handleCancelSelected,
-    handleCancelSingle,
-    handleSyncStatus,
-    handleRefreshAll,
-    handleSubmitAdvice
+    selectedIds, setSelectedIds, handleSelectAll, handleSelectItem, isLoading,
+    actionStatus, setActionStatus, syncingTracking, isSyncingAll, syncProgress,
+    isCancellingAll, cancelProgress, adviceParcel, setAdviceParcel,
+    adviceStatusId, setAdviceStatusId, adviceRemarks, setAdviceRemarks,
+    isSubmittingAdvice, adviceError, setAdviceError, handlePrintSelected,
+    handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
+    handleSyncStatus, handleRefreshAll, handleSubmitAdvice
   } = useBookedHistoryOperations({
-    settings,
-    history,
-    onUpdateHistory,
-    filteredParcels
+    settings, history, onUpdateHistory, filteredParcels
   })
 
-  // Pagination logic
-  const paginatedParcels = useMemo(() => {
-    return filteredParcels.slice(0, pageSize)
-  }, [filteredParcels, pageSize])
-
-  const hasMore = filteredParcels.length > pageSize
+  // DB-Optimized Shared Pagination
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalItems,
+    paginatedItems: paginatedParcels
+  } = usePagination({
+    items: filteredParcels,
+    initialPageSize: 25,
+    storageKey: 'booked_history'
+  })
 
   const uniqueCities = useMemo(() => {
     const citiesSet = new Set(history.map(item => item.city.toUpperCase().trim()))
@@ -210,7 +188,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               {actionStatus.type === 'success' ? (
-                <span className="text-emerald-600 dark:text-emerald-400 text-base font-bold">✓</span>
+                <CheckIcon size={16} className="text-emerald-600 dark:text-emerald-400" />
               ) : (
                 <AlertIcon size={16} className="text-rose-600 dark:text-rose-400" />
               )}
@@ -231,7 +209,7 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
             onClick={() => setActionStatus(null)}
             className="text-xs font-bold hover:opacity-75 cursor-pointer p-1"
           >
-            ✕
+            <CloseIcon size={14} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
           </button>
         </div>
       )}
@@ -366,17 +344,17 @@ export function BookedHistory({ settings, history, onUpdateHistory }: BookedHist
             onToggleWhatsAppSent={waTracker.toggleSent}
           />
 
-          {/* Load More Button */}
-          {hasMore && (
-            <button
-              type="button"
-              onClick={() => setPageSize(prev => prev + 100)}
-              className="mt-4 w-full bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl border border-gray-200 dark:border-gray-700 transition text-xs shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <SyncIcon size={14} />
-              <span>Load More ({filteredParcels.length - pageSize} remaining)</span>
-            </button>
-          )}
+          {/* Shared Unified Pagination */}
+          <SharedPagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+            itemLabel="booked parcels"
+            className="mt-4"
+          />
         </div>
       )}
 

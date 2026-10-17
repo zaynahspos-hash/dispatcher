@@ -96,9 +96,9 @@ export function useResizableColumns({
   )
 
   const handleStartResize = useCallback(
-    (colKey: string, startX: number) => {
+    (colKey: string, startX: number, initialVisualWidth?: number) => {
       setActiveCol(colKey)
-      const startWidth = widthsRef.current[colKey] || defaultWidths[colKey] || 100
+      const startWidth = initialVisualWidth !== undefined ? Math.round(initialVisualWidth) : (widthsRef.current[colKey] || defaultWidths[colKey] || 100)
       const minW = minWidths[colKey] !== undefined ? minWidths[colKey] : 24
 
       const onPointerMove = (clientX: number) => {
@@ -220,12 +220,16 @@ export function useResizableColumns({
         onMouseDown: (e: React.MouseEvent) => {
           e.preventDefault()
           e.stopPropagation()
-          handleStartResize(colKey, e.clientX)
+          const th = (e.currentTarget as HTMLElement).closest('th')
+          const domWidth = th ? th.getBoundingClientRect().width : undefined
+          handleStartResize(colKey, e.clientX, domWidth)
         },
         onTouchStart: (e: React.TouchEvent) => {
           e.stopPropagation()
           if (e.touches && e.touches[0]) {
-            handleStartResize(colKey, e.touches[0].clientX)
+            const th = (e.currentTarget as HTMLElement).closest('th')
+            const domWidth = th ? th.getBoundingClientRect().width : undefined
+            handleStartResize(colKey, e.touches[0].clientX, domWidth)
           }
         },
         onDoubleClick: (e: React.MouseEvent) => {
