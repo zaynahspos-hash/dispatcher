@@ -221,14 +221,14 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           <div className="hidden lg:block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full">
             <table className="w-full min-w-0 max-w-full text-left text-xs border-collapse table-fixed select-none">
               <colgroup>
-                <col style={{ width: '42px' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '15%' }} />
-                <col style={{ width: '22%' }} />
+                <col style={{ width: '40px' }} />
+                <col style={{ width: '16%' }} />
                 <col style={{ width: '13%' }} />
+                <col style={{ width: '16%' }} />
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '29%' }} />
+                <col style={{ width: '7%' }} />
               </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">

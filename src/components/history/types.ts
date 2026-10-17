@@ -57,11 +57,16 @@ export const isDeliveredStatus = (status: string) => {
 }
 
 export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
+  if (!status) return 'Booked'
   if (isCancelledStatus(status)) return 'Cancelled'
   if (isDeliveredStatus(status)) return 'Delivered'
-  const s = (status || '').toLowerCase()
+  const s = status.toLowerCase().trim()
   if (s.includes('return') && !s.includes('return to sender requested')) return 'Returned'
   if (isUnderReview(status)) return 'Under Review'
+
+  // Clean redundant "for CN ..." or "for Tracking ..." suffixes from PostEx timeline entries
+  const clean = status.replace(/\s+for\s+(CN|Tracking)\s+[\w\d]+/gi, '').trim()
+
   if (
     s.includes('transit') ||
     s.includes('out for delivery') ||
@@ -75,11 +80,11 @@ export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
     s.includes('arrive') ||
     s.includes('pick')
   ) {
-    return status
+    return clean
   }
   if (hasLoadSheet && isBookedStatus(status)) return 'Manifested'
   if (isBookedStatus(status)) return 'Booked'
-  return status
+  return clean
 }
 
 export const isUnderReview = (status: string) => {

@@ -138,11 +138,14 @@ export function HistoryTableRow({
                 badgeColor = 'bg-sky-500/10 border-sky-500/20 text-sky-700 dark:text-sky-400'
               }
 
+              const displayStatus = getDisplayStatus(parcel.status, parcel.loadsheet_generated)
+
               return (
                 <span
-                  className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border truncate max-w-full ${badgeColor}`}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border whitespace-normal break-words leading-tight ${badgeColor}`}
+                  title={displayStatus}
                 >
-                  {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+                  {displayStatus}
                 </span>
               )
             })()}
