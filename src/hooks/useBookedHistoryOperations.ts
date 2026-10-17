@@ -203,7 +203,7 @@ export function useBookedHistoryOperations({
     try {
       const res = await trackOrder(settings.postex_token, tracking)
       if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-        const transactionStatus = res.dist?.transactionStatus || 'Unknown'
+        const rawStatus = res.dist?.transactionStatus || res.dist?.orderStatus || 'Booked'
         const customerName = res.dist?.customerName || ''
         const customerPhone = res.dist?.customerPhone || ''
         const cityName = res.dist?.cityName || ''
@@ -218,7 +218,7 @@ export function useBookedHistoryOperations({
             }
             return {
               ...item,
-              status: determineNewStatus(item.status, transactionStatus),
+              status: determineNewStatus(item.status, rawStatus),
               name: isPlaceholder(item.name) && !isPlaceholder(customerName) ? customerName : item.name,
               phone: !item.phone && customerPhone ? customerPhone : item.phone,
               city: !item.city && cityName ? cityName : item.city,
@@ -229,7 +229,7 @@ export function useBookedHistoryOperations({
           return item
         })
         onUpdateHistory(updatedHistory)
-        setActionStatus({ type: 'success', message: `Status updated and synchronized for CN ${tracking}` })
+        setActionStatus({ type: 'success', message: `Status synchronized: ${rawStatus} for CN ${tracking}` })
       } else {
         setActionStatus({ type: 'error', message: res.statusMessage || 'Failed to fetch status.' })
       }
@@ -268,7 +268,7 @@ export function useBookedHistoryOperations({
         try {
           const res = await trackOrder(settings.postex_token, item.tracking)
           if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-            const transactionStatus = res.dist?.transactionStatus || 'Unknown'
+            const rawStatus = res.dist?.transactionStatus || res.dist?.orderStatus || 'Booked'
             const customerName = res.dist?.customerName || ''
             const customerPhone = res.dist?.customerPhone || ''
             const cityName = res.dist?.cityName || ''
@@ -284,7 +284,7 @@ export function useBookedHistoryOperations({
               const currentItem = updatedHistory[idx]
               updatedHistory[idx] = {
                 ...currentItem,
-                status: determineNewStatus(currentItem.status, transactionStatus),
+                status: determineNewStatus(currentItem.status, rawStatus),
                 name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
                 phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
                 city: !currentItem.city && cityName ? cityName : currentItem.city,

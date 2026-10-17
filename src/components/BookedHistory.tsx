@@ -127,6 +127,18 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     return Array.from(citiesSet).filter(Boolean).sort()
   }, [history])
 
+  const [autoExpandLines, setAutoExpandLines] = useState<boolean>(() => {
+    return localStorage.getItem('zaynah_history_auto_expand_lines') === 'true'
+  })
+
+  const handleToggleAutoExpandLines = () => {
+    setAutoExpandLines(prev => {
+      const next = !prev
+      localStorage.setItem('zaynah_history_auto_expand_lines', String(next))
+      return next
+    })
+  }
+
   return (
     <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
       {/* Header and Sync Actions */}
@@ -140,27 +152,41 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRefreshAll}
-          disabled={isSyncingAll || isLoading}
-          className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0"
-        >
-          {isSyncingAll ? (
-            <>
-              <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span className="text-[11px]">{syncProgress}</span>
-            </>
-          ) : (
-            <>
-              <RefreshIcon size={13} />
-              <span>Refresh Statuses</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleToggleAutoExpandLines}
+            className={`h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
+              autoExpandLines
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRefreshAll}
+            disabled={isSyncingAll || isLoading}
+            className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0"
+          >
+            {isSyncingAll ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-[11px]">{syncProgress}</span>
+              </>
+            ) : (
+              <>
+                <RefreshIcon size={13} />
+                <span>Refresh Statuses</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Advanced Filter Component */}
@@ -331,17 +357,13 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             handleSyncStatus={handleSyncStatus}
             syncingTracking={syncingTracking}
             handleCancelSingle={handleCancelSingle}
-            onOpenAdvice={p => {
-              setAdviceParcel(p)
-              setAdviceStatusId(2)
-              setAdviceRemarks('')
-              setAdviceError(null)
-            }}
+            onOpenAdvice={p => { setAdviceParcel(p); setAdviceStatusId(2); setAdviceRemarks(''); setAdviceError(null) }}
             whatsappNote={settings.whatsapp_note}
             whatsappTemplate={settings.whatsapp_template}
             isWhatsAppSent={waTracker.isSent}
             onMarkWhatsAppSent={waTracker.markSent}
             onToggleWhatsAppSent={waTracker.toggleSent}
+            autoExpandLines={autoExpandLines}
           />
 
           {/* Shared Unified Pagination */}

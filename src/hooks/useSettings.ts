@@ -51,6 +51,11 @@ const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number O
 // All keys are namespaced with the user's UUID so that two tenants on the
 // same browser/device never share cached settings. (RULE D15 — zero cross-tenant)
 
+const CRITICAL_SECRET_KEYS: Array<keyof Settings> = [
+  'postex_token', 'groq_api_key', 'gemini_api_key', 'openai_api_key',
+  'anthropic_api_key', 'deepseek_api_key', 'openrouter_api_key'
+]
+
 function userSettingsKey(userId: string, field: keyof Settings) {
   return `u_${userId}_${field}`
 }
@@ -61,7 +66,10 @@ function userVersionKey(userId: string) {
 
 /** Read a single field from localStorage for this user */
 function readLocal(userId: string, field: keyof Settings): string {
-  const val = localStorage.getItem(userSettingsKey(userId, field))
+  let val = localStorage.getItem(userSettingsKey(userId, field))
+  if (!val && CRITICAL_SECRET_KEYS.includes(field)) {
+    val = localStorage.getItem(`zaynah_vault_${field}`) || ''
+  }
   if (field === 'whatsapp_note') {
     if (!val || val === 'Thank you for shopping with us!' || !val.includes('\u{1F4F1}') || !val.includes('\u{1F69A}')) {
       return DEFAULT_WHATSAPP_NOTE
@@ -78,12 +86,19 @@ function readLocal(userId: string, field: keyof Settings): string {
 /** Write a single field to localStorage for this user */
 function writeLocal(userId: string, field: keyof Settings, value: string) {
   localStorage.setItem(userSettingsKey(userId, field), value)
+  if (CRITICAL_SECRET_KEYS.includes(field)) {
+    if (value) {
+      localStorage.setItem(`zaynah_vault_${field}`, value)
+    } else {
+      localStorage.removeItem(`zaynah_vault_${field}`)
+    }
+  }
 }
 
 /** Write all settings to localStorage for this user */
 function writeAllLocal(userId: string, data: Settings) {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
-    localStorage.setItem(userSettingsKey(userId, k), data[k] || '')
+    writeLocal(userId, k, data[k] || '')
   })
 }
 
@@ -177,22 +192,28 @@ export function useSettings() {
 
         if (dbUpdatedAt && localVersion !== dbUpdatedAt) {
           const merged = { ...DEFAULTS, ...dbSettings }
+          CRITICAL_SECRET_KEYS.forEach(k => {
+            if (!merged[k]) {
+              const fallback = readLocal(currentUser.id, k) || localStorage.getItem(`zaynah_vault_${k}`)
+              if (fallback) merged[k] = fallback
+            }
+          })
           setSettings(merged)
           writeAllLocal(currentUser.id, merged)
           localStorage.setItem(userVersionKey(currentUser.id), dbUpdatedAt)
         } else {
-          // Local cache is already up-to-date; just set state from it
-          setSettings({ ...DEFAULTS, ...dbSettings })
+          const localSettings = readAllLocal(currentUser.id)
+          setSettings(localSettings)
         }
       } else {
-        // No DB record yet — start fresh with DEFAULTS (RULE C10: no stale bleed)
-        setSettings(DEFAULTS)
-        // Create a blank record in DB so future updates can upsert into it
+        // No DB record yet — pull existing local/vault settings
+        const currentLocal = readAllLocal(currentUser.id)
+        setSettings(currentLocal)
         await supabase.from('user_settings').upsert({
-          user_id: currentUser.id,       // [OK] snake_case
-          settings: DEFAULTS,
+          user_id: currentUser.id,
+          settings: currentLocal,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' })    // [OK] snake_case conflict column
+        }, { onConflict: 'user_id' })
       }
     } catch (err) {
       console.error('[useSettings] Failed to sync from database:', err)
@@ -203,8 +224,13 @@ export function useSettings() {
 
   useEffect(() => {
     if (!user) {
-      // Reset to DEFAULTS when logged out — nothing leaks between sessions
-      setSettings(DEFAULTS)
+      // Hydrate with local vault fallback so API keys don't blank out on reload
+      const guestSettings = { ...DEFAULTS }
+      CRITICAL_SECRET_KEYS.forEach(k => {
+        const v = localStorage.getItem(`zaynah_vault_${k}`)
+        if (v) guestSettings[k] = v
+      })
+      setSettings(guestSettings)
       return
     }
 
@@ -215,22 +241,19 @@ export function useSettings() {
   }, [user, loadDbSettings])
 
   // ── Update a single field (or multiple fields) ───────────────────────────
-  // RULE C10: Optimistic update first — local state + localStorage immediately,
-  // then async Supabase write in background
   async function updateSetting(key: keyof Settings | Partial<Settings>, value?: string) {
     setSettings(prev => {
       let updated: Settings
+      const uId = user?.id || 'guest'
       if (typeof key === 'object') {
         updated = { ...prev, ...key }
-        if (user) {
-          Object.entries(key).forEach(([k, val]) => {
-            writeLocal(user.id, k as keyof Settings, val || '')
-          })
-        }
+        Object.entries(key).forEach(([k, val]) => {
+          writeLocal(uId, k as keyof Settings, (val as string) || '')
+        })
       } else {
         const val = value || ''
         updated = { ...prev, [key]: val }
-        if (user) writeLocal(user.id, key, val)
+        writeLocal(uId, key, val)
       }
 
       if (user) {

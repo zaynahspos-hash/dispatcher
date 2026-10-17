@@ -255,29 +255,27 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
           {doc.items && doc.items.length > 0 ? (
             <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60 max-h-56 overflow-y-auto rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c121e]">
               {doc.items.map((item, idx) => (
-                <div key={`${item.tracking}-${idx}`} className="p-2.5 flex items-center justify-between gap-3 text-xs">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-900 dark:text-white select-all">
-                        {item.tracking}
+                <div key={`${item.tracking}-${idx}`} className="p-2.5 sm:p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-black text-slate-900 dark:text-white text-xs select-all tracking-tight">
+                      {item.tracking}
+                    </span>
+                    {item.amount !== undefined && (
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-xs">
+                        Rs. {item.amount.toLocaleString()}
                       </span>
-                      {item.orderRef && (
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          Ref: {item.orderRef}
-                        </span>
-                      )}
-                    </div>
-                    {(item.name || item.city || item.phone) && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {[item.name, item.city, item.phone].filter(Boolean).join(' • ')}
-                      </p>
                     )}
                   </div>
-                  {item.amount !== undefined && (
-                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                      Rs. {item.amount.toLocaleString()}
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="truncate font-medium">
+                      {[item.name, item.city, item.phone].filter(Boolean).join(' • ')}
                     </span>
-                  )}
+                    {item.orderRef && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">
+                        Ref: {item.orderRef}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

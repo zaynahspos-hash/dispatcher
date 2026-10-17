@@ -17,6 +17,7 @@ export interface BookedParcel {
   whatsappSent?: boolean
   whatsapp_sent_at?: string
   whatsappSentAt?: string
+  loadsheet_generated?: boolean
 }
 
 export type StatusFilterType = 'pending_loadsheet' | 'all' | 'booked' | 'intransit' | 'delivered' | 'returned' | 'cancelled'
@@ -31,25 +32,30 @@ export interface ActionStatusState {
 export const isCancelledStatus = (status: string) => {
   if (!status) return false
   const s = status.toLowerCase()
-  return s.includes('cancel')
-}
-
-export const isUnbookedStatus = (status: string) => {
-  if (!status) return false
-  const s = status.toLowerCase()
-  return s.includes('unbooked') || s.includes('un-assigned') || s.includes('unassigned') || s.includes('unasined') || s === 'success'
+  return s.includes('cancel') || s === 'unbooked'
 }
 
 export const isBookedStatus = (status: string) => {
   if (!status) return false
   const s = status.toLowerCase()
-  return s === 'booked'
+  return s === 'booked' || s === 'success' || s.includes('unassigned') || s.includes('un-assigned') || s.includes('unasined')
 }
 
-export const getDisplayStatus = (status: string) => {
+export const isUnbookedStatus = (status: string) => {
+  if (!status) return false
+  const s = status.toLowerCase()
+  return s === 'unbooked' || s.includes('cancel')
+}
+
+export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   if (isCancelledStatus(status)) return 'Cancelled'
-  if (isUnbookedStatus(status)) return 'UNBOOKED'
-  if (isBookedStatus(status)) return 'BOOKED'
+  const s = status.toLowerCase()
+  if (s.includes('deliver')) return 'Delivered'
+  if (s.includes('return')) return 'Returned'
+  if (s.includes('transit') || s.includes('out for delivery') || s.includes('dispatched')) return 'In Transit'
+  if (isUnderReview(status)) return 'Under Review'
+  if (hasLoadSheet) return 'Manifested'
+  if (isBookedStatus(status)) return 'Booked'
   return status
 }
 
@@ -60,9 +66,11 @@ export const isUnderReview = (status: string) => {
 }
 
 export const determineNewStatus = (currentStatus: string, fetchedStatus: string) => {
-  if (isUnbookedStatus(fetchedStatus)) {
-    if (isCancelledStatus(currentStatus)) return currentStatus
-    if (isBookedStatus(currentStatus)) return currentStatus
+  if (!fetchedStatus || fetchedStatus.toLowerCase() === 'unknown') return currentStatus
+  if (isCancelledStatus(currentStatus)) return currentStatus
+  const f = fetchedStatus.toLowerCase()
+  if (f.includes('unassigned') || f.includes('un-assigned') || f === 'success') {
+    return 'Booked'
   }
   return fetchedStatus
 }
@@ -88,18 +96,22 @@ export const getStatusCategory = (status: string, tracking: string): StatusFilte
     return 'intransit'
   }
 
-  if (isUnbookedStatus(status) || !tracking) {
+  if (!tracking) {
     return 'pending_loadsheet'
   }
   
   return 'booked'
 }
 
-export const isCancellable = (status: string) => {
+export const isCancellable = (status: string, hasLoadSheet?: boolean) => {
   if (!status) return false
+  if (hasLoadSheet) return false // CRITICAL: Once a load sheet is generated, PostEx portal blocks cancellation!
+  if (isCancelledStatus(status)) return false
   const s = status.toLowerCase()
+  if (s.includes('deliver') || s.includes('return')) return false
   const cat = getStatusCategory(status, '')
-  return !isCancelledStatus(status) && !s.includes('deliver') && !s.includes('return') && cat !== 'intransit'
+  if (cat === 'intransit' || cat === 'delivered' || cat === 'returned' || cat === 'cancelled') return false
+  return true
 }
 
 export const getWhatsAppLink = (parcel: BookedParcel, whatsappNote?: string, whatsappTemplate?: string) => {

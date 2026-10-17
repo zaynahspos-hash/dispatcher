@@ -109,49 +109,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               placeholder="e.g. SIM active reminder + Review follow-up..."
               className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
             />
-
-            {/* Quick Emoji Helper Chips */}
-            <div className="pt-2">
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                Insert Emojis into Note
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { code: 0x1F4F1, label: 'Phone' },
-                  { code: 0x1F514, label: 'Bell' },
-                  { code: 0x1F69A, label: 'Delivery' },
-                  { code: 0x1F4A8, label: 'Speed' },
-                  { code: 0x2B50, label: 'Star' },
-                  { code: 0x1F4DD, label: 'Review' },
-                  { code: 0x23F3, label: 'Wait' },
-                  { code: 0x260E, label: 'Call' },
-                  { code: 0x1F6CD, label: 'Shopping' },
-                  { code: 0x1F60A, label: 'Happy' },
-                  { code: 0x1F389, label: 'Party' },
-                  { code: 0x2705, label: 'Check' },
-                  { code: 0x1F4E6, label: 'Parcel' },
-                  { code: 0x1F50D, label: 'Search' },
-                  { code: 0x1F447, label: 'Down' }
-                ].map(item => {
-                  const emojiChar = String.fromCodePoint(item.code)
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => {
-                        const current = settings.whatsapp_note || DEFAULT_NOTE
-                        updateSetting('whatsapp_note', `${current} ${emojiChar}`)
-                      }}
-                      className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/10 hover:text-emerald-600 text-slate-700 dark:text-slate-300 text-xs font-medium transition cursor-pointer border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1"
-                      title={`Insert ${emojiChar} into customer note`}
-                    >
-                      <span>{emojiChar}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{item.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
           </div>
         </div>
       </div>

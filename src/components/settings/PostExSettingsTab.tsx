@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Settings } from '../../utils/groqParser'
-import { ExternalLinkIcon, EyeIcon, EyeOffIcon } from '../Icons'
+import { ExternalLinkIcon } from '../Icons'
 
 export interface MerchantAddress {
   addressCode: string
@@ -34,7 +34,8 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
   saving,
   hasChanges
 }) => {
-  const [showToken, setShowToken] = useState(false)
+  const [isEditingToken, setIsEditingToken] = useState(false)
+  const [tempToken, setTempToken] = useState('')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -62,29 +63,89 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
             </a>
           </div>
 
-          <div className="relative">
-            <input
-              type={showToken ? 'text' : 'password'}
-              value={settings.postex_token || ''}
-              onChange={e => updateSetting('postex_token', e.target.value)}
-              placeholder="Paste your PostEx V3 merchant API token..."
-              className="w-full h-9 px-3.5 pr-10 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <button
-              type="button"
-              onClick={() => setShowToken(!showToken)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
-            >
-              {showToken ? <EyeOffIcon size={15} /> : <EyeIcon size={15} />}
-            </button>
-          </div>
+          {settings.postex_token && !isEditingToken ? (
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold tracking-widest">
+                    ••••••••••••••••••••••••••••••••
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active & Configured
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Secured & locked. Plain text is hidden for merchant safety.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempToken(settings.postex_token || '')
+                    setIsEditingToken(true)
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition cursor-pointer"
+                >
+                  Change Token
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
+                      updateSetting('postex_token', '')
+                      setIsEditingToken(false)
+                      setTempToken('')
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="password"
+                value={tempToken}
+                onChange={e => setTempToken(e.target.value)}
+                placeholder="Paste your PostEx V3 merchant API token..."
+                className="w-full h-9 px-3.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSetting('postex_token', tempToken.trim())
+                    setIsEditingToken(false)
+                  }}
+                  disabled={!tempToken.trim()}
+                  className="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition disabled:opacity-40 cursor-pointer shadow-xs"
+                >
+                  Save Token
+                </button>
+                {settings.postex_token && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingToken(false)}
+                    className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 pt-1">
             <button
               type="button"
               onClick={onTestPostEx}
               disabled={testingPostex || !settings.postex_token}
-              className="h-9 px-4 rounded-lg bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold text-xs flex items-center gap-1.5 active:scale-98 transition disabled:opacity-40 cursor-pointer shadow-xs"
+              className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-40 cursor-pointer shadow-sm shadow-emerald-600/20"
             >
               {testingPostex ? (
                 <span className="flex items-center gap-1.5">
