@@ -5,6 +5,7 @@ import {
   isBookedStatus,
   isUnderReview,
   getDisplayStatus,
+  getStatusCategory,
   isCancellable,
   getWhatsAppLink
 } from './types'
@@ -85,19 +86,23 @@ export function HistoryMobileCard({
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-right cursor-pointer" onClick={onToggleExpand}>
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${
-                parcel.status === 'success' || parcel.status === 'Delivered' || isBookedStatus(parcel.status)
-                  ? 'bg-[var(--status-success-bg)] border-[var(--status-success-border)] text-[var(--status-success-text)]'
-                  : isCancelledStatus(parcel.status) || parcel.status === 'Returned'
-                  ? 'bg-[var(--status-danger-bg)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
-                  : isUnderReview(parcel.status)
-                  ? 'bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
-                  : 'bg-[var(--status-info-bg)] border-[var(--status-info-border)] text-[var(--status-info-text)]'
-              }`}
-            >
-              {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
-            </span>
+            {(() => {
+              const cat = getStatusCategory(parcel.status, parcel.tracking)
+              const underReview = isUnderReview(parcel.status)
+              let badgeClass = 'bg-[var(--status-info-bg)] border-[var(--status-info-border)] text-[var(--status-info-text)]'
+              if (cat === 'delivered' || cat === 'booked' || parcel.status === 'success') {
+                badgeClass = 'bg-[var(--status-success-bg)] border-[var(--status-success-border)] text-[var(--status-success-text)]'
+              } else if (cat === 'cancelled' || cat === 'returned') {
+                badgeClass = 'bg-[var(--status-danger-bg)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
+              } else if (underReview) {
+                badgeClass = 'bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
+              }
+              return (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${badgeClass}`}>
+                  {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+                </span>
+              )
+            })()}
             <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
               Rs. {Number(parcel.total || 0).toLocaleString()}
             </div>

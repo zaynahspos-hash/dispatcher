@@ -17,6 +17,11 @@ interface UseBookedHistoryOperationsProps {
   filteredParcels: BookedParcel[]
 }
 
+const isPlaceholder = (val: string) => {
+  const v = (val || '').trim().toLowerCase()
+  return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
+}
+
 export function useBookedHistoryOperations({
   settings,
   history,
@@ -208,14 +213,10 @@ export function useBookedHistoryOperations({
         const customerPhone = res.dist?.customerPhone || ''
         const cityName = res.dist?.cityName || ''
         const deliveryAddress = res.dist?.deliveryAddress || ''
-        const invoicePayment = Number(res.dist?.invoicePayment) || 0
+        const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
 
         const updatedHistory = history.map(item => {
           if (item.tracking === tracking) {
-            const isPlaceholder = (val: string) => {
-              const v = (val || '').trim().toLowerCase()
-              return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
-            }
             return {
               ...item,
               status: determineNewStatus(item.status, rawStatus),
@@ -223,7 +224,7 @@ export function useBookedHistoryOperations({
               phone: !item.phone && customerPhone ? customerPhone : item.phone,
               city: !item.city && cityName ? cityName : item.city,
               address: !item.address && deliveryAddress ? deliveryAddress : item.address,
-              total: !item.total && invoicePayment ? invoicePayment : item.total
+              total: (!item.total || item.total === 0) && invoicePayment ? invoicePayment : item.total
             }
           }
           return item
@@ -242,12 +243,13 @@ export function useBookedHistoryOperations({
 
   const handleRefreshAll = async () => {
     const activeParcels = filteredParcels.filter(item => {
-      const s = item.status.toLowerCase()
-      return !isCancelledStatus(item.status) && !s.includes('deliver') && !s.includes('return')
+      if (!item.tracking || !item.tracking.trim()) return false
+      const s = (item.status || '').toLowerCase()
+      return !s.includes('deliver')
     })
 
     if (activeParcels.length === 0) {
-      setActionStatus({ type: 'success', message: 'No active (non-cancelled / non-delivered) parcels in current filter to refresh.' })
+      setActionStatus({ type: 'success', message: 'No parcels with tracking numbers in current view to refresh.' })
       return
     }
 
@@ -273,14 +275,10 @@ export function useBookedHistoryOperations({
             const customerPhone = res.dist?.customerPhone || ''
             const cityName = res.dist?.cityName || ''
             const deliveryAddress = res.dist?.deliveryAddress || ''
-            const invoicePayment = Number(res.dist?.invoicePayment) || 0
+            const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
 
             const idx = updatedHistory.findIndex(p => p.tracking === item.tracking)
             if (idx !== -1) {
-              const isPlaceholder = (val: string) => {
-                const v = (val || '').trim().toLowerCase()
-                return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
-              }
               const currentItem = updatedHistory[idx]
               updatedHistory[idx] = {
                 ...currentItem,
@@ -289,7 +287,7 @@ export function useBookedHistoryOperations({
                 phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
                 city: !currentItem.city && cityName ? cityName : currentItem.city,
                 address: !currentItem.address && deliveryAddress ? deliveryAddress : currentItem.address,
-                total: !currentItem.total && invoicePayment ? invoicePayment : currentItem.total
+                total: (!currentItem.total || currentItem.total === 0) && invoicePayment ? invoicePayment : currentItem.total
               }
             }
             successCount++
@@ -303,7 +301,7 @@ export function useBookedHistoryOperations({
       }
     }
 
-    const concurrency = Math.min(15, queue.length)
+    const concurrency = Math.min(10, queue.length)
     const workerPromises = []
     for (let i = 0; i < concurrency; i++) {
       workerPromises.push(worker())

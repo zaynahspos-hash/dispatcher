@@ -6,18 +6,26 @@ import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
 
 function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[] {
   const map = new Map<string, BookedParcel>()
-  ;[...local, ...db].forEach(p => {
-    const existing = map.get(p.tracking)
+  // First load local items
+  local.forEach(p => {
+    const key = p.tracking || p.id
+    if (key) map.set(key, p)
+  })
+  // Overwrite with db items (DB is authoritative for synced statuses)
+  db.forEach(p => {
+    const key = p.tracking || p.id
+    if (!key) return
+    const existing = map.get(key)
     if (!existing) {
-      map.set(p.tracking, p)
+      map.set(key, p)
     } else {
       const wasSent = Boolean(existing.whatsapp_sent || existing.whatsappSent || p.whatsapp_sent || p.whatsappSent)
-      const latest = new Date(p.bookingDate) > new Date(existing.bookingDate) ? p : existing
-      map.set(p.tracking, {
-        ...latest,
+      map.set(key, {
+        ...existing,
+        ...p, // DB status and details take priority
         whatsapp_sent: wasSent,
         whatsappSent: wasSent,
-        whatsapp_sent_at: latest.whatsapp_sent_at || existing.whatsapp_sent_at || p.whatsapp_sent_at
+        whatsapp_sent_at: p.whatsapp_sent_at || existing.whatsapp_sent_at
       })
     }
   })
@@ -122,8 +130,9 @@ export function useUserHistorySync(user: User | null) {
         }
       })
 
-    // Lightweight multi-device freshness check on window focus (RULE D15 / C10)
-    const handleFocus = () => {
+    // Cross-device realtime sync on focus and mobile visibility change (RULE D15 / C10)
+    const handleSyncCheck = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       const cacheKey = `booked_history_synced_at_${user.id}`
       supabase
         .from('booked_history')
@@ -152,8 +161,40 @@ export function useUserHistorySync(user: User | null) {
           }
         })
     }
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+
+    // Supabase Realtime channel subscription for instant 0ms multi-device live sync
+    const channel = supabase
+      .channel(`live_history_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booked_history',
+          filter: `user_id=eq.${user.id}`
+        },
+        payload => {
+          const fresh = payload.new as { history?: BookedParcel[]; updated_at?: string }
+          if (fresh && fresh.history && Array.isArray(fresh.history)) {
+            setHistory(fresh.history)
+            setCached(userHistoryKey, fresh.history, getTTL('days', 30))
+            if (fresh.updated_at) {
+              const cacheKey = `booked_history_synced_at_${user.id}`
+              localStorage.setItem(cacheKey, String(new Date(fresh.updated_at).getTime()))
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    window.addEventListener('focus', handleSyncCheck)
+    document.addEventListener('visibilitychange', handleSyncCheck)
+
+    return () => {
+      channel.unsubscribe()
+      window.removeEventListener('focus', handleSyncCheck)
+      document.removeEventListener('visibilitychange', handleSyncCheck)
+    }
   }, [user])
 
   const updateHistory = (updated: BookedParcel[]) => {

@@ -49,12 +49,24 @@ export const isUnbookedStatus = (status: string) => {
 
 export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   if (isCancelledStatus(status)) return 'Cancelled'
-  const s = status.toLowerCase()
+  const s = (status || '').toLowerCase()
   if (s.includes('deliver')) return 'Delivered'
   if (s.includes('return')) return 'Returned'
-  if (s.includes('transit') || s.includes('out for delivery') || s.includes('dispatched')) return 'In Transit'
   if (isUnderReview(status)) return 'Under Review'
-  if (hasLoadSheet) return 'Manifested'
+  if (
+    s.includes('transit') ||
+    s.includes('out for delivery') ||
+    s.includes('dispatched') ||
+    s.includes('route') ||
+    s.includes('warehouse') ||
+    s.includes('hub') ||
+    s.includes('station') ||
+    s.includes('arrive') ||
+    s.includes('pick')
+  ) {
+    return status
+  }
+  if (hasLoadSheet && isBookedStatus(status)) return 'Manifested'
   if (isBookedStatus(status)) return 'Booked'
   return status
 }
@@ -66,23 +78,26 @@ export const isUnderReview = (status: string) => {
 }
 
 export const determineNewStatus = (currentStatus: string, fetchedStatus: string) => {
-  if (!fetchedStatus || fetchedStatus.toLowerCase() === 'unknown') return currentStatus
-  if (isCancelledStatus(currentStatus)) return currentStatus
-  const f = fetchedStatus.toLowerCase()
+  if (!fetchedStatus) return currentStatus
+  const clean = fetchedStatus.trim()
+  const f = clean.toLowerCase()
+  if (!clean || f === 'unknown' || f === 'null' || f === 'undefined' || f.includes('not found')) {
+    return currentStatus
+  }
   if (f.includes('unassigned') || f.includes('un-assigned') || f === 'success') {
     return 'Booked'
   }
-  return fetchedStatus
+  return clean
 }
 
 export const getStatusCategory = (status: string, tracking: string): StatusFilterType => {
   if (isCancelledStatus(status)) return 'cancelled'
   
-  const s = status.toLowerCase()
+  const s = (status || '').toLowerCase()
   if (s.includes('deliver')) return 'delivered'
   if (s.includes('return')) return 'returned'
   
-  // Transit statuses
+  // Transit statuses (courier handling, moving, warehouse, dispatch, review)
   if (
     s.includes('transit') || 
     s.includes('dispatch') || 
@@ -91,7 +106,14 @@ export const getStatusCategory = (status: string, tracking: string): StatusFilte
     s.includes('pick') || 
     s.includes('hold') || 
     s.includes('attempt') || 
-    s.includes('review')
+    s.includes('review') ||
+    s.includes('warehouse') ||
+    s.includes('route') ||
+    s.includes('en-route') ||
+    s.includes('en route') ||
+    s.includes('out for delivery') ||
+    s.includes('hub') ||
+    s.includes('station')
   ) {
     return 'intransit'
   }

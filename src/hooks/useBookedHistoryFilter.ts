@@ -92,6 +92,8 @@ export function useBookedHistoryFilter({
         const sel = statusSelect.toLowerCase()
         if (sel === 'under_review') {
           if (!isUnderReview(item.status)) return false
+        } else if (sel === 'transit') {
+          if (getStatusCategory(item.status, item.tracking) !== 'intransit') return false
         } else {
           const statusLower = item.status.toLowerCase()
           if (!statusLower.includes(sel)) return false

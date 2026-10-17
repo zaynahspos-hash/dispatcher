@@ -6,6 +6,7 @@ import {
   isBookedStatus,
   isUnderReview,
   getDisplayStatus,
+  getStatusCategory,
   isCancellable,
   getWhatsAppLink
 } from './types'
@@ -119,19 +120,28 @@ export function HistoryTableRow({
         </td>
         <td className="p-3">
           <div className="flex items-center gap-1.5">
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                parcel.status === 'success' || parcel.status === 'Delivered' || isBookedStatus(parcel.status)
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                  : isCancelledStatus(parcel.status) || parcel.status === 'Returned'
-                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400'
-                  : isUnderReview(parcel.status)
-                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400'
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-              }`}
-            >
-              {getDisplayStatus(parcel.status)}
-            </span>
+            {(() => {
+              const cat = getStatusCategory(parcel.status, parcel.tracking)
+              const underReview = isUnderReview(parcel.status)
+              let badgeColor = 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              if (cat === 'delivered' || cat === 'booked' || parcel.status === 'success') {
+                badgeColor = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+              } else if (cat === 'cancelled' || cat === 'returned') {
+                badgeColor = 'bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400'
+              } else if (underReview) {
+                badgeColor = 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400'
+              } else if (cat === 'intransit') {
+                badgeColor = 'bg-sky-500/10 border-sky-500/20 text-sky-700 dark:text-sky-400'
+              }
+
+              return (
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
+                >
+                  {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+                </span>
+              )
+            })()}
             <button
               type="button"
               onClick={() => onSyncStatus(parcel.tracking)}

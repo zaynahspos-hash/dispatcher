@@ -241,6 +241,7 @@ export function HistoryFilterBar({
               >
                 <option value="all">All Statuses</option>
                 <option value="booked">Booked</option>
+                <option value="transit">In Transit / Warehouse</option>
                 <option value="under_review">Under Review / Attempted</option>
                 <option value="delivered">Delivered</option>
                 <option value="returned">Returned</option>
