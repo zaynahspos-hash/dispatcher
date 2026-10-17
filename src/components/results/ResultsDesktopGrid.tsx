@@ -28,21 +28,9 @@ const DEFAULT_RESULTS_WIDTHS = {
 }
 
 export function ResultsDesktopGrid({
-  results,
-  selected,
-  toggleSelect,
-  toggleAll,
-  updateField,
-  onDelete,
-  onBookSingle,
-  onCancelShipment,
-  cancellingTracking,
-  getWhatsAppLink,
-  orderTypes,
-  expandDefaults,
-  isWhatsAppSent,
-  onMarkWhatsAppSent,
-  onToggleWhatsAppSent
+  results, selected, toggleSelect, toggleAll, updateField, onDelete,
+  onBookSingle, onCancelShipment, cancellingTracking, getWhatsAppLink,
+  orderTypes, expandDefaults, isWhatsAppSent, onMarkWhatsAppSent, onToggleWhatsAppSent
 }: ResultsDesktopGridProps) {
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'results_desktop_grid_col_widths',
@@ -286,10 +274,16 @@ export function ResultsDesktopGrid({
                   <td className="p-2 border-r border-b border-slate-200/80 dark:border-slate-800 text-center">
                     {isBooked && r.tracking ? (
                       <div className="flex items-center justify-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        <a
+                          href={`https://postex.pk/tracking?cn=${r.tracking}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-mono text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 transition-all hover:scale-102 cursor-pointer"
+                          title={`Track ${r.tracking} on PostEx`}
+                        >
                           <CheckIcon size={11} />
-                          {r.tracking}
-                        </span>
+                          <span>{r.tracking}</span>
+                        </a>
                         <button
                           type="button"
                           onClick={() => {

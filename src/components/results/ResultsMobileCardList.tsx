@@ -99,10 +99,16 @@ export function ResultsMobileCardList({
                 )}
                 <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">#{i + 1}</span>
                 {isBooked && r.tracking ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 truncate">
+                  <a
+                    href={`https://postex.pk/tracking?cn=${r.tracking}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-mono text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 truncate cursor-pointer active:scale-95"
+                    title={`Track ${r.tracking} on PostEx`}
+                  >
                     <CheckIcon size={11} />
-                    {r.tracking}
-                  </span>
+                    <span>{r.tracking}</span>
+                  </a>
                 ) : isCancelled ? (
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 line-through">
                     Cancelled

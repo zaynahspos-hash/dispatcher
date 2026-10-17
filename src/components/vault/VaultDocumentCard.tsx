@@ -10,7 +10,8 @@ import {
   FileTextIcon, 
   CheckIcon, 
   ChevronDownIcon, 
-  ChevronRightIcon 
+  ChevronRightIcon,
+  ExternalLinkIcon
 } from '../Icons'
 import { printLabels, generateLoadSheet } from '../../utils/postexApi'
 import { useToast } from '../common/Toast'
@@ -110,7 +111,7 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(doc.id)}
-            className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+            className="mt-1 w-4 h-4 rounded-md text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
             aria-label={`Select ${doc.batchName}`}
           />
 
@@ -119,7 +120,7 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               {/* Category Pill */}
               <span
-                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider ${
+                className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider ${
                   isLoadSheet
                     ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/25'
                     : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25'
@@ -135,37 +136,43 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
               </h3>
 
               {/* Parcels Count Chip */}
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+              <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
                 {doc.count} {doc.count === 1 ? 'Parcel' : 'Parcels'}
               </span>
 
               {/* COD Amount Chip */}
               {doc.totalCOD > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-mono">
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono">
                   COD: Rs. {doc.totalCOD.toLocaleString()}
                 </span>
               )}
 
               {/* Pickup Code Chip for Loadsheets */}
               {doc.pickupCode && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
                   Pickup: {doc.pickupCode}
                 </span>
               )}
             </div>
 
-            {/* Tracking Numbers Quick Preview */}
+            {/* Tracking Numbers Quick Preview — Trackable Links on Click */}
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
               {doc.trackingNumbers.slice(0, 5).map(cn => (
-                <span
+                <a
                   key={cn}
-                  className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 select-all"
+                  href={`https://postex.pk/tracking?cn=${cn}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-emerald-500/10 dark:bg-slate-800/80 dark:hover:bg-emerald-500/15 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500/30 transition-all cursor-pointer active:scale-95 group/cn"
+                  title={`Track CN ${cn} on PostEx`}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {cn}
-                </span>
+                  <span>{cn}</span>
+                  <ExternalLinkIcon size={9} className="opacity-60 group-hover/cn:opacity-100 text-emerald-500 transition-opacity" />
+                </a>
               ))}
               {doc.trackingNumbers.length > 5 && (
-                <span className="text-[10px] text-slate-400 font-bold">
+                <span className="text-[10px] text-slate-400 font-semibold px-1">
                   +{doc.trackingNumbers.length - 5} more
                 </span>
               )}
@@ -184,28 +191,28 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons Toolbar */}
-        <div className="flex items-center gap-1.5 self-end md:self-center shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800 w-full md:w-auto justify-between md:justify-end">
+        {/* Action Buttons Toolbar — Apple iOS Native Styling */}
+        <div className="flex items-center gap-2 self-end md:self-center shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800 w-full md:w-auto justify-between md:justify-end">
           {/* Toggle Orders Detail Accordion */}
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer min-h-[36px]"
+            className="h-8.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 text-xs font-medium active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
             title="View parcels in this batch"
           >
-            {isExpanded ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
-            <span className="text-[11px]">{isExpanded ? 'Hide Details' : 'View Orders'}</span>
+            {isExpanded ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
+            <span>{isExpanded ? 'Hide Details' : 'View Orders'}</span>
           </button>
 
           {/* Copy All CNs Button */}
           <button
             type="button"
             onClick={handleCopyCNs}
-            className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer min-h-[36px]"
+            className="h-8.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 text-xs font-medium active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
             title="Copy all tracking numbers"
           >
             {isCopied ? <CheckIcon size={13} className="text-emerald-500" /> : <CopyIcon size={13} />}
-            <span className="text-[11px]">{isCopied ? 'Copied' : 'Copy CNs'}</span>
+            <span>{isCopied ? 'Copied' : 'Copy CNs'}</span>
           </button>
 
           {/* Re-Download / Print PDF Button */}
@@ -213,15 +220,15 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
             type="button"
             onClick={handlePrintOrDownload}
             disabled={isPrinting}
-            className={`px-3 py-1.5 rounded-xl text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs min-h-[36px] ${
+            className={`h-8.5 px-4 rounded-full text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 ${
               isLoadSheet
-                ? 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-                : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95'
-            } disabled:opacity-50`}
+                ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
+            }`}
             title={doc.pdfBase64 ? 'Download saved PDF document' : 'Fetch and open PDF from PostEx'}
           >
             <DownloadIcon size={13} />
-            <span className="text-[11px]">{isPrinting ? 'Processing...' : (doc.pdfBase64 ? 'Download PDF' : 'Print PDF')}</span>
+            <span>{isPrinting ? 'Processing...' : (doc.pdfBase64 ? 'Download PDF' : 'Print PDF')}</span>
           </button>
 
           {/* Delete Single Batch Button */}
@@ -229,9 +236,9 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
             type="button"
             onClick={() => onDelete(doc.id)}
             title="Delete this batch from device storage"
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+            className="h-8.5 w-8.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-rose-200/60 dark:border-rose-900/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer shrink-0"
           >
-            <TrashIcon size={14} />
+            <TrashIcon size={13} />
           </button>
         </div>
       </div>
@@ -257,9 +264,16 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
               {doc.items.map((item, idx) => (
                 <div key={`${item.tracking}-${idx}`} className="p-2.5 sm:p-3 text-xs space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-black text-slate-900 dark:text-white text-xs select-all tracking-tight">
-                      {item.tracking}
-                    </span>
+                    <a
+                      href={`https://postex.pk/tracking?cn=${item.tracking}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 text-xs tracking-tight hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                      title={`Track CN ${item.tracking} on PostEx`}
+                    >
+                      <span>{item.tracking}</span>
+                      <ExternalLinkIcon size={10} className="text-emerald-500 opacity-70" />
+                    </a>
                     {item.amount !== undefined && (
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-xs">
                         Rs. {item.amount.toLocaleString()}
@@ -271,7 +285,7 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
                       {[item.name, item.city, item.phone].filter(Boolean).join(' • ')}
                     </span>
                     {item.orderRef && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">
                         Ref: {item.orderRef}
                       </span>
                     )}
@@ -282,12 +296,17 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {doc.trackingNumbers.map((cn, idx) => (
-                <div
+                <a
                   key={`${cn}-${idx}`}
-                  className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#0c121e] border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 select-all"
+                  href={`https://postex.pk/tracking?cn=${cn}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/70 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/40 font-mono text-xs text-slate-800 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-between transition-all cursor-pointer"
+                  title={`Track CN ${cn} on PostEx`}
                 >
-                  {cn}
-                </div>
+                  <span>{cn}</span>
+                  <ExternalLinkIcon size={11} className="text-emerald-500 opacity-70" />
+                </a>
               ))}
             </div>
           )}

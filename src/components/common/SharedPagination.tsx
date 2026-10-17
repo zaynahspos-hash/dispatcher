@@ -87,7 +87,7 @@ export function SharedPagination({
                 onPageSizeChange(newSize)
                 onPageChange(1) // Reset to first page on size change
               }}
-              className="h-8 px-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              className="h-8 px-3 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer transition"
             >
               {pageSizeOptions.map(opt => (
                 <option key={opt} value={opt}>
@@ -99,7 +99,7 @@ export function SharedPagination({
         )}
       </div>
 
-      {/* Right: Responsive Pagination Navigation Buttons */}
+      {/* Right: Responsive Pagination Navigation Buttons — Apple iOS Styling */}
       <div className="flex items-center gap-1 w-full sm:w-auto justify-center sm:justify-end">
         {/* First Page */}
         <button
@@ -107,7 +107,7 @@ export function SharedPagination({
           onClick={() => handlePageClick(1)}
           disabled={safePage <= 1}
           title="First Page"
-          className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-xs"
+          className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-2xs"
         >
           &laquo;
         </button>
@@ -118,7 +118,7 @@ export function SharedPagination({
           onClick={() => handlePageClick(safePage - 1)}
           disabled={safePage <= 1}
           title="Previous Page"
-          className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-xs font-semibold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-xs"
+          className="h-8 px-3 rounded-full flex items-center gap-1 text-xs font-medium transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-2xs"
         >
           <span>&lsaquo;</span>
           <span className="hidden sm:inline">Prev</span>
@@ -143,10 +143,10 @@ export function SharedPagination({
                 key={page}
                 type="button"
                 onClick={() => handlePageClick(page)}
-                className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition flex items-center justify-center cursor-pointer active:scale-95 shadow-xs ${
+                className={`h-8 min-w-[32px] px-2.5 rounded-full text-xs font-semibold transition-all flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs ${
                   isActive
-                    ? 'bg-emerald-600 text-white font-bold shadow-emerald-600/20'
-                    : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 {page}
@@ -161,7 +161,7 @@ export function SharedPagination({
           onClick={() => handlePageClick(safePage + 1)}
           disabled={safePage >= totalPages}
           title="Next Page"
-          className="h-8 px-2.5 rounded-lg flex items-center gap-1 text-xs font-semibold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-xs"
+          className="h-8 px-3 rounded-full flex items-center gap-1 text-xs font-medium transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-2xs"
         >
           <span className="hidden sm:inline">Next</span>
           <span>&rsaquo;</span>
@@ -173,7 +173,7 @@ export function SharedPagination({
           onClick={() => handlePageClick(totalPages)}
           disabled={safePage >= totalPages}
           title="Last Page"
-          className="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-xs"
+          className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer active:scale-95 shadow-2xs"
         >
           &raquo;
         </button>
