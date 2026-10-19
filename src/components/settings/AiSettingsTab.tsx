@@ -74,7 +74,7 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
   const [tempKey, setTempKey] = useState('')
   const activeProvider = settings.ai_provider || 'gemini'
   const activeMeta = PROVIDER_METADATA[activeProvider] || PROVIDER_METADATA.gemini
-  const currentKey = settings[`${activeProvider}_api_key` as keyof Settings] || ''
+  const currentKey = String(settings[`${activeProvider}_api_key` as keyof Settings] || '')
 
   return (
     <div className="space-y-5">

@@ -33,7 +33,7 @@ export function ParcelMobileCards({
   selected,
   toggleSelect,
   toggleAll,
-  onDeselectAll,
+  onDeselectAll: _onDeselectAll,
   updateField,
   deleteParcel,
   addRow,
@@ -42,8 +42,8 @@ export function ParcelMobileCards({
   setEditingCity,
   setCityFilter,
   filteredCities,
-  expandedRow,
-  setExpandedRow,
+  expandedRow: _expandedRow,
+  setExpandedRow: _setExpandedRow,
   orderTypes,
   conflictedIndices,
   conflictReasons,
@@ -58,7 +58,7 @@ export function ParcelMobileCards({
   // When bulk expand/collapse is triggered via top toolbar, reset individual card overrides so ALL cards follow the bulk state
   useEffect(() => {
     setCardOverrides({})
-  }, [autoExpandLines])
+  }, [autoExpandLines, expandDefaults])
 
   useEffect(() => {
     setExtraDetailsOpen({})
@@ -66,7 +66,7 @@ export function ParcelMobileCards({
 
   const handleToggleCard = (idx: number) => {
     setCardOverrides(prev => {
-      const current = prev[idx] !== undefined ? prev[idx] : !!autoExpandLines
+      const current = prev[idx] !== undefined ? prev[idx] : (!!autoExpandLines || !!expandDefaults)
       return { ...prev, [idx]: !current }
     })
   }
@@ -95,7 +95,7 @@ export function ParcelMobileCards({
       {parcels.map((parcel, i) => {
         const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
         const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
-        const isExpanded = cardOverrides[i] !== undefined ? cardOverrides[i] : !!autoExpandLines
+        const isExpanded = cardOverrides[i] !== undefined ? cardOverrides[i] : (!!autoExpandLines || !!expandDefaults)
         const isExtraOpen = extraDetailsOpen[i] !== undefined ? extraDetailsOpen[i] : !!expandDefaults
 
         return (
@@ -108,23 +108,23 @@ export function ParcelMobileCards({
             }`}
           >
             {/* Mobile Card Header */}
-            <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/80">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/80 gap-2">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <input
                   type="checkbox"
                   checked={selected.has(i)}
                   onChange={() => toggleSelect(i)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer shrink-0"
                 />
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
                   #{i + 1}
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 min-w-0 flex-1 max-w-[170px]">
                   <input
                     value={parcel.id || ''}
                     onChange={e => updateField(i, 'id', e.target.value)}
                     placeholder="Ref ID"
-                    className={`w-24 px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 ${
+                    className={`w-full min-w-[65px] px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 ${
                       conflictedIndices?.has(i)
                         ? 'bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-300 focus:ring-amber-500'
                         : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
@@ -135,7 +135,7 @@ export function ParcelMobileCards({
                       type="button"
                       onClick={() => onResolveSingleRow(i)}
                       title={`${conflictReasons?.get(i) === 'already_in_db' ? 'Already in DB' : 'Duplicate'} - Click to assign next available serial`}
-                      className="h-6 px-1.5 rounded bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] flex items-center gap-0.5 active:scale-95 cursor-pointer"
+                      className="h-6 px-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] flex items-center gap-0.5 active:scale-95 cursor-pointer shrink-0 whitespace-nowrap shadow-2xs"
                     >
                       <RefreshIcon size={9} />
                       <span>Next</span>
@@ -144,22 +144,22 @@ export function ParcelMobileCards({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
-                  Rs. {parcel.total || 0}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs whitespace-nowrap shrink-0">
+                  Rs. {Number(parcel.total || 0).toLocaleString()}
                 </span>
                 <button
                   type="button"
                   onClick={() => deleteParcel(i)}
                   title="Delete Row"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer active:scale-95"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer active:scale-95 shrink-0"
                 >
                   <TrashIcon size={14} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleToggleCard(i)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer active:scale-95"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer active:scale-95 shrink-0"
                   title={isExpanded ? 'Collapse card' : 'Expand card'}
                 >
                   <svg

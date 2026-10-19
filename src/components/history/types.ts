@@ -15,12 +15,90 @@ export interface BookedParcel {
   orderType?: string
   whatsapp_sent?: boolean
   whatsappSent?: boolean
+  whatsapp_booking_sent?: boolean
+  whatsapp_status_sent?: boolean
   whatsapp_sent_at?: string
   whatsappSentAt?: string
   loadsheet_generated?: boolean
+  hasLoadSheet?: boolean
+  source?: 'app' | 'postex_portal'
+  updated_at?: string
+  whatsapp_milestones?: { [milestone: string]: boolean }
 }
 
-export type StatusFilterType = 'pending_loadsheet' | 'all' | 'booked' | 'intransit' | 'delivered' | 'returned' | 'cancelled'
+export type WhatsAppAlertState = 'none' | 'booking_only' | 'status_only' | 'both'
+
+export type StatusFilterType = 
+  | 'pending_loadsheet' 
+  | 'all' 
+  | 'booked' 
+  | 'intransit' 
+  | 'out_for_delivery'
+  | 'action_required'
+  | 'delivered' 
+  | 'returned' 
+  | 'cancelled'
+
+export type SourceFilterType = 'all' | 'app' | 'postex_portal'
+
+export type WhatsAppMilestone = 'booking' | 'in_transit' | 'out_for_delivery' | 'action_required' | 'delivered'
+
+/**
+ * Single source of truth helper to check if a parcel has had a WhatsApp alert sent.
+ * Resolves both cloud-synced fields and local reactive tracker without discrepancy.
+ */
+export const isParcelWhatsAppSent = (
+  parcel: {
+    whatsapp_sent?: boolean
+    whatsappSent?: boolean
+    whatsapp_booking_sent?: boolean
+    whatsapp_status_sent?: boolean
+    tracking?: string
+    id?: string
+  },
+  isTrackerSent?: (key?: string | null) => boolean
+): boolean => {
+  if (parcel.whatsapp_sent === true || parcel.whatsappSent === true) return true
+  if (parcel.whatsapp_booking_sent === true || parcel.whatsapp_status_sent === true) return true
+  if (isTrackerSent) {
+    if (parcel.tracking && isTrackerSent(parcel.tracking)) return true
+    if (parcel.id && isTrackerSent(parcel.id)) return true
+  }
+  return false
+}
+
+export const getLocalTodayDate = (): string => {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export const getParcelDateStr = (dateVal?: string): string => {
+  if (!dateVal) return ''
+  const str = String(dateVal).trim()
+  if (!str) return ''
+  if (str.includes('T') || str.includes('Z')) {
+    const d = new Date(str)
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+  }
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`
+  const d = new Date(str)
+  if (!isNaN(d.getTime())) {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  return ''
+}
 
 export interface ActionStatusState {
   type: 'success' | 'error'
@@ -32,19 +110,13 @@ export interface ActionStatusState {
 export const isCancelledStatus = (status: string) => {
   if (!status) return false
   const s = status.toLowerCase()
-  return s.includes('cancel') || s === 'unbooked'
+  return s.includes('cancel')
 }
 
 export const isBookedStatus = (status: string) => {
   if (!status) return false
   const s = status.toLowerCase()
-  return s === 'booked' || s === 'success' || s.includes('unassigned') || s.includes('un-assigned') || s.includes('unasined')
-}
-
-export const isUnbookedStatus = (status: string) => {
-  if (!status) return false
-  const s = status.toLowerCase()
-  return s === 'unbooked' || s.includes('cancel')
+  return s === 'booked' || s === 'success' || s.includes('unassigned') || s.includes('un-assigned') || s.includes('unasined') || s === 'manifested'
 }
 
 export const isDeliveredStatus = (status: string) => {
@@ -56,41 +128,73 @@ export const isDeliveredStatus = (status: string) => {
   return s.includes('delivered') || s === 'deliver'
 }
 
-export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
-  if (!status) return 'Booked'
-  if (isCancelledStatus(status)) return 'Cancelled'
-  if (isDeliveredStatus(status)) return 'Delivered'
-  const s = status.toLowerCase().trim()
-  if (s.includes('return') && !s.includes('return to sender requested')) return 'Returned'
-  if (isUnderReview(status)) return 'Under Review'
+export const isOutForDelivery = (status: string) => {
+  if (!status) return false
+  const s = status.toLowerCase()
+  return s.includes('out for delivery') || s.includes('waiting for delivery') || s.includes('with rider')
+}
 
-  // Clean redundant "for CN ..." or "for Tracking ..." suffixes from PostEx timeline entries
-  const clean = status.replace(/\s+for\s+(CN|Tracking)\s+[\w\d]+/gi, '').trim()
-
-  if (
-    s.includes('transit') ||
-    s.includes('out for delivery') ||
-    s.includes('waiting for delivery') ||
-    s.includes('dispatched') ||
-    s.includes('depart') ||
-    s.includes('route') ||
-    s.includes('warehouse') ||
-    s.includes('hub') ||
-    s.includes('station') ||
-    s.includes('arrive') ||
-    s.includes('pick')
-  ) {
-    return clean
-  }
-  if (hasLoadSheet && isBookedStatus(status)) return 'Manifested'
-  if (isBookedStatus(status)) return 'Booked'
-  return clean
+export const isActionRequired = (status: string) => {
+  if (!status) return false
+  const s = status.toLowerCase()
+  return s.includes('review') || s.includes('attempt') || s.includes('unreachable') || s.includes('refused') || s.includes('failed') || s.includes('hold')
 }
 
 export const isUnderReview = (status: string) => {
-  if (!status) return false
-  const s = status.toLowerCase()
-  return s.includes('review') || s.includes('under review') || s.includes('attempt')
+  return isActionRequired(status)
+}
+
+export const isUnbookedStatus = (status: string) => {
+  if (!status) return true
+  const s = status.toLowerCase().trim()
+  return (
+    s === 'unbooked' ||
+    s.includes('un-assigned') ||
+    s.includes('unassigned') ||
+    s === 'success' ||
+    (s.startsWith('at ') && s.includes('warehouse') && !s.includes('postex'))
+  )
+}
+
+export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
+  if (!status) return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
+  if (isCancelledStatus(status)) return 'Cancelled'
+  if (isDeliveredStatus(status)) return 'Delivered'
+  if (isOutForDelivery(status)) return 'Out for Delivery'
+  if (isActionRequired(status)) return 'Action Required'
+  const s = status.toLowerCase().trim()
+  if (s.includes('return') && !s.includes('return to sender requested')) return 'Returned'
+
+  // If status is warehouse pickup (e.g. "At Little Mister Kids Clothing Warehouse"):
+  if (s.startsWith('at ') && s.includes('warehouse') && !s.includes('postex')) {
+    return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
+  }
+
+  // If PostEx rider picked it up:
+  if (s.includes('picked by postex') || s.includes('picked up')) {
+    return 'Picked by Courier'
+  }
+
+  // If in courier transit network:
+  if (
+    s.includes('transit') ||
+    s.includes('dispatched') ||
+    s.includes('depart') ||
+    s.includes('route') ||
+    s.includes('hub') ||
+    s.includes('station') ||
+    s.includes('arrive') ||
+    s.includes('postex warehouse')
+  ) {
+    return 'In Transit'
+  }
+
+  if (hasLoadSheet) return 'Ready for Pickup'
+  if (isUnbookedStatus(s) || s === 'booked') return 'Pending Loadsheet'
+
+  // Clean redundant "for CN ..." or "for Tracking ..." suffixes from PostEx timeline entries
+  const clean = status.replace(/\s+for\s+(CN|Tracking)\s+[\w\d]+/gi, '').trim()
+  return clean
 }
 
 export const determineNewStatus = (currentStatus: string, fetchedStatus: string) => {
@@ -106,41 +210,73 @@ export const determineNewStatus = (currentStatus: string, fetchedStatus: string)
   return clean
 }
 
-export const getStatusCategory = (status: string, tracking: string): StatusFilterType => {
+export const getStatusCategory = (status: string, _tracking?: string, hasLoadSheet?: boolean): StatusFilterType => {
   if (isCancelledStatus(status)) return 'cancelled'
   if (isDeliveredStatus(status)) return 'delivered'
+  if (isActionRequired(status)) return 'action_required'
+  if (isOutForDelivery(status)) return 'out_for_delivery'
   
-  const s = (status || '').toLowerCase()
+  const s = (status || '').toLowerCase().trim()
   if (s.includes('return') && !s.includes('return to sender requested')) return 'returned'
-  
-  // Transit statuses (courier handling, moving, warehouse, dispatch, departure, delivery out, review)
+
+  // Real courier transit statuses (moving in courier network)
   if (
+    s.includes('postex warehouse') ||
+    s.includes('picked by postex') ||
     s.includes('transit') || 
     s.includes('dispatch') || 
     s.includes('depart') ||
     s.includes('ship') || 
     s.includes('arrive') || 
-    s.includes('pick') || 
-    s.includes('hold') || 
-    s.includes('attempt') || 
-    s.includes('review') ||
-    s.includes('warehouse') ||
-    s.includes('route') ||
     s.includes('en-route') ||
     s.includes('en route') ||
-    s.includes('out for delivery') ||
-    s.includes('waiting for delivery') ||
     s.includes('hub') ||
     s.includes('station')
   ) {
     return 'intransit'
   }
 
-  if (!tracking) {
+  // If loadsheet has been generated, it is manifested / booked
+  if (hasLoadSheet) {
+    return 'booked'
+  }
+
+  // If status is Unbooked, or at merchant warehouse, or has no loadsheet yet, it is pending loadsheet
+  if (
+    isUnbookedStatus(s) || 
+    s === 'booked' || 
+    (s.startsWith('at ') && s.includes('warehouse') && !s.includes('postex'))
+  ) {
     return 'pending_loadsheet'
   }
-  
+
   return 'booked'
+}
+
+/**
+ * Shared SSOT for status badge styling across Desktop table, Mobile cards, and modals.
+ * Uses clean Apple-grade alpha opacity in dark mode and subtle pastel borders in light mode.
+ */
+export const getStatusBadgeStyle = (status: string, tracking?: string, hasLoadSheet?: boolean): string => {
+  const cat = getStatusCategory(status, tracking, hasLoadSheet)
+  const underReview = isUnderReview(status)
+
+  if (cat === 'delivered' || cat === 'booked' || status === 'success') {
+    return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-400'
+  }
+  if (cat === 'intransit' || cat === 'out_for_delivery') {
+    return 'bg-sky-500/10 border-sky-500/25 text-sky-700 dark:text-sky-400'
+  }
+  if (cat === 'cancelled' || cat === 'returned') {
+    return 'bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-400'
+  }
+  if (underReview || cat === 'action_required') {
+    return 'bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-400'
+  }
+  if (cat === 'pending_loadsheet') {
+    return 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400'
+  }
+  return 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
 }
 
 export const isCancellable = (status: string, hasLoadSheet?: boolean, tracking?: string) => {
@@ -161,16 +297,95 @@ export const isCancellable = (status: string, hasLoadSheet?: boolean, tracking?:
     s.includes('waiting for delivery') ||
     s.includes('dispatched') ||
     s.includes('picked') ||
-    s.includes('review')
+    s.includes('review') ||
+    s.includes('attempt')
   ) {
     return false
   }
   const cat = getStatusCategory(status, tracking || 'dummy')
-  if (cat === 'intransit' || cat === 'delivered' || cat === 'returned' || cat === 'cancelled') return false
+  if (cat === 'intransit' || cat === 'out_for_delivery' || cat === 'action_required' || cat === 'delivered' || cat === 'returned' || cat === 'cancelled') return false
   return true
 }
 
-export const getWhatsAppLink = (parcel: BookedParcel, whatsappNote?: string, whatsappTemplate?: string) => {
+export const DEFAULT_MILESTONE_TEMPLATES: Record<WhatsAppMilestone, string> = {
+  booking: '📦 postex.pk • Tracking Alert 🚚\n\nDear {customer_name}, aap ka order book ho gaya hai! 🎉\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
+  in_transit: '🚚 postex.pk • Shipment In Transit 🛣️\n\nDear {customer_name}, aap ka parcel courier network mein on the way hai! 📦💨\nLive Status: {live_status}\nTracking CN: {tracking_number}\nLive Link: 🔗 {portal_link}\n\n{note}',
+  out_for_delivery: '🛵 postex.pk • Out For Delivery Alert 🚚\n\nDear {customer_name}, aap ka parcel Rider ke sath Out for Delivery nikal chuka hai! 📦💨\nOrder Total: Rs. {order_amount} 💵\nTracking: {portal_link} 🔗\n\nMeharbani farma kar apna phone ON rakhain 📱 aur cash tayyar rakhain 💵 taake rider asani se parcel deliver kar sakay. 🤝',
+  action_required: '⚠️ postex.pk • Delivery Update Required 📞\n\nDear {customer_name}, rider ne aap ke order (Tracking: {tracking_number}) ki delivery koshish ki thi magar rabta nahi ho saka! 📵\nBarah-e-karam hume yahan WhatsApp par reply kar ke confirm karein ke delivery kis waqt karein 🕒 ya alternate number share karein taake order return na ho. 🙏',
+  delivered: '✅ postex.pk • Order Delivered 🎉\n\nDear {customer_name}, aap ka parcel successfully deliver ho chuka hai! 🛍️✨\nThank you for shopping with us! ❤️\nAgar koi feedback ya review ho to zaroor share karein. ⭐⭐⭐⭐⭐'
+}
+
+export const detectParcelMilestone = (parcel: BookedParcel): WhatsAppMilestone => {
+  if (isDeliveredStatus(parcel.status)) return 'delivered'
+  if (isOutForDelivery(parcel.status)) return 'out_for_delivery'
+  if (isActionRequired(parcel.status) || isUnderReview(parcel.status)) return 'action_required'
+  const cat = getStatusCategory(parcel.status, parcel.tracking, Boolean(parcel.hasLoadSheet || (parcel as any).has_load_sheet))
+  if (cat === 'intransit') return 'in_transit'
+  return 'booking'
+}
+
+export const getMilestoneInfo = (milestone: WhatsAppMilestone) => {
+  switch (milestone) {
+    case 'delivered':
+      return {
+        label: 'Delivered',
+        iconType: 'check' as const,
+        shortLabel: 'Delivered',
+        colorClass: 'border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+      }
+    case 'out_for_delivery':
+      return {
+        label: 'Out for Delivery',
+        iconType: 'truck' as const,
+        shortLabel: 'Out for Delivery',
+        colorClass: 'border-blue-200 dark:border-blue-800/80 bg-blue-50/70 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+      }
+    case 'action_required':
+      return {
+        label: 'Action Required',
+        iconType: 'alert' as const,
+        shortLabel: 'Issue Alert',
+        colorClass: 'border-amber-200 dark:border-amber-800/80 bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+      }
+    case 'in_transit':
+      return {
+        label: 'In Transit',
+        iconType: 'truck' as const,
+        shortLabel: 'In Transit',
+        colorClass: 'border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
+      }
+    case 'booking':
+    default:
+      return {
+        label: 'Ready for Pickup',
+        iconType: 'package' as const,
+        shortLabel: 'Ready',
+        colorClass: 'border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+      }
+  }
+}
+
+export const isCorruptText = (txt?: string): boolean => {
+  if (!txt) return true
+  if (
+    txt.includes('\uFFFD') || 
+    txt.includes('\uFFFE') || 
+    txt.includes('\uFFFF') || 
+    txt.includes('') || 
+    txt.includes('%EF%BF%BD') || 
+    txt.includes('%ef%bf%bd')
+  ) {
+    return true
+  }
+  return false
+}
+
+export const getWhatsAppLink = (
+  parcel: BookedParcel, 
+  whatsappNote?: string, 
+  whatsappTemplate?: string,
+  milestone: WhatsAppMilestone | 'auto' = 'booking'
+) => {
   let cleanPhone = parcel.phone.replace(/\D/g, '')
   if (cleanPhone.startsWith('0')) {
     cleanPhone = '92' + cleanPhone.substring(1)
@@ -179,23 +394,135 @@ export const getWhatsAppLink = (parcel: BookedParcel, whatsappNote?: string, wha
   }
 
   const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-  const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
-  const noteContent = whatsappNote && whatsappNote !== 'Thank you for shopping with us!' && whatsappNote.includes('\u{1F4F1}') ? whatsappNote : defaultNote
+  const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
   
-  const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
-  let template = whatsappTemplate || 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
+  // Clean any broken \uFFFD replacement characters from legacy corrupt strings
+  const sanitizeText = (txt: string) => {
+    if (!txt) return ''
+    return txt.replace(/[\uFFFD\uFFFE\uFFFF]/g, '').trim()
+  }
 
-  // Upgrade legacy default templates to include rich emoji alert
-  if (template.includes('Dear {name}, your order has been booked') || !template.includes('\u2705')) {
-    template = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
+  const noteIsCorrupt = !whatsappNote || isCorruptText(whatsappNote) || !whatsappNote.includes('📱')
+  const rawNote = (!noteIsCorrupt && whatsappNote && whatsappNote !== 'Thank you for shopping with us!') 
+    ? whatsappNote 
+    : defaultNote
+  let noteContent = sanitizeText(rawNote)
+  if (!noteContent || isCorruptText(noteContent) || !noteContent.includes('📱')) {
+    noteContent = defaultNote
+  }
+  
+  const effectiveMilestone: WhatsAppMilestone = milestone === 'auto' ? detectParcelMilestone(parcel) : milestone
+  const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
+  
+  // For milestones other than booking, ALWAYS use rich milestone-specific template with authentic emojis
+  // For booking, verify template has real emojis and is NOT corrupt
+  const templateIsCorrupt = !whatsappTemplate || isCorruptText(whatsappTemplate) || !whatsappTemplate.includes('📦')
+  let template = (effectiveMilestone === 'booking' && !templateIsCorrupt && whatsappTemplate)
+    ? whatsappTemplate
+    : (DEFAULT_MILESTONE_TEMPLATES[effectiveMilestone] || DEFAULT_MILESTONE_TEMPLATES.booking)
+
+  template = sanitizeText(template)
+  if (!template || isCorruptText(template) || (effectiveMilestone === 'booking' && !template.includes('📦'))) {
+    template = DEFAULT_MILESTONE_TEMPLATES[effectiveMilestone] || DEFAULT_MILESTONE_TEMPLATES.booking
   }
 
   template = template
-    .replace(/{(?:name|customer_name)}/g, parcel.name)
+    .replace(/{(?:name|customer_name)}/g, parcel.name || 'Valued Customer')
     .replace(/{(?:url|portal_link)}/g, trackingUrl)
     .replace(/{(?:amount|order_amount|total)}/g, formattedTotal)
     .replace(/{(?:tracking|tracking_number)}/g, parcel.tracking || '')
+    .replace(/{city}/g, parcel.city || '')
+    .replace(/{(?:status|live_status)}/g, parcel.status || '')
+    .replace(/{items}/g, String(parcel.items || 1))
     .replace(/{note}/g, noteContent)
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template)}`
 }
+
+export const isPlaceholder = (val: string) => {
+  const v = (val || '').trim().toLowerCase()
+  return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
+}
+
+export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]): BookedParcel[] {
+  if (!postExOrders || !Array.isArray(postExOrders) || postExOrders.length === 0) return history
+  const map = new Map<string, BookedParcel>()
+
+  // 1. Index existing history
+  history.forEach(p => {
+    const trackKey = (p.tracking || '').trim().toLowerCase()
+    const idKey = (p.id || '').trim().toLowerCase()
+    if (trackKey) map.set(trackKey, p)
+    if (idKey && !map.has(idKey)) map.set(idKey, p)
+  })
+
+  // 2. Merge PostEx orders
+  postExOrders.forEach(order => {
+    const tracking = (order.trackingNumber || '').trim()
+    const ref = (order.orderRefNumber || '').trim()
+    const trackKey = tracking.toLowerCase()
+    const refKey = ref.toLowerCase()
+
+    const existing = (trackKey && map.get(trackKey)) || (refKey && map.get(refKey))
+    const rawOrderStatus = (order.transactionStatus || order.orderStatus || '').trim()
+    const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
+    const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
+
+    if (existing) {
+      const rawStatus = rawOrderStatus || existing.status
+      const updatedStatus = isUnbooked ? 'UNBOOKED' : determineNewStatus(existing.status, rawStatus)
+      const effectiveHasLoadSheet = isUnbooked ? false : (Boolean(existing.hasLoadSheet) || hasLoadSheet)
+      const merged: BookedParcel = {
+        ...existing,
+        tracking: tracking || existing.tracking,
+        status: updatedStatus,
+        hasLoadSheet: effectiveHasLoadSheet,
+        loadsheet_generated: effectiveHasLoadSheet,
+        name: isPlaceholder(existing.name) && order.customerName ? order.customerName : existing.name,
+        phone: !existing.phone && order.customerPhone ? order.customerPhone : existing.phone,
+        city: !existing.city && order.cityName ? order.cityName : existing.city,
+        address: !existing.address && order.deliveryAddress ? order.deliveryAddress : existing.address,
+        total: (!existing.total || existing.total === 0) && order.invoicePayment ? Number(order.invoicePayment) : existing.total
+      }
+      if (trackKey) map.set(trackKey, merged)
+      if (refKey) map.set(refKey, merged)
+    } else if (tracking) {
+      const newParcel: BookedParcel = {
+        id: ref || tracking,
+        name: order.customerName || 'Customer',
+        phone: order.customerPhone || '',
+        city: order.cityName || '',
+        address: order.deliveryAddress || '',
+        total: Number(order.invoicePayment || 0),
+        items: Number(order.items || 1),
+        weight: 0.5,
+        detail: order.orderDetail || 'Kids Clothes',
+        note: order.transactionNotes || '',
+        tracking: tracking,
+        bookingDate: order.transactionDate ? new Date(order.transactionDate).toISOString() : new Date().toISOString(),
+        status: order.transactionStatus || (hasLoadSheet ? 'BOOKED' : 'UNBOOKED'),
+        orderType: 'Normal',
+        source: 'postex_portal',
+        hasLoadSheet,
+        loadsheet_generated: hasLoadSheet,
+        whatsapp_sent: false,
+        whatsappSent: false
+      }
+      map.set(trackKey, newParcel)
+      if (refKey) map.set(refKey, newParcel)
+    }
+  })
+
+  // Return unique parcels sorted by bookingDate desc
+  const uniqueParcels = new Map<string, BookedParcel>()
+  map.forEach(parcel => {
+    const key = parcel.tracking || parcel.id
+    if (key && !uniqueParcels.has(key)) {
+      uniqueParcels.set(key, parcel)
+    }
+  })
+
+  return Array.from(uniqueParcels.values())
+    .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
+}
+

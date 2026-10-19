@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { BookedParcel } from '../components/history/types'
+import { useState, useEffect, useCallback } from 'react'
+import { BookedParcel, WhatsAppAlertState } from '../components/history/types'
 
-const STORAGE_KEY = 'zaynah_whatsapp_sent_v1'
+const STORAGE_KEY_BOOKING = 'zaynah_wa_booking_sent_v2'
+const STORAGE_KEY_STATUS = 'zaynah_wa_status_sent_v2'
 
 export interface WhatsAppSentTracker {
   isSent: (key?: string | null) => boolean
-  markSent: (...keys: (string | undefined | null)[]) => void
+  isBookingSent: (tracking?: string | null, id?: string | null) => boolean
+  isStatusSent: (tracking?: string | null, id?: string | null) => boolean
+  getAlertState: (tracking?: string | null, id?: string | null) => WhatsAppAlertState
+  markSent: (key: string | undefined | null, type?: 'booking' | 'status' | 'both', id?: string | null) => void
   toggleSent: (key?: string | null) => void
   sentSet: Set<string>
   sentCount: number
@@ -17,9 +21,15 @@ const cleanKey = (key?: string | null): string => {
 }
 
 /**
- * Global and per-user reactive tracker for sent WhatsApp tracking notifications.
- * Persists sent tracking numbers & order IDs in:
- * 1. Fast client-side localStorage (for 0ms instant UI rendering on refresh)
+ * Multi-device, real-time reactive tracker for WhatsApp notifications.
+ * Distinguishes:
+ * 1. Booking Alert Sent (Sky Blue indicator)
+ * 2. Real Status Alert Sent (Amber indicator)
+ * 3. Both Alerts Sent (Solid Emerald indicator)
+ * 4. None Sent (Soft outline)
+ *
+ * Persists in:
+ * 1. Fast client-side localStorage (for 0ms instant UI rendering)
  * 2. Supabase booked_history table (for multi-device sync across mobile & desktop)
  */
 export function useWhatsAppSentTracker(
@@ -27,11 +37,10 @@ export function useWhatsAppSentTracker(
   history?: BookedParcel[],
   onUpdateHistory?: (updated: BookedParcel[]) => void
 ): WhatsAppSentTracker {
-  const storageKey = userId ? `${STORAGE_KEY}_${userId}` : STORAGE_KEY
-  const migrationDoneRef = useRef(false)
+  const bookingKey = userId ? `${STORAGE_KEY_BOOKING}_${userId}` : STORAGE_KEY_BOOKING
+  const statusKey = userId ? `${STORAGE_KEY_STATUS}_${userId}` : STORAGE_KEY_STATUS
 
-  // Helper to load keys from localStorage (combines scoped key and global fallback)
-  const loadLocalKeys = useCallback((key: string): Set<string> => {
+  const loadLocalSet = useCallback((key: string): Set<string> => {
     const set = new Set<string>()
     try {
       const stored = localStorage.getItem(key)
@@ -44,29 +53,18 @@ export function useWhatsAppSentTracker(
           })
         }
       }
-      // Also check fallback global key for backward-compatibility
-      const globalStored = localStorage.getItem(STORAGE_KEY)
-      if (globalStored && globalStored !== stored) {
-        const arr = JSON.parse(globalStored)
-        if (Array.isArray(arr)) {
-          arr.forEach(s => {
-            const c = cleanKey(s)
-            if (c) set.add(c)
-          })
-        }
-      }
     } catch (e) {
-      console.warn('[useWhatsAppSentTracker] Failed to load sent set:', e)
+      console.warn('[useWhatsAppSentTracker] Failed to load local set:', e)
     }
     return set
   }, [])
 
-  const [sentSet, setSentSet] = useState<Set<string>>(() => {
-    const initial = loadLocalKeys(storageKey)
-    // Seed from history if provided on initial mount
+  const [bookingSet, setBookingSet] = useState<Set<string>>(() => {
+    const initial = loadLocalSet(bookingKey)
     if (history && history.length > 0) {
       history.forEach(p => {
-        if (p.whatsapp_sent || p.whatsappSent) {
+        const isBooking = p.whatsapp_booking_sent === true || (p.whatsapp_booking_sent === undefined && p.whatsapp_status_sent !== true && (p.whatsapp_sent || p.whatsappSent))
+        if (isBooking) {
           if (p.tracking) initial.add(cleanKey(p.tracking))
           if (p.id) initial.add(cleanKey(p.id))
         }
@@ -75,183 +73,184 @@ export function useWhatsAppSentTracker(
     return initial
   })
 
-  // Re-sync whenever storageKey (e.g. userId resolves) or history changes
-  useEffect(() => {
-    const localKeys = loadLocalKeys(storageKey)
-    const combined = new Set<string>(localKeys)
-
-    let historyHasNew = false
+  const [statusSet, setStatusSet] = useState<Set<string>>(() => {
+    const initial = loadLocalSet(statusKey)
     if (history && history.length > 0) {
       history.forEach(p => {
-        if (p.whatsapp_sent || p.whatsappSent) {
-          const t = cleanKey(p.tracking)
-          const i = cleanKey(p.id)
-          if (t && !combined.has(t)) {
-            combined.add(t)
-            historyHasNew = true
-          }
-          if (i && !combined.has(i)) {
-            combined.add(i)
-            historyHasNew = true
-          }
+        if (p.whatsapp_status_sent === true) {
+          if (p.tracking) initial.add(cleanKey(p.tracking))
+          if (p.id) initial.add(cleanKey(p.id))
         }
       })
     }
+    return initial
+  })
 
-    setSentSet(prev => {
-      let isDifferent = prev.size !== combined.size
-      if (!isDifferent) {
-        for (const item of combined) {
-          if (!prev.has(item)) {
-            isDifferent = true
-            break
-          }
-        }
-      }
-      return isDifferent ? combined : prev
-    })
-
-    // If history brought new keys, sync them to localStorage
-    if (historyHasNew) {
-      try {
-        const arr = Array.from(combined)
-        localStorage.setItem(storageKey, JSON.stringify(arr))
-      } catch {
-        // ignore
-      }
-    }
-  }, [storageKey, history, loadLocalKeys])
-
-  // One-time self-healing migration: if localStorage has keys that history lacks, push to history & DB
+  // Synchronize state when history updates from Supabase Realtime
   useEffect(() => {
-    if (migrationDoneRef.current || !history || history.length === 0 || !onUpdateHistory) return
+    if (!history || history.length === 0) return
 
-    let needsUpdate = false
-    const updated = history.map(p => {
-      const isAlreadySent = Boolean(p.whatsapp_sent || p.whatsappSent)
-      if (!isAlreadySent) {
+    setBookingSet(prev => {
+      const next = new Set(prev)
+      let changed = false
+      history.forEach(p => {
+        const isBooking = p.whatsapp_booking_sent === true || (p.whatsapp_booking_sent === undefined && p.whatsapp_status_sent !== true && (p.whatsapp_sent || p.whatsappSent))
         const t = cleanKey(p.tracking)
         const i = cleanKey(p.id)
-        if ((t && sentSet.has(t)) || (i && sentSet.has(i))) {
-          needsUpdate = true
-          return {
-            ...p,
-            whatsapp_sent: true,
-            whatsappSent: true,
-            whatsapp_sent_at: p.whatsapp_sent_at || new Date().toISOString()
-          }
+        if (isBooking) {
+          if (t && !next.has(t)) { next.add(t); changed = true }
+          if (i && !next.has(i)) { next.add(i); changed = true }
+        } else if (p.whatsapp_booking_sent === false) {
+          if (t && next.has(t)) { next.delete(t); changed = true }
+          if (i && next.has(i)) { next.delete(i); changed = true }
         }
+      })
+      if (changed) {
+        try {
+          localStorage.setItem(bookingKey, JSON.stringify(Array.from(next)))
+        } catch {}
+        return next
       }
-      return p
+      return prev
     })
 
-    if (needsUpdate) {
-      migrationDoneRef.current = true
-      onUpdateHistory(updated)
-    }
-  }, [history, sentSet, onUpdateHistory])
-
-  // Sync across browser tabs
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if ((e.key === storageKey || e.key === STORAGE_KEY) && e.newValue) {
-        try {
-          const arr = JSON.parse(e.newValue)
-          if (Array.isArray(arr)) {
-            setSentSet(prev => {
-              const next = new Set(prev)
-              arr.forEach(s => {
-                const c = cleanKey(s)
-                if (c) next.add(c)
-              })
-              return next
-            })
-          }
-        } catch {
-          // ignore
+    setStatusSet(prev => {
+      const next = new Set(prev)
+      let changed = false
+      history.forEach(p => {
+        const isStatus = p.whatsapp_status_sent === true
+        const t = cleanKey(p.tracking)
+        const i = cleanKey(p.id)
+        if (isStatus) {
+          if (t && !next.has(t)) { next.add(t); changed = true }
+          if (i && !next.has(i)) { next.add(i); changed = true }
+        } else if (p.whatsapp_status_sent === false) {
+          if (t && next.has(t)) { next.delete(t); changed = true }
+          if (i && next.has(i)) { next.delete(i); changed = true }
         }
+      })
+      if (changed) {
+        try {
+          localStorage.setItem(statusKey, JSON.stringify(Array.from(next)))
+        } catch {}
+        return next
       }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [storageKey])
+      return prev
+    })
+  }, [history, bookingKey, statusKey])
 
-  // Sync across components in the same window
-  useEffect(() => {
-    const handleCustom = (e: Event) => {
-      const customEvent = e as CustomEvent<string[]>
-      if (customEvent.detail && Array.isArray(customEvent.detail)) {
-        setSentSet(prev => {
-          const next = new Set(prev)
-          customEvent.detail.forEach(s => {
-            const c = cleanKey(s)
-            if (c) next.add(c)
-          })
-          return next
-        })
-      }
-    }
-    window.addEventListener('zaynah:whatsapp_sent_updated', handleCustom)
-    return () => window.removeEventListener('zaynah:whatsapp_sent_updated', handleCustom)
-  }, [])
-
-  const saveSet = useCallback((newSet: Set<string>) => {
-    setSentSet(newSet)
+  const saveBookingSet = useCallback((newSet: Set<string>) => {
+    setBookingSet(newSet)
     try {
       const arr = Array.from(newSet)
-      localStorage.setItem(storageKey, JSON.stringify(arr))
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr))
-      window.dispatchEvent(new CustomEvent('zaynah:whatsapp_sent_updated', { detail: arr }))
-    } catch (e) {
-      console.warn('[useWhatsAppSentTracker] Failed to persist sent set:', e)
+      localStorage.setItem(bookingKey, JSON.stringify(arr))
+      window.dispatchEvent(new CustomEvent('zaynah:wa_booking_updated', { detail: arr }))
+    } catch {}
+  }, [bookingKey])
+
+  const saveStatusSet = useCallback((newSet: Set<string>) => {
+    setStatusSet(newSet)
+    try {
+      const arr = Array.from(newSet)
+      localStorage.setItem(statusKey, JSON.stringify(arr))
+      window.dispatchEvent(new CustomEvent('zaynah:wa_status_updated', { detail: arr }))
+    } catch {}
+  }, [statusKey])
+
+  const getAlertState = useCallback((tracking?: string | null, id?: string | null): WhatsAppAlertState => {
+    const t = cleanKey(tracking)
+    const i = cleanKey(id)
+
+    // Check history (authoritative Supabase cloud source)
+    if (history && history.length > 0) {
+      const matched = history.find(p => (t && cleanKey(p.tracking) === t) || (i && cleanKey(p.id) === i))
+      if (matched) {
+        let bSent = matched.whatsapp_booking_sent === true || (t && bookingSet.has(t)) || (i && bookingSet.has(i))
+        let sSent = matched.whatsapp_status_sent === true || (t && statusSet.has(t)) || (i && statusSet.has(i))
+
+        // If legacy whatsapp_sent / whatsappSent is true, booking is definitely sent
+        if (matched.whatsapp_sent === true || matched.whatsappSent === true) {
+          bSent = true
+        }
+
+        if (bSent && sSent) return 'both'
+        if (bSent) return 'booking_only'
+        if (sSent) return 'status_only'
+        return 'none'
+      }
     }
-  }, [storageKey])
+
+    const bSent = (t && bookingSet.has(t)) || (i && bookingSet.has(i))
+    const sSent = (t && statusSet.has(t)) || (i && statusSet.has(i))
+    if (bSent && sSent) return 'both'
+    if (bSent) return 'booking_only'
+    if (sSent) return 'status_only'
+
+    return 'none'
+  }, [history, bookingSet, statusSet])
+
+  const isBookingSent = useCallback((tracking?: string | null, id?: string | null): boolean => {
+    const state = getAlertState(tracking, id)
+    return state === 'booking_only' || state === 'both'
+  }, [getAlertState])
+
+  const isStatusSent = useCallback((tracking?: string | null, id?: string | null): boolean => {
+    const state = getAlertState(tracking, id)
+    return state === 'status_only' || state === 'both'
+  }, [getAlertState])
 
   const isSent = useCallback((key?: string | null): boolean => {
     const cleaned = cleanKey(key)
     if (!cleaned) return false
-
-    if (sentSet.has(cleaned)) return true
-
+    if (bookingSet.has(cleaned) || statusSet.has(cleaned)) return true
     if (history && history.length > 0) {
-      const matched = history.find(p => cleanKey(p.tracking) === cleaned || cleanKey(p.id) === cleaned)
-      if (matched && (matched.whatsapp_sent || matched.whatsappSent)) {
+      const matched = history.find(p => (p.tracking && cleanKey(p.tracking) === cleaned) || (p.id && cleanKey(p.id) === cleaned))
+      if (matched && (matched.whatsapp_sent || matched.whatsappSent || matched.whatsapp_booking_sent || matched.whatsapp_status_sent)) {
         return true
       }
     }
-
     return false
-  }, [sentSet, history])
+  }, [bookingSet, statusSet, history])
 
-  const markSent = useCallback((...keys: (string | undefined | null)[]) => {
-    const next = new Set(sentSet)
-    const normalizedToMark: string[] = []
+  const markSent = useCallback((
+    key: string | undefined | null, 
+    type: 'booking' | 'status' | 'both' = 'booking',
+    id?: string | null
+  ) => {
+    const t = cleanKey(key)
+    const i = cleanKey(id)
+    const keysToMark = [t, i].filter(Boolean)
+    if (keysToMark.length === 0) return
 
-    keys.forEach(k => {
-      const cleaned = cleanKey(k)
-      if (cleaned) {
-        normalizedToMark.push(cleaned)
-        if (!next.has(cleaned)) {
-          next.add(cleaned)
-        }
-      }
-    })
+    const nextBooking = new Set(bookingSet)
+    const nextStatus = new Set(statusSet)
 
-    saveSet(next)
+    if (type === 'booking' || type === 'both') {
+      keysToMark.forEach(k => nextBooking.add(k))
+      saveBookingSet(nextBooking)
+    }
+    if (type === 'status' || type === 'both') {
+      keysToMark.forEach(k => nextStatus.add(k))
+      saveStatusSet(nextStatus)
+    }
 
-    // Persist to history & cloud Supabase if history handler provided
-    if (onUpdateHistory && history && history.length > 0 && normalizedToMark.length > 0) {
+    // Persist to history & cloud Supabase (RULE D15 / Realtime cloud broadcast)
+    if (onUpdateHistory && history && history.length > 0) {
       let modified = false
       const updated = history.map(p => {
-        const t = cleanKey(p.tracking)
-        const i = cleanKey(p.id)
-        const matches = (t && normalizedToMark.includes(t)) || (i && normalizedToMark.includes(i))
-        if (matches && !p.whatsapp_sent) {
+        const pT = cleanKey(p.tracking)
+        const pI = cleanKey(p.id)
+        const matches = (pT && keysToMark.includes(pT)) || (pI && keysToMark.includes(pI))
+        if (matches) {
           modified = true
+          const hasBooking = (type === 'booking' || type === 'both') ? true : Boolean(p.whatsapp_booking_sent)
+          const hasStatus = (type === 'status' || type === 'both') ? true : Boolean(p.whatsapp_status_sent)
           return {
             ...p,
             whatsapp_sent: true,
             whatsappSent: true,
+            whatsapp_booking_sent: hasBooking,
+            whatsapp_status_sent: hasStatus,
             whatsapp_sent_at: new Date().toISOString()
           }
         }
@@ -261,36 +260,40 @@ export function useWhatsAppSentTracker(
         onUpdateHistory(updated)
       }
     }
-  }, [sentSet, saveSet, onUpdateHistory, history])
+  }, [bookingSet, statusSet, saveBookingSet, saveStatusSet, onUpdateHistory, history])
 
   const toggleSent = useCallback((key?: string | null) => {
     const cleaned = cleanKey(key)
     if (!cleaned) return
 
-    const next = new Set(sentSet)
-    let nextVal = false
-    if (next.has(cleaned)) {
-      next.delete(cleaned)
-      nextVal = false
-    } else {
-      next.add(cleaned)
-      nextVal = true
-    }
-    saveSet(next)
+    const isCurrentlySent = bookingSet.has(cleaned) || statusSet.has(cleaned)
+    const nextBooking = new Set(bookingSet)
+    const nextStatus = new Set(statusSet)
 
-    // Sync to history & cloud Supabase
+    if (isCurrentlySent) {
+      nextBooking.delete(cleaned)
+      nextStatus.delete(cleaned)
+    } else {
+      nextBooking.add(cleaned)
+    }
+
+    saveBookingSet(nextBooking)
+    saveStatusSet(nextStatus)
+
     if (onUpdateHistory && history && history.length > 0) {
       let modified = false
       const updated = history.map(p => {
-        const t = cleanKey(p.tracking)
-        const i = cleanKey(p.id)
-        if (t === cleaned || i === cleaned) {
+        const pT = cleanKey(p.tracking)
+        const pI = cleanKey(p.id)
+        if (pT === cleaned || pI === cleaned) {
           modified = true
           return {
             ...p,
-            whatsapp_sent: nextVal,
-            whatsappSent: nextVal,
-            whatsapp_sent_at: nextVal ? new Date().toISOString() : undefined
+            whatsapp_sent: !isCurrentlySent,
+            whatsappSent: !isCurrentlySent,
+            whatsapp_booking_sent: !isCurrentlySent,
+            whatsapp_status_sent: false,
+            whatsapp_sent_at: !isCurrentlySent ? new Date().toISOString() : undefined
           }
         }
         return p
@@ -299,27 +302,33 @@ export function useWhatsAppSentTracker(
         onUpdateHistory(updated)
       }
     }
-  }, [sentSet, saveSet, onUpdateHistory, history])
+  }, [bookingSet, statusSet, saveBookingSet, saveStatusSet, onUpdateHistory, history])
 
   const clearAllSent = useCallback(() => {
-    saveSet(new Set())
+    saveBookingSet(new Set())
+    saveStatusSet(new Set())
     if (onUpdateHistory && history && history.length > 0) {
       const updated = history.map(p => ({
         ...p,
         whatsapp_sent: false,
         whatsappSent: false,
+        whatsapp_booking_sent: false,
+        whatsapp_status_sent: false,
         whatsapp_sent_at: undefined
       }))
       onUpdateHistory(updated)
     }
-  }, [saveSet, onUpdateHistory, history])
+  }, [saveBookingSet, saveStatusSet, onUpdateHistory, history])
 
   return {
     isSent,
+    isBookingSent,
+    isStatusSent,
+    getAlertState,
     markSent,
     toggleSent,
-    sentSet,
-    sentCount: sentSet.size,
+    sentSet: new Set([...bookingSet, ...statusSet]),
+    sentCount: new Set([...bookingSet, ...statusSet]).size,
     clearAllSent
   }
 }

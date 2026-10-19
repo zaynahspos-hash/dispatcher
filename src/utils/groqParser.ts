@@ -14,6 +14,8 @@ export interface Parcel {
   airwayBillCopy: number
   detail: string
   note: string
+  whatsapp_sent?: boolean
+  whatsappSent?: boolean
 }
 
 export interface Settings {
@@ -60,7 +62,18 @@ export interface Settings {
   default_order_type?: string
   order_id_prefix?: string
   order_id_next_num?: string
+  whatsapp_enable_booking_alert?: boolean
+  whatsapp_enable_out_for_delivery_alert?: boolean
+  whatsapp_enable_action_required_alert?: boolean
+  whatsapp_enable_delivered_alert?: boolean
+  whatsapp_template_booking?: string
+  whatsapp_template_out_for_delivery?: string
+  whatsapp_template_action_required?: string
+  whatsapp_template_delivered?: string
+  whatsapp_min_delay_sec?: number
+  whatsapp_max_delay_sec?: number
 }
+
 
 export interface ParseResult {
   parcels: Parcel[]
@@ -123,23 +136,41 @@ export async function parseParcelText(
     }
 
     const systemPrompt = `
-You are a Pakistani courier parcel data extractor.
-Extract ALL parcels from the WhatsApp text below and return a JSON array.
+You are an expert Pakistani courier logistics parcel data extractor.
+Extract ALL parcels from the text below and return a valid JSON array.
 
-RULES:
-- Order ID / Ref: If the message mentions an order number, reference, or invoice ID (e.g. #1024, ORD-99, Ref 55), extract it as "id". If NO order ID is explicitly written, return "" (empty string). NEVER make up or invent fake IDs like ord1, ord2.
-- Name: Customer's full name, properly capitalized.
-- Phone: Always 03XXXXXXXXX format (fix +92 303 -> 03035..., remove spaces/dashes)
-- If multiple phones: first in phone field, rest as "(Alternate: 03XXXXXXXXX)" at end of address
-- City: Extract Pakistani destination city (e.g. Lahore, Karachi, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Gujranwala, Sialkot, Quetta, Hyderabad, etc.).
-- Address: Street address. Do NOT prefix with city name; place city name at end.
-- Total: COD cash amount as number only (0 if advance paid / non-cod).
-- Items: number. If missing -> use default_items setting
-- OrderType: "Normal" or "Replacement" (if keywords: Return/Exchange/Replacement/Changing/Wrong Item)
-- AirwayBillCopy: 1 (default)
-- Note: customer note if given, else use default_note setting
-- Detail: default_product setting
-- Weight: default_weight setting
+CRITICAL MANDATORY RULES:
+1. ABSOLUTE BAN ON ARABIC / URDU SCRIPT IN ALL OUTPUT FIELDS:
+   - Courier booking APIs (PostEx, Trax, Leopards, TCS) and thermal airway bill label printers in Pakistan strictly CANNOT print Urdu script characters.
+   - You MUST dynamically transliterate and translate ALL Arabic/Urdu script into clean, readable Latin / Roman Urdu or English alphabet.
+   - NEVER output Arabic/Urdu script in ANY field (Name, Address, City, Product Details, Note).
+   - Recipient Names: Transliterate dynamically into natural English/Roman Urdu spelling (e.g., 'فاطمہ بی بی' -> 'Fatima Bibi', 'محمد احمد' -> 'Muhammad Ahmad', 'علی رضا' -> 'Ali Raza', 'عائشہ خان' -> 'Ayesha Khan', 'حمزہ شیخ' -> 'Hamza Sheikh', 'کاشف محمود' -> 'Kashif Mehmood', 'سعدیہ بانو' -> 'Sadia Bano').
+   - Addresses: Transliterate Urdu text into clean, structured Roman Urdu/English. Format incomplete or conversational addresses intelligently (e.g. 'Ghar no 12, Gali 4, Mohalla Qazi Abad, Near Jamia Masjid'). Preserve all landmarks, chowks, sectors, blocks, and directions.
+   - Cities (CRITICAL - ANY PAKISTANI CITY/TOWN/TEHSIL):
+     * The input may contain ANY city, tehsil, district, town, or village in Pakistan (not limited to major cities; e.g. Daska, Chunian, Kamoke, Kot Addu, Pattoki, Swabi, Vehari, Shakargarh, Haripur, Chiniot, Lodhran, Toba Tek Singh, Larkana, Nawabshah, Kohat, Bannu, Turbat, Hub, Muzaffarabad, Mirpur AJK, etc.).
+     * You must accurately extract the geographic destination and output its standard, recognized English courier hub/city name (e.g., Karachi, Lahore, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Quetta, Sialkot, Gujranwala, Sargodha, Bahawalpur, Sukkur, Jhang, Kasur, Dera Ghazi Khan, Rahim Yar Khan, Abbottabad, Mardan, Gujrat, Sheikhupura, Sahiwal, Okara, etc.).
+     * If a small village, tehsil, or rural union council is given (e.g., 'Chak 45 Tehsil Pattoki'), map to the primary operational courier delivery city.
+   - Product Details: Translate/clean to English or Roman Urdu (e.g., '3 Lawn Suits', '1 Watch', 'Makeup Kit', 'Kids Clothes', '2 Pcs Unstitched Clothes', '1 Track Suit').
+
+2. PHONE NUMBER EXTRACTION:
+   - Always 03XXXXXXXXX (11 digits, starting with 03).
+   - Normalize: '+92 300 4455667', '0300-4455667', '923004455667', '0300 44 55 667' -> '03004455667'.
+   - If multiple phones exist in an order: put the primary in 'phone', and append '(Alternate: 03XXXXXXXXX)' at the end of 'address'.
+
+3. CASH ON DELIVERY (COD) / TOTAL:
+   - Extract cash amount as integer number only.
+   - Recognize cues in English, Roman Urdu, and Urdu: '2200 cod', '1800 روپے', '3400 rs', 'rs 1500', '4500', '3300 وصول کرنا', '7800 rs lena', 'kitchen set rs 5500 wasool krna', 'cod 1950', 'amount 7600'.
+   - Discard labels ('روپے', 'rs', 'cod', 'وصول کرنا', 'lena', 'amount') and output integer (e.g. 2200, 1800, 3400, 3300, 7800).
+   - If non-COD, advance paid, or already paid ('advance paid', 'already paid', 'easypaisa', 'jazzcash'): total is 0.
+
+4. ORDER ID / REFERENCE:
+   - If the text explicitly mentions an order reference (e.g. #1024, ORD-99, Ref 55), extract as 'id'. If NO order ID is explicitly given, return "" (empty string). NEVER make up or invent fake IDs like ord1, ord2.
+
+5. CUSTOMER NOTE & INSTRUCTIONS:
+   - Extract delivery remarks into 'note' ('dukan wala ghar ke samne' -> 'Shop in front of house', 'fragile hai' -> 'Fragile item', 'dukan pe dena' -> 'Deliver at shop', 'call before delivery' -> 'Call before delivery'). If none specified, use default_note.
+
+6. ORDER TYPE:
+   - 'Normal' or 'Replacement' (if keywords: Return/Exchange/Replacement/Changing/Wrong Item).
 
 DEFAULT SETTINGS:
 - default_items: ${settings.default_items || 1}
@@ -147,21 +178,21 @@ DEFAULT SETTINGS:
 - default_note: ${settings.default_note || 'Call before delivery'}
 - default_weight: ${settings.default_weight || 0.5}
 
-Return ONLY a valid JSON array. No markdown, no explanation.
+Return ONLY a valid JSON array. No markdown fences, no conversational text.
 Format:
 [
   {
     "id": "",
-    "name": "Muhammad Ali",
-    "phone": "03001234567",
-    "city": "Lahore",
-    "address": "House 5, Street 3, DHA Phase 1, Lahore",
-    "total": 2500,
-    "items": 2,
+    "name": "Fatima Bibi",
+    "phone": "03339876543",
+    "city": "Karachi",
+    "address": "Gulshan-e-Iqbal Block 7, Karachi",
+    "total": 1800,
+    "items": 3,
     "weight": 0.5,
     "orderType": "Normal",
     "airwayBillCopy": 1,
-    "detail": "Kids Clothes",
+    "detail": "3 Lawn Suits",
     "note": "Call before delivery"
   }
 ]
@@ -237,7 +268,7 @@ Format:
           if (res.data?.usageMetadata?.totalTokenCount) {
             tokensUsed = res.data.usageMetadata.totalTokenCount
           }
-        } 
+        }
         else if (provider === 'anthropic') {
           const url = 'https://api.anthropic.com/v1/messages'
           const res = await axios.post(url, {
@@ -347,10 +378,14 @@ Format:
             usedSerials.add(orderId.toLowerCase())
           }
 
+          let cleanPhone = String(p.phone || '').trim().replace(/[\s-+]/g, '')
+          if (cleanPhone.startsWith('923')) cleanPhone = '0' + cleanPhone.substring(2)
+          if (cleanPhone.startsWith('00923')) cleanPhone = '0' + cleanPhone.substring(4)
+
           return {
             id: orderId,
             name: String(p.name || '').trim(),
-            phone: String(p.phone || '').trim(),
+            phone: cleanPhone,
             city: normalizeCityName(p.city),
             address: String(p.address || '').trim(),
             total: Number(p.total || 0),
@@ -412,3 +447,230 @@ Format:
   const errorMsg = lastError?.response?.data?.error?.message || lastError?.response?.data?.message || lastError?.message || 'All APIs failed'
   throw new Error(`All configured AI APIs failed. Last error: ${errorMsg}`)
 }
+
+/**
+ * Single Source of Truth for splitting unstructured raw text into distinct order blocks.
+ * Safely handles:
+ * 1. Double/multiple blank lines (\n\s*\n+) used in WhatsApp/SMS chats.
+ * 2. Explicit numbered lists (1. ... 2. ... or Order 1 ... Order 2).
+ * 3. Dense unseparated multi-order text with multiple phone numbers, splitting cleanly at \n line boundaries
+ *    (NEVER using naive midpoints that chop addresses, customer names, or products in half).
+ */
+export function splitRawTextIntoOrderBlocks(rawText: string): string[] {
+  if (!rawText || !rawText.trim()) return []
+
+  const clean = rawText.trim()
+
+  // 1. Check if separated by blank lines (standard WhatsApp multi-order format)
+  const paragraphBlocks = clean
+    .split(/\r?\n\s*\r?\n+/)
+    .map(b => b.trim())
+    .filter(b => b.length > 0)
+
+  // If we found multiple paragraph blocks, check if they contain phone numbers or order signals
+  if (paragraphBlocks.length > 1) {
+    const hasOrderSignals = paragraphBlocks.filter(b =>
+      /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/.test(b) ||
+      /(?:rs\.?|cod|total|amount|روپے|وصول|suit|shirt|shoes|dress)/i.test(b)
+    ).length
+
+    if (hasOrderSignals >= Math.max(1, Math.floor(paragraphBlocks.length * 0.4))) {
+      // Re-stitch any accidental short fragments (< 15 chars without phone) to the previous block
+      const consolidated: string[] = []
+      for (const b of paragraphBlocks) {
+        if (consolidated.length > 0 && b.length < 15 && !/(?:03\d{2}|923\d{2})/.test(b)) {
+          consolidated[consolidated.length - 1] += '\n' + b
+        } else {
+          consolidated.push(b)
+        }
+      }
+      return consolidated
+    }
+  }
+
+  // 2. Check for numbered list markers (1. ... 2. ... or Order 1: ... Order 2: ...)
+  const numberedSplit = clean.split(/(?:^|\r?\n)(?=\s*(?:\d+[\.\)]\s+|Order\s*#?\d+[:\s\.-]))/i)
+    .map(b => b.trim())
+    .filter(b => b.length > 0)
+
+  if (numberedSplit.length > 1) {
+    return numberedSplit
+  }
+
+  // 3. Fallback for dense text without blank lines: split at \n line breaks near phone numbers
+  const phoneRegex = /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/g
+  const phoneMatches: { index: number; text: string }[] = []
+  let match: RegExpExecArray | null
+  while ((match = phoneRegex.exec(clean)) !== null) {
+    phoneMatches.push({ index: match.index, text: match[0] })
+  }
+
+  if (phoneMatches.length <= 1) {
+    return [clean]
+  }
+
+  // Find all line boundaries (\n)
+  const lines = clean.split(/\r?\n/)
+  const lineOffsets: number[] = []
+  let curOffset = 0
+  for (const l of lines) {
+    lineOffsets.push(curOffset)
+    curOffset += l.length + 1
+  }
+
+  // Assign each line cleanly to its respective order without cutting words
+  const blocks: string[] = []
+  let curBlockLines: string[] = []
+  let currentPhoneIdx = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineStart = lineOffsets[i]
+    if (currentPhoneIdx + 1 < phoneMatches.length) {
+      const nextPhoneOffset = phoneMatches[currentPhoneIdx + 1].index
+      const currentPhoneOffset = phoneMatches[currentPhoneIdx].index
+      const splitBoundary = (currentPhoneOffset + nextPhoneOffset) / 2
+
+      if (lineStart >= splitBoundary && curBlockLines.length > 0) {
+        blocks.push(curBlockLines.join('\n').trim())
+        curBlockLines = []
+        currentPhoneIdx++
+      }
+    }
+    curBlockLines.push(lines[i])
+  }
+
+  if (curBlockLines.length > 0) {
+    blocks.push(curBlockLines.join('\n').trim())
+  }
+
+  return blocks.filter(b => b.length > 0)
+}
+
+/**
+ * Zero-Loss Algorithmic Fallback Parser:
+ * If all AI APIs hit rate limits or are unavailable, this high-accuracy regex engine
+ * extracts Pakistani phone numbers, customer names, COD amounts, and addresses directly
+ * so the merchant's orders are NEVER lost or discarded.
+ */
+export function parseTextFallback(
+  rawText: string,
+  settings: Settings,
+  existingIds?: Set<string>
+): ParseResult {
+  const blocks = splitRawTextIntoOrderBlocks(rawText)
+
+  const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+  let currentNum = parseInt(settings.order_id_next_num || '1001', 10)
+  if (isNaN(currentNum)) currentNum = 1001
+
+  const usedSerials = new Set<string>()
+  if (existingIds) {
+    existingIds.forEach(id => usedSerials.add(String(id || '').trim().toLowerCase()))
+  }
+
+  const parcels: Parcel[] = []
+
+  for (const block of blocks) {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length === 0) continue
+
+    // 1. Phone extraction
+    let phone = ''
+    const pMatch = block.match(/(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/)
+    if (pMatch) {
+      phone = pMatch[0].replace(/[\s-+]/g, '')
+      if (phone.startsWith('92')) phone = '0' + phone.substring(2)
+      if (phone.startsWith('0092')) phone = '0' + phone.substring(4)
+      if (phone.length === 10 && phone.startsWith('3')) phone = '0' + phone
+    }
+
+    // 2. COD / Total extraction
+    let total = 0
+    const codMatch = block.match(/(?:rs\.?|amount|cod|total|cash|price)[\s:]*([0-9,]+)/i)
+    if (codMatch) {
+      total = Number(codMatch[1].replace(/,/g, '')) || 0
+    } else {
+      const numMatches = block.match(/\b\d{3,5}\b/g)
+      if (numMatches) {
+        for (const num of numMatches) {
+          const n = Number(num)
+          if (n >= 150 && n <= 50000 && (!phone || num !== phone.slice(-4))) {
+            total = n
+            break
+          }
+        }
+      }
+    }
+
+    // 3. City extraction
+    let detectedCity = 'LAHORE'
+    const words = block.toUpperCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
+    for (const w of words) {
+      const normalized = normalizeCityName(w)
+      if (normalized && normalized !== 'LAHORE') {
+        detectedCity = normalized
+        break
+      }
+    }
+
+    // 4. Name extraction
+    let name = ''
+    const nameLine = lines.find(l => /^name\s*[:\-]/i.test(l))
+    if (nameLine) {
+      name = nameLine.replace(/^name\s*[:\-]\s*/i, '').trim()
+    } else {
+      const firstCandidate = lines[0].replace(/^\d+[\.\)]\s*/, '').trim()
+      if (!firstCandidate.match(/\d{5,}/) && !/^(phone|contact|mobile|address|amount|rs|cod)/i.test(firstCandidate)) {
+        name = firstCandidate
+      } else {
+        name = 'Recipient'
+      }
+    }
+
+    // 5. Address extraction
+    let address = ''
+    const addressLine = lines.find(l => /^(address|pata|ghar|street|house)\s*[:\-]/i.test(l))
+    if (addressLine) {
+      address = addressLine.replace(/^(address|pata|ghar|street|house)\s*[:\-]\s*/i, '').trim()
+    } else {
+      const remainingLines = lines.filter(l => {
+        if (l.includes(name) || (phone && l.includes(phone.slice(-7)))) return false
+        if (/(?:rs\.?|amount|cod|total)[\s:]*\d+/i.test(l)) return false
+        return true
+      })
+      address = remainingLines.join(', ') || block
+    }
+
+    // 6. Unique serial assignment
+    let candidate = `${prefix}${currentNum}`
+    while (usedSerials.has(candidate.toLowerCase())) {
+      currentNum++
+      candidate = `${prefix}${currentNum}`
+    }
+    const orderId = candidate
+    usedSerials.add(orderId.toLowerCase())
+    currentNum++
+
+    parcels.push({
+      id: orderId,
+      name,
+      phone,
+      city: detectedCity,
+      address,
+      total,
+      items: Number(settings.default_items || 1),
+      weight: Number(settings.default_weight || 0.5),
+      orderType: settings.default_order_type || 'Normal',
+      airwayBillCopy: 1,
+      detail: settings.default_product || 'Kids Clothes',
+      note: settings.default_note || 'Call before delivery'
+    })
+  }
+
+  return {
+    parcels,
+    tokensUsed: 0,
+    nextSerialNum: currentNum
+  }
+}
+

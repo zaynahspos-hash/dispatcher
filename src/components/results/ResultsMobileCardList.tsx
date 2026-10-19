@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { BookingResult } from '../BookingResults'
-import { TrashIcon, CancelIcon, CheckIcon, TruckIcon, WhatsAppIcon } from '../Icons'
+import { TrashIcon, CancelIcon, CheckIcon, TruckIcon } from '../Icons'
+import { WhatsAppActionButton } from '../common/WhatsAppActionButton'
 
 interface ResultsMobileCardListProps {
   results: BookingResult[]
@@ -24,7 +25,7 @@ export function ResultsMobileCardList({
   selected,
   toggleSelect,
   toggleAll,
-  onDeselectAll,
+  onDeselectAll: _onDeselectAll,
   onDelete,
   onBookSingle,
   onCancelShipment,
@@ -228,10 +229,10 @@ export function ResultsMobileCardList({
                 {(() => {
                   const sent = isWhatsAppSent ? (isWhatsAppSent(r.tracking) || isWhatsAppSent(r.id)) : false
                   return (
-                    <a
+                    <WhatsAppActionButton
+                      variant="chip"
+                      isSent={sent}
                       href={getWhatsAppLink(r)}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       onClick={e => {
                         if (e.altKey) {
                           e.preventDefault()
@@ -240,16 +241,9 @@ export function ResultsMobileCardList({
                           onMarkWhatsAppSent?.(r.tracking, r.id)
                         }
                       }}
-                      className={`h-8 px-2.5 rounded-xl font-bold flex items-center gap-1.5 text-xs transition active:scale-95 ${
-                        sent
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
-                          : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
-                      }`}
+                      label={sent ? 'Sent' : 'WhatsApp'}
                       title={sent ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Order Update (Pending)'}
-                    >
-                      <WhatsAppIcon size={14} className="fill-current" />
-                      <span>{sent ? 'Sent' : 'WhatsApp'}</span>
-                    </a>
+                    />
                   )
                 })()}
 

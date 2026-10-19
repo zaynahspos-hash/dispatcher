@@ -1,5 +1,7 @@
+import { useRef, useEffect } from 'react'
 import { BookingResult } from '../BookingResults'
-import { TrashIcon, CancelIcon, CheckIcon, SyncIcon, WhatsAppIcon, TruckIcon } from '../Icons'
+import { TrashIcon, CancelIcon, CheckIcon, TruckIcon } from '../Icons'
+import { WhatsAppActionButton } from '../common/WhatsAppActionButton'
 import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
 
@@ -23,8 +25,8 @@ interface ResultsDesktopGridProps {
 }
 
 const DEFAULT_RESULTS_WIDTHS = {
-  checkbox: 44, index: 40, refId: 105, customer: 155, phone: 125, city: 135, address: 240,
-  cod: 105, orderType: 115, weight: 75, detail: 140, note: 170, copies: 65, statusTracking: 160, actions: 110
+  checkbox: 38, index: 34, refId: 110, customer: 145, phone: 125, city: 120, address: 240,
+  cod: 100, orderType: 155, weight: 75, detail: 150, note: 160, copies: 75, statusTracking: 185, actions: 115
 }
 
 export function ResultsDesktopGrid({
@@ -37,34 +39,91 @@ export function ResultsDesktopGrid({
     defaultWidths: DEFAULT_RESULTS_WIDTHS,
     minWidths: {
       checkbox: 28, index: 28, refId: 40, customer: 40, phone: 40, city: 40, address: 40,
-      cod: 40, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, statusTracking: 50, actions: 60
+      cod: 40, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, statusTracking: 50, actions: 50
     },
     onMeasureCol: (colKey) => {
       const lengths = measureMaxContentLengths({ [colKey]: colKey }, results, {
-        refId: r => r.order_ref_number, customer: r => r.customer_name, phone: r => r.customer_phone,
-        city: r => r.delivery_city, address: r => r.delivery_address, cod: r => `Rs. ${r.invoice_amount || 0}`,
-        orderType: r => r.order_type || 'Normal (COD)', weight: r => `${r.order_weight || 0.5} kg`,
-        detail: r => r.order_detail, note: r => r.transaction_notes,
-        copies: r => String(r.pickup_address_code || 1), statusTracking: r => `${r.tracking_number || ''} ${r.order_status || ''}`
+        refId: r => r.id, customer: r => r.name, phone: r => r.phone,
+        city: r => r.city, address: r => r.address, cod: r => `Rs. ${r.total || 0}`,
+        orderType: () => 'Normal (COD)    ', weight: r => `${r.weight || 0.5} kg`,
+        detail: r => r.detail, note: r => r.note,
+        copies: () => 'COPIES  ', statusTracking: r => `${r.tracking || '2226280000000'}     `
       })
       return lengths[colKey] || 12
     }
   })
 
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+
+  // Listen for autofit event to smoothly reset horizontal scroll position so first columns are visible
+  useEffect(() => {
+    const handleAutoFitResetScroll = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+      }
+    }
+    window.addEventListener('autofit_results_desktop_grid_col_widths', handleAutoFitResetScroll)
+    return () => {
+      window.removeEventListener('autofit_results_desktop_grid_col_widths', handleAutoFitResetScroll)
+    }
+  }, [])
+
+  // Whenever expandDefaults changes, smoothly scroll back to left so Ref ID and Customer are never hidden
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+    }
+  }, [expandDefaults])
+
+  // Calculate table width strictly for ACTIVE / RENDERED columns only (never inflate with hidden default columns)
+  const activeColWidths = [
+    widths.checkbox || DEFAULT_RESULTS_WIDTHS.checkbox,
+    widths.index || DEFAULT_RESULTS_WIDTHS.index,
+    widths.refId || DEFAULT_RESULTS_WIDTHS.refId,
+    widths.customer || DEFAULT_RESULTS_WIDTHS.customer,
+    widths.phone || DEFAULT_RESULTS_WIDTHS.phone,
+    widths.city || DEFAULT_RESULTS_WIDTHS.city,
+    widths.address || DEFAULT_RESULTS_WIDTHS.address,
+    widths.cod || DEFAULT_RESULTS_WIDTHS.cod,
+    widths.orderType || DEFAULT_RESULTS_WIDTHS.orderType,
+    ...(expandDefaults ? [
+      widths.weight || DEFAULT_RESULTS_WIDTHS.weight,
+      widths.detail || DEFAULT_RESULTS_WIDTHS.detail,
+      widths.note || DEFAULT_RESULTS_WIDTHS.note,
+      widths.copies || DEFAULT_RESULTS_WIDTHS.copies
+    ] : []),
+    widths.statusTracking || DEFAULT_RESULTS_WIDTHS.statusTracking,
+    widths.actions || DEFAULT_RESULTS_WIDTHS.actions
+  ]
+  const totalTableWidth = activeColWidths.reduce((sum, w) => sum + (w || 100), 0)
+
   return (
     <div className="hidden lg:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden w-full max-w-full min-w-0">
-      <div className="overflow-x-auto min-h-[380px] pb-24 max-w-full min-w-0">
+      <div ref={scrollContainerRef} className="overflow-x-auto min-h-[380px] pb-24 max-w-full min-w-0">
         <table
-          className="text-xs border-collapse table-fixed select-none"
-          style={{ minWidth: Object.values(widths).reduce((a, b) => a + b, 0) }}
+          className="text-xs border-collapse table-fixed select-none w-full"
+          style={{ minWidth: `${totalTableWidth}px` }}
         >
           <colgroup>
-            {[widths.checkbox, widths.index, widths.refId, widths.customer, widths.phone, widths.city, widths.address, widths.cod, widths.orderType].map((w, idx) => (
-              <col key={idx} style={{ width: `${w}px` }} />
-            ))}
-            {expandDefaults && [widths.weight || 75, widths.detail || 140, widths.note || 170, widths.copies || 65].map((w, idx) => <col key={`def_${idx}`} style={{ width: `${w}px` }} />)}
-            <col style={{ width: `${widths.statusTracking}px` }} />
-            <col style={{ width: `${widths.actions}px` }} />
+            <col style={{ width: `${widths.checkbox || DEFAULT_RESULTS_WIDTHS.checkbox}px` }} />
+            <col style={{ width: `${widths.index || DEFAULT_RESULTS_WIDTHS.index}px` }} />
+            <col style={{ width: `${widths.refId || DEFAULT_RESULTS_WIDTHS.refId}px` }} />
+            <col style={{ width: `${widths.customer || DEFAULT_RESULTS_WIDTHS.customer}px` }} />
+            <col style={{ width: `${widths.phone || DEFAULT_RESULTS_WIDTHS.phone}px` }} />
+            <col style={{ width: `${widths.city || DEFAULT_RESULTS_WIDTHS.city}px` }} />
+            <col style={{ width: `${widths.address || DEFAULT_RESULTS_WIDTHS.address}px` }} />
+            <col style={{ width: `${widths.cod || DEFAULT_RESULTS_WIDTHS.cod}px` }} />
+            <col style={{ width: `${widths.orderType || DEFAULT_RESULTS_WIDTHS.orderType}px` }} />
+            {expandDefaults && (
+              <>
+                <col style={{ width: `${widths.weight || DEFAULT_RESULTS_WIDTHS.weight}px` }} />
+                <col style={{ width: `${widths.detail || DEFAULT_RESULTS_WIDTHS.detail}px` }} />
+                <col style={{ width: `${widths.note || DEFAULT_RESULTS_WIDTHS.note}px` }} />
+                <col style={{ width: `${widths.copies || DEFAULT_RESULTS_WIDTHS.copies}px` }} />
+              </>
+            )}
+            <col style={{ width: `${widths.statusTracking || DEFAULT_RESULTS_WIDTHS.statusTracking}px` }} />
+            <col style={{ width: `${widths.actions || DEFAULT_RESULTS_WIDTHS.actions}px` }} />
           </colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
@@ -112,7 +171,7 @@ export function ResultsDesktopGrid({
                 COD (Rs.)
                 <div {...getResizerProps('cod')} />
               </th>
-              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
                 Order Type
                 <div {...getResizerProps('orderType')} />
               </th>
@@ -243,12 +302,12 @@ export function ResultsDesktopGrid({
                   </td>
 
                   {/* Order Type */}
-                  <td className="p-1 border-r border-b border-slate-200/80 dark:border-slate-800 text-center">
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
                     <select
                       value={r.orderType || 'Normal'}
                       disabled={isBooked}
                       onChange={e => updateField(r.id, 'orderType', e.target.value)}
-                      className="h-8 px-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-75 cursor-pointer"
+                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75 cursor-pointer"
                     >
                       {orderTypes.map(ot => (
                         <option key={ot.value} value={ot.value}>
@@ -320,10 +379,9 @@ export function ResultsDesktopGrid({
                   <td className="p-2 border-b border-slate-200/80 dark:border-slate-800 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {/* WhatsApp Button */}
-                      <a
+                      <WhatsAppActionButton
+                        isSent={isSent}
                         href={getWhatsAppLink(r)}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         onClick={e => {
                           if (e.altKey) {
                             e.preventDefault()
@@ -332,18 +390,8 @@ export function ResultsDesktopGrid({
                             onMarkWhatsAppSent?.(r.tracking, r.id)
                           }
                         }}
-                        className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center transition shadow-2xs relative active:scale-95 ${
-                          isSent
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
-                            : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
-                        }`}
                         title={isSent ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)' : 'Send WhatsApp Order Update (Pending)'}
-                      >
-                        <WhatsAppIcon size={14} className="fill-current" />
-                        {isSent && (
-                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full" />
-                        )}
-                      </a>
+                      />
 
                       {/* Book Single if not booked */}
                       {!isBooked && (

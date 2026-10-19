@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BookedParcel } from './types'
+import { BookedParcel, WhatsAppAlertState } from './types'
 import { HistoryMobileCard } from './HistoryMobileCard'
 
 interface HistoryMobileCardListProps {
@@ -12,9 +12,11 @@ interface HistoryMobileCardListProps {
   syncingTracking: string | null
   handleCancelSingle: (tracking: string) => void
   onOpenAdvice: (parcel: BookedParcel) => void
+  onOpenWhatsApp: (parcel: BookedParcel) => void
   whatsappNote?: string
   whatsappTemplate?: string
   isWhatsAppSent?: (tracking: string, id?: string) => boolean
+  getAlertState?: (tracking?: string | null, id?: string | null) => WhatsAppAlertState
   onMarkWhatsAppSent?: (tracking: string, id?: string) => void
   onToggleWhatsAppSent?: (tracking: string) => void
   autoExpandLines?: boolean
@@ -30,9 +32,11 @@ export function HistoryMobileCardList({
   syncingTracking,
   handleCancelSingle,
   onOpenAdvice,
+  onOpenWhatsApp,
   whatsappNote,
   whatsappTemplate,
   isWhatsAppSent,
+  getAlertState,
   onMarkWhatsAppSent,
   onToggleWhatsAppSent,
   autoExpandLines = false
@@ -100,9 +104,11 @@ export function HistoryMobileCardList({
             isSyncing={syncingTracking === parcel.tracking}
             onCancel={handleCancelSingle}
             onOpenAdvice={onOpenAdvice}
+            onOpenWhatsApp={onOpenWhatsApp}
             whatsappNote={whatsappNote}
             whatsappTemplate={whatsappTemplate}
             isWhatsAppSent={Boolean(parcel.whatsapp_sent || parcel.whatsappSent || (isWhatsAppSent ? isWhatsAppSent(parcel.tracking, parcel.id) : false))}
+            alertState={getAlertState ? getAlertState(parcel.tracking, parcel.id) : undefined}
             onMarkWhatsAppSent={onMarkWhatsAppSent}
             onToggleWhatsAppSent={onToggleWhatsAppSent}
           />

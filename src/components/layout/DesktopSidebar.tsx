@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { TabItem } from './BottomTabBar'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
 
@@ -23,6 +23,36 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isCollapsed = false,
   onToggleCollapse
 }) => {
+  const [showCollapseHint, setShowCollapseHint] = useState(false)
+
+  useEffect(() => {
+    // If sidebar is collapsed, never show hint
+    if (isCollapsed) {
+      setShowCollapseHint(false)
+      return
+    }
+
+    // Set timer: After 2.5 seconds (2500ms), if sidebar is open (not collapsed), trigger animation
+    const timer = setTimeout(() => {
+      setShowCollapseHint(true)
+    }, 2500)
+
+    // Auto-fade hint after 8 seconds of displaying (total 10.5 seconds)
+    const hideTimer = setTimeout(() => {
+      setShowCollapseHint(false)
+    }, 10500)
+
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(hideTimer)
+    }
+  }, [isCollapsed])
+
+  const handleToggle = () => {
+    setShowCollapseHint(false)
+    onToggleCollapse?.()
+  }
+
   const operationsTabIds = ['paste', 'table', 'results', 'history', 'vault']
   const operationsTabs = tabs.filter(t => operationsTabIds.includes(t.id))
   const systemTabs = tabs.filter(t => !operationsTabIds.includes(t.id))
@@ -66,17 +96,50 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
         {/* Sidebar Collapse/Expand Toggle Button (< / >) */}
         {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className={`rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition active:scale-95 shrink-0 shadow-2xs ${
-              isCollapsed ? 'w-8 h-8 mt-0.5' : 'w-7.5 h-7.5'
-            }`}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar to maximize screen space'}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? <ChevronRightIcon size={14} /> : <ChevronLeftIcon size={14} />}
-          </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={handleToggle}
+              className={`rounded-lg border bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs relative ${
+                isCollapsed ? 'w-8 h-8 mt-0.5 border-slate-200/90 dark:border-slate-800' : 'w-7.5 h-7.5'
+              } ${
+                showCollapseHint && !isCollapsed
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-md shadow-emerald-500/20'
+                  : 'border-slate-200/90 dark:border-slate-800'
+              }`}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar to maximize screen space'}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? (
+                <ChevronRightIcon size={14} />
+              ) : (
+                <span className={showCollapseHint ? 'animate-nudge-left inline-flex' : 'inline-flex'}>
+                  <ChevronLeftIcon size={14} />
+                </span>
+              )}
+
+              {/* Pulsing Emerald Dot Indicator when Hint is Active */}
+              {showCollapseHint && !isCollapsed && (
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 pointer-events-none">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-slate-900" />
+                </span>
+              )}
+            </button>
+
+            {/* Floating Apple-Grade Nudge Tooltip */}
+            {showCollapseHint && !isCollapsed && (
+              <div 
+                className="absolute right-0 top-full mt-2.5 z-50 pointer-events-none whitespace-nowrap animate-in fade-in slide-in-from-top-1 duration-300"
+              >
+                <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-xl flex items-center gap-2 text-[11px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>Click to collapse sidebar for wide view</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">&lt;</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

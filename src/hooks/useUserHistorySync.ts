@@ -3,6 +3,8 @@ import { User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabaseClient'
 import { BookedParcel } from '../components/BookedHistory'
 import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
+import { fetchAllMerchantOrders } from '../utils/postexApi'
+import { mergePostExOrders } from '../components/history/types'
 
 function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[] {
   const map = new Map<string, BookedParcel>()
@@ -20,11 +22,15 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
       map.set(key, p)
     } else {
       const wasSent = Boolean(existing.whatsapp_sent || existing.whatsappSent || p.whatsapp_sent || p.whatsappSent)
+      const bookingSent = Boolean(existing.whatsapp_booking_sent || p.whatsapp_booking_sent)
+      const statusSent = Boolean(existing.whatsapp_status_sent || p.whatsapp_status_sent)
       map.set(key, {
         ...existing,
         ...p, // DB status and details take priority
         whatsapp_sent: wasSent,
         whatsappSent: wasSent,
+        whatsapp_booking_sent: bookingSent,
+        whatsapp_status_sent: statusSent,
         whatsapp_sent_at: p.whatsapp_sent_at || existing.whatsapp_sent_at
       })
     }
@@ -33,7 +39,7 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
     .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
 }
 
-export function useUserHistorySync(user: User | null) {
+export function useUserHistorySync(user: User | null, postexToken?: string) {
   const [history, setHistory] = useState<BookedParcel[]>([])
   const [dailyTokens, setDailyTokens] = useState<number>(0)
   const [monthlyTokens, setMonthlyTokens] = useState<number>(0)
@@ -92,6 +98,29 @@ export function useUserHistorySync(user: User | null) {
     const cachedHistory = getCached<BookedParcel[]>(userHistoryKey) || []
     setHistory(cachedHistory)
 
+    const syncPostExOrdersIfDue = async (currentList: BookedParcel[]) => {
+      if (!postexToken || !user) return
+      const portalSyncKey = `postex_portal_synced_at_${user.id}`
+      const lastPortalSync = Number(localStorage.getItem(portalSyncKey) || 0)
+      const now = Date.now()
+      const hasNoPortalOrders = !currentList.some(p => p.source === 'postex_portal')
+
+      // Sync if no portal orders yet or if > 30 minutes since last background sync
+      if (hasNoPortalOrders || now - lastPortalSync > 30 * 60 * 1000) {
+        try {
+          const orders = await fetchAllMerchantOrders(postexToken)
+          if (Array.isArray(orders) && orders.length > 0) {
+            const mergedWithPostEx = mergePostExOrders(currentList, orders)
+            setHistory(mergedWithPostEx)
+            setCached(userHistoryKey, mergedWithPostEx, getTTL('days', 30))
+            localStorage.setItem(portalSyncKey, String(now))
+          }
+        } catch (err) {
+          console.warn('Background PostEx order sync failed:', err)
+        }
+      }
+    }
+
     // RULE D13: snake_case table 'booked_history', column 'user_id'
     supabase
       .from('booked_history')
@@ -113,6 +142,9 @@ export function useUserHistorySync(user: User | null) {
             setHistory(merged)
             setCached(userHistoryKey, merged, getTTL('days', 30))
             localStorage.setItem(cacheKey, String(dbUpdated))
+            syncPostExOrdersIfDue(merged)
+          } else {
+            syncPostExOrdersIfDue(cachedHistory)
           }
         } else {
           if (cachedHistory.length > 0) {
@@ -125,7 +157,10 @@ export function useUserHistorySync(user: User | null) {
               }, { onConflict: 'user_id' })
               .then(({ error }) => {
                 if (error) console.error('Failed to sync initial history to db:', error)
+                syncPostExOrdersIfDue(cachedHistory)
               })
+          } else {
+            syncPostExOrdersIfDue([])
           }
         }
       })
@@ -195,7 +230,7 @@ export function useUserHistorySync(user: User | null) {
       window.removeEventListener('focus', handleSyncCheck)
       document.removeEventListener('visibilitychange', handleSyncCheck)
     }
-  }, [user])
+  }, [user, postexToken])
 
   const updateHistory = (updated: BookedParcel[]) => {
     setHistory(updated)
@@ -208,12 +243,15 @@ export function useUserHistorySync(user: User | null) {
       localStorage.setItem(cacheKey, String(new Date(nowIso).getTime()))
 
       // RULE C10: optimistic update above is already done. Now persist to DB.
-      // RULE D13: snake_case table 'booked_history', column 'user_id'
+      // RULE D15: Persist app-originated bookings AND any portal orders that have merchant WhatsApp actions
+      // so that WhatsApp sent indicators sync across all devices in real-time.
+      const toPersist = updated.filter(p => p.source !== 'postex_portal' || p.whatsapp_booking_sent || p.whatsapp_status_sent || p.whatsapp_sent)
+
       supabase
         .from('booked_history')
         .upsert({
           user_id: user.id,
-          history: updated,
+          history: toPersist,
           updated_at: nowIso
         }, { onConflict: 'user_id' })
         .then(({ error }) => {

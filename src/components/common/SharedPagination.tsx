@@ -1,5 +1,3 @@
-import React from 'react'
-
 export interface SharedPaginationProps {
   currentPage: number
   totalItems: number
@@ -17,7 +15,7 @@ export function SharedPagination({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [10, 25, 50, 100, 200, 300],
   itemLabel = 'records',
   className = ''
 }: SharedPaginationProps) {

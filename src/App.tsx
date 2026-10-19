@@ -60,6 +60,15 @@ export default function App() {
   // Password recovery listener
   const { isResetPasswordOpen, setIsResetPasswordOpen } = usePasswordRecovery()
 
+  // Dismiss 0ms HTML preloader once initial auth check is resolved
+  useEffect(() => {
+    if (initialAuthChecked) {
+      if (typeof (window as any).dismissAppPreloader === 'function') {
+        (window as any).dismissAppPreloader()
+      }
+    }
+  }, [initialAuthChecked])
+
   // User history and token usage sync
   const {
     history,
@@ -68,7 +77,7 @@ export default function App() {
     monthlyTokens,
     dailyRequests,
     fetchTokenUsage
-  } = useUserHistorySync(user)
+  } = useUserHistorySync(user, settings.postex_token)
 
   // Theme management
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -199,15 +208,7 @@ export default function App() {
   const isSettingsConfigured = !!(settings[activeKeyField] && settings.postex_token && settings.postex_pickup)
 
   if (!initialAuthChecked) {
-    return (
-      <div className="min-h-screen w-full flex flex-col justify-center items-center bg-gray-50 dark:bg-gray-950 transition-colors duration-200">
-        <svg className="animate-spin h-8 w-8 text-emerald-500 mb-2" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Syncing merchant session...</span>
-      </div>
-    )
+    return null
   }
 
   if (!user) {

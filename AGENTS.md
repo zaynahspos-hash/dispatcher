@@ -56,7 +56,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **11** | [11-storage-files-export.md](docs/agent-rules/11-storage-files-export.md) | Excel (.xlsx) bulk import/export, PostEx PDF loadsheet generation, thermal airway bills |
 | **12** | [12-testing-verification.md](docs/agent-rules/12-testing-verification.md) | Verification checklist: TypeScript, PostEx API dry-run, Groq edge cases, RLS isolation |
 | **13** | [13-autonomy-boundaries.md](docs/agent-rules/13-autonomy-boundaries.md) | Autonomous operations allowed vs explicit confirmation required |
-| **14** | [14-design-system.md](docs/agent-rules/14-design-system.md) | Tailwind v4 tokens, Shopify/courier aesthetics, uniform action squircles (DS7), desktop auto-fit vs mobile accordion (DS8) |
+| **14** | [14-design-system.md](docs/agent-rules/14-design-system.md) | Tailwind v4 tokens, Shopify/courier aesthetics, uniform action squircles (DS7), desktop auto-fit vs mobile accordion (DS8), overflow-aware chip navigation (DS14), unified brand & functional icons (DS15) |
 | **15** | [15-shared-components-ui-modules.md](docs/agent-rules/15-shared-components-ui-modules.md) | Shared UI components: SearchableDropdown, Modal/Drawer, StatusBadge, Toast, StatsCard |
 | **16** | [16-multi-system-architecture.md](docs/agent-rules/16-multi-system-architecture.md) | Multi-tenant SaaS isolation, Database-per-Tenant silo model, zero cross-tenant leakage, identical ID collision freedom |
 | **17** | [17-mobile-native-app-style.md](docs/agent-rules/17-mobile-native-app-style.md) | Native app feel: 44px touch targets, bottom sheets, scroll snap prevention, M13 no-scrollbar & concise chips, M14 card collapse/expand & admin drawer |
@@ -77,6 +77,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 | **32** | [32-anti-ai-quality-engineering.md](docs/agent-rules/32-anti-ai-quality-engineering.md) | Anti-AI slop protocols: real data validation, zero placeholder code, deep defensive patterns |
 | **33** | [33-zero-emojis-and-safe-areas.md](docs/agent-rules/33-zero-emojis-and-safe-areas.md) | Absolute zero emojis and unicode symbols in UI, mobile safe-area insets, admin whitelist scoping, local PDF document vault |
 | **34** | [34-clean-code-error-handling-and-courier-extensibility.md](docs/agent-rules/34-clean-code-error-handling-and-courier-extensibility.md) | Human-readable clean code, zero silent errors policy, folder discipline, pluggable multi-courier engine |
+| **35** | [35-custom-smtp-auth-and-domain-integrity.md](docs/agent-rules/35-custom-smtp-auth-and-domain-integrity.md) | Verified Gmail SMTP (`zaynahspos@gmail.com`), ban on `noreply@mail.app.supabase.io`, official domain integrity (`dispatcher.zaynahspos.com`), dual OTP + 1-click links |
 
 ---
 
@@ -103,6 +104,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 - [docs/MANUAL_SETUP_GUIDE.md](docs/MANUAL_SETUP_GUIDE.md) — Zero-CLI manual setup guide using pure Supabase SQL and Vite.
 - [docs/SUPABASE_AUTH_COMPLETE_GUIDE.md](docs/SUPABASE_AUTH_COMPLETE_GUIDE.md) — Comprehensive Supabase Auth & Custom SMTP manual: rate-limit bypass, Gmail app passwords, domain allowlisting, programmatic email template updates, and end-to-end password recovery lifecycle.
 - [docs/ULTRA_DEEP_REBUILD_SYSTEM.md](docs/ULTRA_DEEP_REBUILD_SYSTEM.md) — Master manual for the 6-layer ultra deep rebuild: architecture, RLS security, PostEx V3, modularity, and phase-by-phase execution.
+- [docs/WHATSAPP_STATUS_AUTOMATION_SYSTEM_GUIDE.md](docs/WHATSAPP_STATUS_AUTOMATION_SYSTEM_GUIDE.md) — Master architecture guide for 0-ban WhatsApp status automation, bi-daily tracking sync, deep multi-dimensional filtering, and shipper advice.
 - [supabase/schema/SUPER_MASTER_SCHEMA.sql](supabase/schema/SUPER_MASTER_SCHEMA.sql) — The authoritative SQL master schema for Supabase: pure snake_case tables, indexes, triggers, and strict multi-tenant RLS policies.
 
 ---

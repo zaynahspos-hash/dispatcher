@@ -363,3 +363,28 @@ export async function trackOrder(token: string, trackingNumber: string) {
   )
   return res.data
 }
+
+export async function fetchAllMerchantOrders(
+  token: string, 
+  startDate?: string, 
+  endDate?: string
+): Promise<any[]> {
+  if (!token || !token.trim()) return []
+  const now = new Date()
+  const end = endDate || new Date(now.getTime() + 86400000).toISOString().split('T')[0]
+  const past = new Date(now.getTime() - 180 * 86400000)
+  const start = startDate || past.toISOString().split('T')[0]
+
+  try {
+    const res = await axios.get(
+      `${BASE}/order/v1/get-all-order?startDate=${start}&endDate=${end}&orderStatusId=0`,
+      { headers: headers(token) }
+    )
+    if (res.data && Array.isArray(res.data.dist)) {
+      return res.data.dist
+    }
+  } catch (err: any) {
+    console.warn('Failed to fetch all orders from PostEx API:', err?.response?.data || err.message)
+  }
+  return []
+}

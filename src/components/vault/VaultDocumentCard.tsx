@@ -105,22 +105,22 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
     >
       {/* Main Card Header / Row */}
       <div className="p-3.5 sm:p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
           {/* Multi-select Checkbox */}
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(doc.id)}
-            className="mt-1 w-4 h-4 rounded-md text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+            className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
             aria-label={`Select ${doc.batchName}`}
           />
 
           <div className="min-w-0 flex-1">
             {/* Title & Badges */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Category Pill */}
+              {/* Category Badge */}
               <span
-                className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider ${
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 uppercase tracking-wider ${
                   isLoadSheet
                     ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/25'
                     : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25'
@@ -136,20 +136,20 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
               </h3>
 
               {/* Parcels Count Chip */}
-              <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
                 {doc.count} {doc.count === 1 ? 'Parcel' : 'Parcels'}
               </span>
 
               {/* COD Amount Chip */}
               {doc.totalCOD > 0 && (
-                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
                   COD: Rs. {doc.totalCOD.toLocaleString()}
                 </span>
               )}
 
               {/* Pickup Code Chip for Loadsheets */}
               {doc.pickupCode && (
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
                   Pickup: {doc.pickupCode}
                 </span>
               )}
@@ -163,23 +163,23 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
                   href={`https://postex.pk/tracking?cn=${cn}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-emerald-500/10 dark:bg-slate-800/80 dark:hover:bg-emerald-500/15 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500/30 transition-all cursor-pointer active:scale-95 group/cn"
+                  className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-lg bg-slate-50 hover:bg-emerald-500/10 dark:bg-slate-900 dark:hover:bg-emerald-500/15 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/30 transition-all cursor-pointer active:scale-95 group/cn"
                   title={`Track CN ${cn} on PostEx`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <span>{cn}</span>
-                  <ExternalLinkIcon size={9} className="opacity-60 group-hover/cn:opacity-100 text-emerald-500 transition-opacity" />
+                  <ExternalLinkIcon size={10} className="opacity-60 group-hover/cn:opacity-100 text-emerald-500 transition-opacity" />
                 </a>
               ))}
               {doc.trackingNumbers.length > 5 && (
-                <span className="text-[10px] text-slate-400 font-semibold px-1">
+                <span className="text-[11px] text-slate-400 font-semibold px-1">
                   +{doc.trackingNumbers.length - 5} more
                 </span>
               )}
             </div>
 
             {/* Timestamp and origin info */}
-            <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+            <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
               <span>Saved: {dateFormatted}</span>
               {doc.notes && (
                 <>
@@ -191,36 +191,49 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons Toolbar — Apple iOS Native Styling */}
-        <div className="flex items-center gap-2 self-end md:self-center shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800 w-full md:w-auto justify-between md:justify-end">
-          {/* Toggle Orders Detail Accordion */}
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 text-xs font-medium active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            title="View parcels in this batch"
-          >
-            {isExpanded ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
-            <span>{isExpanded ? 'Hide Details' : 'View Orders'}</span>
-          </button>
+        {/* Action Buttons Toolbar — Apple Disciplined Squircles & Mobile-First */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 w-full sm:w-auto">
+          {/* Secondary Actions Row on Mobile */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+            {/* Toggle Orders Detail Accordion */}
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex-1 sm:flex-initial h-8.5 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-semibold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+              title="View parcels in this batch"
+            >
+              {isExpanded ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
+              <span>{isExpanded ? 'Hide Details' : 'View Orders'}</span>
+            </button>
 
-          {/* Copy All CNs Button */}
-          <button
-            type="button"
-            onClick={handleCopyCNs}
-            className="h-8.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 text-xs font-medium active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            title="Copy all tracking numbers"
-          >
-            {isCopied ? <CheckIcon size={13} className="text-emerald-500" /> : <CopyIcon size={13} />}
-            <span>{isCopied ? 'Copied' : 'Copy CNs'}</span>
-          </button>
+            {/* Copy All CNs Button */}
+            <button
+              type="button"
+              onClick={handleCopyCNs}
+              className="flex-1 sm:flex-initial h-8.5 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-semibold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+              title="Copy all tracking numbers"
+            >
+              {isCopied ? <CheckIcon size={13} className="text-emerald-500" /> : <CopyIcon size={13} />}
+              <span>{isCopied ? 'Copied' : 'Copy CNs'}</span>
+            </button>
 
-          {/* Re-Download / Print PDF Button */}
+            {/* Delete Single Batch Button */}
+            <button
+              type="button"
+              onClick={() => onDelete(doc.id)}
+              title="Delete this batch from device storage"
+              className="h-8.5 w-8.5 rounded-xl border border-rose-200/80 dark:border-rose-900/50 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-95 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-2xs"
+            >
+              <TrashIcon size={13} />
+            </button>
+          </div>
+
+          {/* Primary Action Button (Download / Print PDF) */}
           <button
             type="button"
             onClick={handlePrintOrDownload}
             disabled={isPrinting}
-            className={`h-8.5 px-4 rounded-full text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 ${
+            className={`w-full sm:w-auto h-8.5 px-3.5 rounded-xl text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 whitespace-nowrap ${
               isLoadSheet
                 ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
                 : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
@@ -229,16 +242,6 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
           >
             <DownloadIcon size={13} />
             <span>{isPrinting ? 'Processing...' : (doc.pdfBase64 ? 'Download PDF' : 'Print PDF')}</span>
-          </button>
-
-          {/* Delete Single Batch Button */}
-          <button
-            type="button"
-            onClick={() => onDelete(doc.id)}
-            title="Delete this batch from device storage"
-            className="h-8.5 w-8.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-500 hover:text-rose-600 border border-rose-200/60 dark:border-rose-900/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer shrink-0"
-          >
-            <TrashIcon size={13} />
           </button>
         </div>
       </div>

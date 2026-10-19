@@ -4,13 +4,15 @@ import { Settings } from '../utils/groqParser'
 import { 
   TruckIcon, 
   BotIcon, 
-  SaveIcon
+  SaveIcon,
+  WhatsAppIcon
 } from './Icons'
 import { useToast } from './common/Toast'
 import { PostExSettingsTab, MerchantAddress } from './settings/PostExSettingsTab'
 import { AiSettingsTab, PROVIDER_METADATA } from './settings/AiSettingsTab'
 import { WhatsAppSettingsTab } from './settings/WhatsAppSettingsTab'
 import { DefaultsSettingsTab } from './settings/DefaultsSettingsTab'
+import { ScrollableChipsBar } from './common/ScrollableChipsBar'
 
 interface SettingsPageProps {
   settings: Settings
@@ -199,60 +201,69 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       </div>
 
       {/* 2. Modern iOS Segmented Tab Switcher */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 overflow-x-auto no-scrollbar touch-pan-x">
+      <ScrollableChipsBar
+        className="w-full"
+        containerClassName="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 overflow-x-auto no-scrollbar touch-pan-x"
+        fadeColorClass={{
+          left: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90',
+          right: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90'
+        }}
+      >
         <button
+          type="button"
           onClick={() => setActiveTab('courier')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[140px] h-10 px-4 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 sm:shrink ${
             activeTab === 'courier'
-              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-bold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <TruckIcon size={15} className={activeTab === 'courier' ? 'text-emerald-500' : 'text-slate-400'} />
-          <span>PostEx Courier</span>
+          <TruckIcon size={15} className={`shrink-0 ${activeTab === 'courier' ? 'text-emerald-500' : 'text-slate-400'}`} />
+          <span className="whitespace-nowrap">PostEx Courier</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('ai')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[140px] h-10 px-4 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 sm:shrink ${
             activeTab === 'ai'
-              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-bold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <BotIcon size={15} className={activeTab === 'ai' ? 'text-emerald-500' : 'text-slate-400'} />
-          <span>AI Engine</span>
+          <BotIcon size={15} className={`shrink-0 ${activeTab === 'ai' ? 'text-emerald-500' : 'text-slate-400'}`} />
+          <span className="whitespace-nowrap">AI Engine</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('whatsapp')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[140px] h-10 px-4 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 sm:shrink ${
             activeTab === 'whatsapp'
-              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-bold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <svg className={`w-3.5 h-3.5 ${activeTab === 'whatsapp' ? 'text-emerald-500 fill-current' : 'text-slate-400 fill-current'}`} viewBox="0 0 24 24">
-            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.595-1.006-5.035-2.834-6.867-1.829-1.83-4.269-2.837-6.87-2.839-5.439 0-9.866 4.372-9.87 9.733-.001 1.73.465 3.418 1.348 4.908l-.993 3.629 3.73-.977z" />
-          </svg>
-          <span>WhatsApp Alert</span>
+          <WhatsAppIcon size={14} className={`shrink-0 ${activeTab === 'whatsapp' ? 'text-emerald-500 fill-current' : 'text-slate-400 fill-current'}`} />
+          <span className="whitespace-nowrap">WhatsApp Alert</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('defaults')}
-          className={`flex-1 min-w-[120px] py-2 px-3.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-[140px] h-10 px-4 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 sm:shrink ${
             activeTab === 'defaults'
-              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
+              ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-bold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <svg className={`w-3.5 h-3.5 ${activeTab === 'defaults' ? 'text-emerald-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'defaults' ? 'text-emerald-500' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span>Order Defaults</span>
+          <span className="whitespace-nowrap">Order Defaults</span>
         </button>
-      </div>
+      </ScrollableChipsBar>
 
       {/* 3. Render Tab Content */}
       {activeTab === 'courier' && (

@@ -257,6 +257,22 @@ CREATE INDEX IF NOT EXISTS idx_password_resets_email ON public.password_resets(L
 CREATE INDEX IF NOT EXISTS idx_password_resets_token ON public.password_resets(token);
 CREATE INDEX IF NOT EXISTS idx_password_resets_code ON public.password_resets(code);
 
+-- 7.1 EMAIL CONFIRMATIONS & SIGNUP VERIFICATION CODES TABLE (Rule AUTH-SMTP1)
+CREATE TABLE IF NOT EXISTS public.email_confirmations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  email TEXT NOT NULL,
+  code TEXT NOT NULL,
+  token TEXT NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_confirmations_email ON public.email_confirmations(LOWER(email));
+CREATE INDEX IF NOT EXISTS idx_email_confirmations_token ON public.email_confirmations(token);
+CREATE INDEX IF NOT EXISTS idx_email_confirmations_code ON public.email_confirmations(code);
+
 -- ==============================================================================
 -- 8. AUTH INTEGRITY & SELF-HEALING TRIGGERS
 -- Prevents "Database error querying schema" and guarantees identities exist

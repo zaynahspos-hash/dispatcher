@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { Parcel } from '../utils/groqParser'
 import { PasteIcon, SparklesIcon, UploadIcon, InfoIcon, DownloadIcon, CheckIcon } from './Icons'
 import { useToast } from './common/Toast'
+import { ScrollableChipsBar } from './common/ScrollableChipsBar'
 
 interface PasteInputProps {
   onParse: (text: string) => void
@@ -190,7 +191,9 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
         <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-2">
           1-Click Sample Templates (Tap to Test)
         </span>
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x pb-1">
+        <ScrollableChipsBar
+          containerClassName="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x pb-1"
+        >
           {TEMPLATES.map(tmpl => (
             <button
               key={tmpl.id}
@@ -203,7 +206,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
               {tmpl.label}
             </button>
           ))}
-        </div>
+        </ScrollableChipsBar>
       </div>
 
       {/* Main Two-Column Bento Layout */}

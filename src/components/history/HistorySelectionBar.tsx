@@ -1,14 +1,16 @@
-import React from 'react'
-import { PrintIcon, CancelIcon } from '../Icons'
+import { PrintIcon, CancelIcon, SyncIcon } from '../Icons'
 
 interface HistorySelectionBarProps {
   selectedCount: number
   totalCount: number
   cancellableCount?: number
+  printableCount?: number
+  loadsheetableCount?: number
   onDeselectAll: () => void
   onPrintSelected: () => void
   onGenerateLoadSheet: () => void
   onCancelSelected: () => void
+  onSyncSelected?: () => void
   isLoading: boolean
   isCancellingAll: boolean
   cancelProgress: string
@@ -18,10 +20,13 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
   selectedCount,
   totalCount,
   cancellableCount,
+  printableCount,
+  loadsheetableCount,
   onDeselectAll,
   onPrintSelected,
   onGenerateLoadSheet,
   onCancelSelected,
+  onSyncSelected,
   isLoading,
   isCancellingAll,
   cancelProgress
@@ -30,6 +35,12 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
 
   const showCancelButton = cancellableCount === undefined ? true : cancellableCount > 0
   const effectiveCancelCount = cancellableCount !== undefined ? cancellableCount : selectedCount
+
+  const showPrintButton = printableCount === undefined ? true : printableCount > 0
+  const effectivePrintCount = printableCount !== undefined ? printableCount : selectedCount
+
+  const showLoadSheetButton = loadsheetableCount === undefined ? true : loadsheetableCount > 0
+  const effectiveLoadSheetCount = loadsheetableCount !== undefined ? loadsheetableCount : selectedCount
 
   return (
     <div className="p-2.5 sm:p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-fade-in mb-3.5">
@@ -48,26 +59,44 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-        <button
-          type="button"
-          onClick={onPrintSelected}
-          disabled={isLoading}
-          className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
-        >
-          <PrintIcon size={13} />
-          <span>Print Labels ({selectedCount})</span>
-        </button>
+        {onSyncSelected && (
+          <button
+            type="button"
+            onClick={onSyncSelected}
+            disabled={isLoading}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-400 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-sky-500/30 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
+            title="Sync latest live tracking for selected orders"
+          >
+            <SyncIcon size={13} />
+            <span>Sync Status ({selectedCount})</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={onGenerateLoadSheet}
-          disabled={isLoading}
-          className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-800 dark:text-slate-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
-          title="Generate Load Sheet PDF"
-        >
-          <PrintIcon size={13} />
-          <span>Load Sheet ({selectedCount})</span>
-        </button>
+        {showPrintButton && (
+          <button
+            type="button"
+            onClick={onPrintSelected}
+            disabled={isLoading}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
+          >
+            <PrintIcon size={13} />
+            <span>Print Labels ({effectivePrintCount})</span>
+          </button>
+        )}
+
+        {showLoadSheetButton && (
+          <button
+            type="button"
+            onClick={onGenerateLoadSheet}
+            disabled={isLoading}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-800 dark:text-slate-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
+            title="Generate Load Sheet PDF"
+          >
+            <PrintIcon size={13} />
+            <span>Load Sheet ({effectiveLoadSheetCount})</span>
+          </button>
+        )}
+
 
         {showCancelButton && (
           <button

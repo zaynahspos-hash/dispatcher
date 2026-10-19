@@ -68,7 +68,7 @@ export class TraxProvider implements ICourierProvider {
 
   async trackOrder(
     trackingNumber: string,
-    credentials: Record<string, string>
+    _credentials: Record<string, string>
   ): Promise<CourierTrackingStatus> {
     return {
       trackingNumber,
@@ -80,7 +80,7 @@ export class TraxProvider implements ICourierProvider {
 
   async cancelOrder(
     trackingNumber: string,
-    credentials: Record<string, string>
+    _credentials: Record<string, string>
   ): Promise<{ success: boolean; message: string }> {
     return {
       success: true,
@@ -89,15 +89,15 @@ export class TraxProvider implements ICourierProvider {
   }
 
   async printLabels(
-    trackingNumbers: string[],
-    credentials: Record<string, string>
+    _trackingNumbers: string[],
+    _credentials: Record<string, string>
   ): Promise<Blob | string | boolean> {
     // Generate or download thermal airway bill PDF from Trax
     return true
   }
 
   async getPickupAddresses(
-    credentials: Record<string, string>
+    _credentials: Record<string, string>
   ): Promise<CourierPickupAddress[]> {
     return [
       {

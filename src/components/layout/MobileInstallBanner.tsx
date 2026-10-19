@@ -15,7 +15,7 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
   isStandalone,
   showBanner,
   isInstallable,
-  isIOS,
+  isIOS: _isIOS,
   onInstall,
   onOpenIOSGuide,
   onDismiss,

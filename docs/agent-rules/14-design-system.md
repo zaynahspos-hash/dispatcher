@@ -115,4 +115,89 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
   - Mobile action toolbar provides `[Expand All / Collapse All]` to smoothly toggle all cards downwards simultaneously.
   - Tapping an individual card or clicking `View Extra Details` / `Hide Extra Details` expands the card downwards to reveal full address, product details, notes, and weights without horizontal table clipping.
 
+---
 
+### 9. Rule DS9 — Unified Mobile Card Anatomy (Parcels, Results, History)
+- Every handheld card across all tabs MUST share identical visual hierarchy and layout:
+  1. **Top Row**: Checkbox + Index (`#1`) | Tracking or Ref ID Pill | City Pill | Price (`Rs. {amount}` right-aligned).
+  2. **Customer Row**: Customer Name (bold white/slate-900) + Phone number (font-mono text-slate-400) right-aligned.
+  3. **Address Row**: Full address text (subtle slate-500, clean line-clamp or wrap).
+  4. **Status / Alert Tag**: Clean semantic tag (WhatsApp alert, duplicate status).
+  5. **Bottom Action Bar**: Standard Apple-grade action buttons (`h-9` or `h-8`, uniform radius, 44px touch clearance, uniform active scales).
+
+---
+
+### 10. Rule DS10 — Zero Container Overflow / No Breakout Guarantee
+- Elements MUST NEVER pop outside card boundaries or cause horizontal overflow on mobile screens (375px+).
+- **Header Actions Rule**: All card headers containing title + counts + action buttons (e.g. `Booked History` + `Expand All` + `Refresh Statuses`) MUST use responsive wrapping:
+  - Container: `flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 w-full min-w-0`
+  - Button Group: `flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-between sm:justify-end`
+- Buttons must NEVER have rigid fixed widths that exceed viewport bounds or push past card borders.
+
+---
+
+### 11. Rule DS11 — Apple-Grade Opacity Status Badges & Anti-AI White Blob Mandate
+- Raw stark-white backgrounds (`bg-white`, `bg-[#eff6ff]`, `bg-blue-50`) on dark mode status badges are STRICTLY BANNED. They look like generic AI slop.
+- All status badges in dark mode MUST use calibrated alpha-opacity tokens:
+  - **Ready for Pickup / Booked**: `bg-emerald-500/10 border-emerald-500/20 text-emerald-400`
+  - **In Transit / Picked by Courier**: `bg-sky-500/10 border-sky-500/20 text-sky-400`
+  - **Pending Loadsheet / Warehouse**: `bg-amber-500/10 border-amber-500/20 text-amber-400`
+  - **Action Required / Review**: `bg-amber-500/15 border-amber-500/30 text-amber-300 font-bold`
+  - **Delivered**: `bg-emerald-500/15 border-emerald-500/30 text-emerald-300 font-bold`
+  - **Cancelled / Returned**: `bg-rose-500/10 border-rose-500/20 text-rose-400`
+
+---
+
+### 12. Rule DS12 — Unified Financials, Tracking & Action Tokens
+- **COD Price Token**: Everywhere price is shown, use:
+  `font-mono font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap`
+- **Tracking / CN Token**: Everywhere tracking is shown, use:
+  `font-mono font-bold select-all` enclosed in a clean rounded pill.
+- **City Token**: Everywhere city is shown, use uppercase bold pill:
+  `text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase tracking-wide`
+
+---
+
+### 13. Rule DS13 — WhatsApp Real Brand Color & Zero Discrepancy Mandate (SSOT1)
+- **Authentic WhatsApp Brand Palette**:
+  - Primary Brand Green: `#25D366`
+  - Secondary Dark Teal: `#128C7E` (status indicator dot ring)
+  - Pending / Unsent Tint: `#25D366/10` with `#25D366/40` border
+- **Zero Information Discrepancy Mandate**:
+  - The customer sub-pill (`Sent` vs `WA Pending`) and the WhatsApp action button state MUST ALWAYS be 100% synchronized via single source of truth `isParcelWhatsAppSent`.
+  - Under NO circumstance may a row display a `Sent` pill while rendering a grey/unsent action button or vice-versa.
+  - If a parcel has `whatsapp_sent`, `whatsappSent`, `whatsapp_booking_sent`, `whatsapp_status_sent`, or is registered in `waTracker`, both the pill and action button MUST display in the authentic WhatsApp green `Sent` state.
+- **Mandatory Shared Component**:
+  - All desktop tables and mobile cards across `#results` and `#history` MUST render via `src/components/common/WhatsAppActionButton.tsx`. Ad-hoc, diverging WhatsApp button implementations are strictly banned.
+
+---
+
+### 14. Rule DS14 — Overflow-Aware Horizontal Chip Navigation & Arrow Disclosure (SSOT1)
+- **Mandatory Shared Component (`ScrollableChipsBar`)**:
+  - All horizontal chip rows, segmented filter bars, quick date presets, and sub-tabs across the entire project MUST be wrapped in `src/components/common/ScrollableChipsBar.tsx`. Ad-hoc or duplicate horizontal scroll implementations are strictly banned.
+- **Strict "Bilwaja Nahi" (Zero Unnecessary Arrows) Invariant**:
+  - If all chips fit comfortably on screen without overflow (`scrollWidth <= clientWidth`), navigation arrows MUST BE 100% INVISIBLE.
+  - On desktop or wide viewports where all pills fit naturally, 0 arrows clutter the interface.
+- **Dynamic Overflow Disclosure (< and >)**:
+  - Navigation arrows appear dynamically ONLY when chip content exceeds the available screen/container width.
+  - **Left Arrow**: Rendered dynamically only when the user has scrolled right (`scrollLeft > 4`).
+  - **Right Arrow**: Rendered dynamically only when there is off-screen content remaining to the right (`scrollLeft + clientWidth < scrollWidth - 4`).
+  - When scrolled all the way to either end, the respective arrow hides immediately so the boundary chips are never obscured.
+- **Apple Minimalist Navigation Controls**:
+  - Arrow buttons are circular squircles (`w-7 h-7`), featuring subtle borders (`border-slate-200/90 dark:border-slate-700`), subtle shadows, and soft gradient edge masks that smoothly fade the underlying chips behind the buttons.
+  - Uses strictly standard SVG icons (`ChevronLeftIcon`, `ChevronRightIcon` in `Icons.tsx`). Raw emojis are permanently banned (Rule 33).
+  - Tapping arrows executes smooth step scrolling (`behavior: 'smooth'`) calibrated to 65% of the visible container width.
+  - Full native touch swiping (`touch-pan-x`) and mouse wheel horizontal scrolling are 100% preserved.
+
+---
+
+### 15. Rule DS15 — Unified Brand & Functional Iconography Mandate (SSOT1)
+- **Absolute Ban on Ad-Hoc & Hollow Inline SVGs**:
+  - Developers and agents must NEVER paste custom, incomplete, or hollow inline `<svg>` markup into individual screens, tabs, buttons, or modals.
+  - Every icon representing a brand or standard UI function (e.g., WhatsApp, Refresh, Search, AutoFit, Chevron, Calendar, Trash, Edit) MUST strictly be imported from `src/components/Icons.tsx` or use shared action wrappers like `src/components/common/WhatsAppActionButton.tsx`.
+- **Authentic WhatsApp Icon Invariant**:
+  - The official WhatsApp icon (`WhatsAppIcon` in `src/components/Icons.tsx`) contains both the complete speech bubble outline AND the inner telephone handset (`M17.472 14.382c...`).
+  - Hollow speech bubble outlines (e.g., single-path `M.057 24l1.687...` lacking the phone receiver) are permanently banned.
+- **Cross-Tab & Cross-View Uniformity**:
+  - All tabs (`#results`, `#history`, `#settings`, `#admin`, auth modals, and system screens) MUST render the exact same authentic WhatsApp icon and brand palette (`#25D366` green, `#128C7E` dark teal).
+  - Icons performing the same function must have matching visual weights, paddings, and uniform squircle geometry (`rounded-xl`, Rule DS7).

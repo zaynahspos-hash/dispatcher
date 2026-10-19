@@ -254,7 +254,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
               pageSize={logsPageSize}
               onPageChange={setLogsPage}
               onPageSizeChange={setLogsPageSize}
-              pageSizeOptions={[5, 10, 25, 50]}
+              pageSizeOptions={[10, 25, 50, 100, 200, 300]}
               itemLabel="activity logs"
               className="mt-3"
             />

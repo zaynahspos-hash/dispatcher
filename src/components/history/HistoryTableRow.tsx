@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { SyncIcon, CancelIcon, InfoIcon, ChevronDownIcon, ChevronRightIcon, ExternalLinkIcon, WhatsAppIcon } from '../Icons'
+import { SyncIcon, CancelIcon, InfoIcon, ChevronDownIcon, ChevronRightIcon, ExternalLinkIcon } from '../Icons'
+import { WhatsAppActionButton } from '../common/WhatsAppActionButton'
 import {
   BookedParcel,
   isCancelledStatus,
-  isBookedStatus,
   isUnderReview,
   getDisplayStatus,
-  getStatusCategory,
+  getStatusBadgeStyle,
   isCancellable,
-  getWhatsAppLink
+  isParcelWhatsAppSent
 } from './types'
 
 interface HistoryTableRowProps {
@@ -19,11 +19,10 @@ interface HistoryTableRowProps {
   isSyncing: boolean
   onCancel: (tracking: string) => void
   onOpenAdvice: (parcel: BookedParcel) => void
+  onOpenWhatsApp: (parcel: BookedParcel) => void
   whatsappNote?: string
   whatsappTemplate?: string
   isWhatsAppSent?: boolean
-  onMarkWhatsAppSent?: (tracking: string, id?: string) => void
-  onToggleWhatsAppSent?: (tracking: string) => void
   autoExpandLines?: boolean
 }
 
@@ -35,16 +34,13 @@ export function HistoryTableRow({
   isSyncing,
   onCancel,
   onOpenAdvice,
-  whatsappNote,
-  whatsappTemplate,
+  onOpenWhatsApp,
   isWhatsAppSent,
-  onMarkWhatsAppSent,
-  onToggleWhatsAppSent,
   autoExpandLines = false
 }: HistoryTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const effectiveWhatsAppSent = Boolean(parcel.whatsapp_sent || parcel.whatsappSent || isWhatsAppSent)
+  const effectiveWhatsAppSent = isParcelWhatsAppSent(parcel, isWhatsAppSent ? () => true : undefined)
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
@@ -84,7 +80,8 @@ export function HistoryTableRow({
               {parcel.name}
             </span>
             {effectiveWhatsAppSent ? (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#25D366]/15 text-[#128C7E] dark:text-[#25D366] border border-[#25D366]/25 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
                 Sent
               </span>
             ) : (
@@ -95,18 +92,27 @@ export function HistoryTableRow({
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5 truncate">{parcel.phone}</div>
         </td>
-        <td className="p-3 min-w-0">
+        <td className="p-3 whitespace-nowrap min-w-[145px]">
           <a
             href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs flex items-center gap-1 truncate"
+            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs inline-flex items-center gap-1.5 select-all"
+            title={`PostEx CN: ${parcel.tracking} (Click to open tracking)`}
           >
-            <span className="truncate">{parcel.tracking}</span>
+            <span>{parcel.tracking}</span>
             <ExternalLinkIcon size={11} className="opacity-70 shrink-0" />
           </a>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">Ref: {parcel.id}</div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ref: {parcel.id}</span>
+            {parcel.source === 'postex_portal' && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 shrink-0">
+                Portal / External
+              </span>
+            )}
+          </div>
         </td>
+
         <td className="p-3 min-w-0">
           <div className={`font-semibold text-slate-800 dark:text-slate-100 text-xs ${autoExpandLines ? 'break-words' : 'truncate'}`}>{parcel.city}</div>
           <div className={`text-[11px] text-slate-500 dark:text-slate-400 ${autoExpandLines ? 'break-words whitespace-normal leading-tight mt-0.5' : 'truncate max-w-full'}`}>{parcel.address}</div>
@@ -122,27 +128,15 @@ export function HistoryTableRow({
         <td className="p-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
           Rs. {parcel.total.toLocaleString()}
         </td>
-        <td className="p-3 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
+        <td className="p-3 whitespace-nowrap min-w-[155px]">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             {(() => {
-              const cat = getStatusCategory(parcel.status, parcel.tracking)
-              const underReview = isUnderReview(parcel.status)
-              let badgeColor = 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-              if (cat === 'delivered' || cat === 'booked' || parcel.status === 'success') {
-                badgeColor = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-              } else if (cat === 'cancelled' || cat === 'returned') {
-                badgeColor = 'bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400'
-              } else if (underReview) {
-                badgeColor = 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400'
-              } else if (cat === 'intransit') {
-                badgeColor = 'bg-sky-500/10 border-sky-500/20 text-sky-700 dark:text-sky-400'
-              }
-
+              const badgeColor = getStatusBadgeStyle(parcel.status, parcel.tracking, parcel.loadsheet_generated)
               const displayStatus = getDisplayStatus(parcel.status, parcel.loadsheet_generated)
 
               return (
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border whitespace-normal break-words leading-tight ${badgeColor}`}
+                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap select-none shadow-2xs ${badgeColor}`}
                   title={displayStatus}
                 >
                   {displayStatus}
@@ -154,7 +148,7 @@ export function HistoryTableRow({
               onClick={() => onSyncStatus(parcel.tracking)}
               disabled={isSyncing}
               title="Sync real-time status from PostEx"
-              className="w-6 h-6 rounded-md text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center shrink-0"
+              className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center shrink-0 border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60"
             >
               {isSyncing ? (
                 <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
@@ -169,43 +163,19 @@ export function HistoryTableRow({
         </td>
         <td className="p-3 text-center min-w-0">
           <div className="flex items-center justify-center gap-1.5">
-            {isCancelledStatus(parcel.status) ? (
-              <div
-                className="w-7.5 h-7.5 rounded-xl border border-slate-200/60 dark:border-slate-800/80 bg-slate-100/50 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 flex items-center justify-center cursor-not-allowed"
-                title="WhatsApp link disabled for cancelled orders"
-              >
-                <WhatsAppIcon size={14} className="fill-current" />
-              </div>
-            ) : (
-              <a
-                href={getWhatsAppLink(parcel, whatsappNote, whatsappTemplate)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => {
-                  if (e.altKey) {
-                    e.preventDefault()
-                    onToggleWhatsAppSent?.(parcel.tracking)
-                  } else {
-                    onMarkWhatsAppSent?.(parcel.tracking, parcel.id)
-                  }
-                }}
-                className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center transition cursor-pointer relative shadow-2xs active:scale-95 ${
-                  effectiveWhatsAppSent
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 shadow-sm shadow-emerald-500/25'
-                    : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
-                }`}
-                title={
-                  effectiveWhatsAppSent
-                    ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)'
-                    : 'Send WhatsApp tracking to customer (Pending)'
-                }
-              >
-                <WhatsAppIcon size={14} className="fill-current" />
-                {effectiveWhatsAppSent && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full" />
-                )}
-              </a>
-            )}
+            <WhatsAppActionButton
+              isSent={effectiveWhatsAppSent}
+              disabled={isCancelledStatus(parcel.status)}
+              onClick={() => onOpenWhatsApp(parcel)}
+              title={
+                isCancelledStatus(parcel.status)
+                  ? 'WhatsApp disabled for cancelled orders'
+                  : effectiveWhatsAppSent
+                    ? 'WhatsApp Sent • Click to Re-send (Booking or Real Status)'
+                    : 'Send WhatsApp Alert (Pending)'
+              }
+            />
+
             {isCancellable(parcel.status, parcel.loadsheet_generated, parcel.tracking) && (
               <button
                 type="button"

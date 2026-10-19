@@ -1,5 +1,28 @@
 import pg from 'pg';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+
+// Auto-load .env.local in local dev & serverless environments
+function loadLocalEnv() {
+  if (fs.existsSync('.env.local')) {
+    try {
+      const content = fs.readFileSync('.env.local', 'utf-8');
+      content.split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (match) {
+          const key = match[1];
+          let val = (match[2] || '').trim().replace(/^['"]|['"]$/g, '');
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      });
+    } catch {
+      // ignore
+    }
+  }
+}
+loadLocalEnv();
 
 const { Pool } = pg;
 
@@ -8,8 +31,9 @@ function getPool() {
   if (!pool) {
     const dbPassword = process.env.SUPABASE_DB_PASSWORD || 'Zd!q)m0ba+FhWCFjd$wH!t&9#';
     const projectRef = process.env.SUPABASE_PROJECT_REF || 'xhwqasbnsfjyxvzwueoo';
+    const encodedPass = encodeURIComponent(dbPassword);
     pool = new Pool({
-      connectionString: `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`,
+      connectionString: `postgresql://postgres.${projectRef}:${encodedPass}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`,
       ssl: { rejectUnauthorized: false },
       max: 5,
       idleTimeoutMillis: 30000

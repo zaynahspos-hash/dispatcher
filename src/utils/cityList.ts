@@ -155,6 +155,73 @@ export const CITY_LIST: string[] = [
   "ZAFARWAL", "ZAHIR PIR", "ZHOB"
 ]
 
+// Comprehensive Urdu Script to PostEx approved canonical city mapping
+export const URDU_CITY_MAP: Record<string, string> = {
+  'کراچی': 'KARACHI',
+  'لاہور': 'LAHORE',
+  'اسلام آباد': 'ISLAMABAD',
+  'اسلاماباد': 'ISLAMABAD',
+  'راولپنڈی': 'RAWALPINDI',
+  'فیصل آباد': 'FAISALABAD',
+  'فیصلاباد': 'FAISALABAD',
+  'ملتان': 'MULTAN',
+  'پشاور': 'PESHAWAR',
+  'کوئٹہ': 'QUETTA',
+  'سیالکوٹ': 'SIALKOT',
+  'گوجرانوالہ': 'GUJRANWALA',
+  'گجرات': 'GUJRAT',
+  'سرگودھا': 'SARGODHA',
+  'بہاولپور': 'BAHAWALPUR',
+  'سکھر': 'SUKKUR',
+  'حیدرآباد': 'HYDERABAD',
+  'حیدرآباد سندھ': 'HYDERABAD',
+  'رحیم یار خان': 'RAHIM YAR KHAN',
+  'قصور': 'KASUR',
+  'ڈیرہ غازی خان': 'DERA GHAZI KHAN',
+  'ڈی جی خان': 'DERA GHAZI KHAN',
+  'ڈیرہ اسماعیل خان': 'DERA ISMAIL KHAN',
+  'ڈی آئی خان': 'DERA ISMAIL KHAN',
+  'خانیوال': 'KHANEWAL',
+  'مردان': 'MARDAN',
+  'جہلم': 'JHELUM',
+  'گلگت': 'GILGIT',
+  'گوادر': 'GWADAR',
+  'شکارپور': 'SHIKARPUR',
+  'ایبٹ آباد': 'ABBOTTABAD',
+  'ایبٹاباد': 'ABBOTTABAD',
+  'اوکاڑہ': 'OKARA',
+  'اوکاڑا': 'OKARA',
+  'ساہیوال': 'SAHIWAL',
+  'شیخوپورہ': 'SHEIKHUPURA',
+  'چکوال': 'CHAKWAL',
+  'اٹک': 'ATTOCK',
+  'میاں چنوں': 'MIAN CHANNU',
+  'وہاڑی': 'VEHARI',
+  'بھکر': 'BHAKKAR',
+  'جھنگ': 'JHANG',
+  'خوشاب': 'KHUSHAB',
+  'میانوالی': 'MIANWALI',
+  'مظفر گڑھ': 'MUZAFFARGARH',
+  'مظفرآباد': 'MUZAFFARABAD',
+  'میرپور': 'MIRPUR (AJK)',
+  'میرپورخاص': 'MIRPUR KHAS',
+  'نوابشاہ': 'NAWABSHAH',
+  'لاڑکانہ': 'LARKANA',
+  'چنیوٹ': 'CHINIOT',
+  'ٹوبہ ٹیک سنگھ': 'TOBA TEK SINGH',
+  'کوہاٹ': 'KOHAT',
+  'بنوں': 'BANNU',
+  'سوات': 'SWAT',
+  'مینگورہ': 'MINGORA',
+  'مانسہرہ': 'MANSEHRA',
+  'تربت': 'TURBAT',
+  'حب': 'HUB',
+  'بلوچستان': 'QUETTA',
+  'خیبر': 'PESHAWAR',
+  'سندھ': 'KARACHI',
+  'پنجاب': 'LAHORE'
+}
+
 // Pre-computed lowercase map for O(1) instant resolution
 const CITY_MAP = new Map<string, string>()
 for (const city of CITY_LIST) {
@@ -162,12 +229,23 @@ for (const city of CITY_LIST) {
 }
 
 /**
- * Normalizes any extracted city name into PostEx-approved canonical spelling in 0ms.
+ * Normalizes any extracted city name (English, Roman Urdu, or Urdu script) into PostEx-approved canonical spelling in 0ms.
  */
 export function normalizeCityName(rawCity?: string | null): string {
   if (!rawCity) return ''
   const trimmed = rawCity.trim().toUpperCase()
   if (CITY_LIST.includes(trimmed)) return trimmed
+
+  // Check Urdu script city dictionary
+  const rawClean = rawCity.trim()
+  if (URDU_CITY_MAP[rawClean]) {
+    return URDU_CITY_MAP[rawClean]
+  }
+  for (const [urduKey, engCity] of Object.entries(URDU_CITY_MAP)) {
+    if (rawClean.includes(urduKey)) {
+      return engCity
+    }
+  }
 
   const simplified = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (CITY_MAP.has(simplified)) {

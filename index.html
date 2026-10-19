@@ -35,18 +35,263 @@
     <meta property="twitter:image" content="/web-app-manifest-512x512.png" />
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dseg7-classic@5.2.5/index.css" />
+
     <script>
       (function() {
         try {
           var theme = localStorage.getItem('parcel_app_theme');
-          if (theme === 'dark') {
+          if (theme === 'dark' || (!theme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
           }
         } catch(e) {}
       })();
     </script>
+
+    <style>
+      /* ========================================================
+         0ms Native iOS App Launch Preloader & Skeleton Styles
+         ======================================================== */
+      #app-preloader {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: #070b12;
+        color: #f1f5f9;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+        transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      html:not(.dark) #app-preloader {
+        background-color: #f8fafc;
+        color: #0f172a;
+      }
+
+      .preloader-exit {
+        opacity: 0 !important;
+        transform: scale(0.995) !important;
+        pointer-events: none !important;
+      }
+
+      @keyframes pwaShimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      @keyframes pwaIndeterminate {
+        0% { left: -35%; width: 35%; }
+        50% { left: 30%; width: 50%; }
+        100% { left: 100%; width: 35%; }
+      }
+
+      @keyframes pwaPulseGlow {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.04); opacity: 1; }
+      }
+
+      .pwa-shimmer-box {
+        position: relative;
+        overflow: hidden;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+      }
+
+      html:not(.dark) .pwa-shimmer-box {
+        background-color: rgba(15, 23, 42, 0.06);
+      }
+
+      .pwa-shimmer-box::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.08) 50%,
+          transparent 100%
+        );
+        animation: pwaShimmer 1.5s infinite ease-in-out;
+      }
+
+      html:not(.dark) .pwa-shimmer-box::after {
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(15, 23, 42, 0.05) 50%,
+          transparent 100%
+        );
+      }
+
+      .pwa-card {
+        background: #0c121e;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      }
+
+      html:not(.dark) .pwa-card {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+      }
+
+      .pwa-header-border {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      html:not(.dark) .pwa-header-border {
+        border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      }
+
+      .pwa-footer-border {
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      html:not(.dark) .pwa-footer-border {
+        border-top: 1px solid rgba(15, 23, 42, 0.07);
+      }
+
+      .pwa-mobile-only {
+        display: flex;
+      }
+      @media (min-width: 1024px) {
+        .pwa-mobile-only {
+          display: none !important;
+        }
+      }
+      .pwa-desktop-only {
+        display: none;
+      }
+      @media (min-width: 1024px) {
+        .pwa-desktop-only {
+          display: flex !important;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- ========================================================
+         0ms Instant Native iOS App Launch Skeleton & Splash
+         ======================================================== -->
+    <div id="app-preloader" aria-hidden="true">
+      <!-- Top iOS Header Skeleton -->
+      <div class="pwa-header-border" style="display:flex; align-items:center; justify-content:space-between; padding: max(env(safe-area-inset-top), 12px) 18px 12px; gap: 12px;">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <div style="position:relative; width:38px; height:38px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.12); background:#0c121e; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(16,185,129,0.15); flex-shrink:0;">
+            <img src="/apple-touch-icon.png?v=20261014" onerror="this.src='/favicon-96x96.png?v=20261014'" style="width:100%; height:100%; object-fit:contain;" alt="Logo" />
+            <span style="position:absolute; bottom:2px; right:2px; width:7px; height:7px; background:#10b981; border-radius:50%; border:1.5px solid #0c121e;"></span>
+          </div>
+          <div style="min-width:0;">
+            <div style="font-size:14px; font-weight:700; letter-spacing:-0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Zaynahs Courier</div>
+            <div style="font-size:11px; opacity:0.6; font-weight:500; white-space:nowrap;">PostEx • AI Logistics OS</div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); font-size:11px; font-weight:700; color:#10b981;">
+            <span style="width:5px; height:5px; border-radius:50%; background:#10b981;"></span>
+            <span>PostEx V3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Horizontal Navigation Chip Tabs Skeleton -->
+      <div style="display:flex; align-items:center; gap:8px; padding: 10px 18px; overflow:hidden; border-bottom: 1px solid rgba(255,255,255,0.04);">
+        <div style="height:32px; padding:0 14px; border-radius:10px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; font-size:12px; font-weight:700; color:#10b981; flex-shrink:0;">
+          Smart Ingestion
+        </div>
+        <div class="pwa-shimmer-box" style="height:32px; width:110px; border-radius:10px; flex-shrink:0;"></div>
+        <div class="pwa-shimmer-box" style="height:32px; width:125px; border-radius:10px; flex-shrink:0;"></div>
+        <div class="pwa-shimmer-box" style="height:32px; width:95px; border-radius:10px; flex-shrink:0;"></div>
+        <div class="pwa-shimmer-box" style="height:32px; width:90px; border-radius:10px; flex-shrink:0;"></div>
+      </div>
+
+      <!-- Center Brand Launcher & Skeleton Body -->
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; gap:18px; overflow:hidden;">
+        
+        <!-- Native iOS App Launch Card -->
+        <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; max-width:320px; animation: pwaPulseGlow 3s ease-in-out infinite;">
+          <div style="width:58px; height:58px; border-radius:18px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 28px rgba(16,185,129,0.25);">
+            <img src="/apple-touch-icon.png?v=20261014" onerror="this.src='/favicon-96x96.png?v=20261014'" style="width:40px; height:40px; object-fit:contain;" alt="Icon" />
+          </div>
+
+          <div>
+            <div style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Zaynahs Courier Manager</div>
+            <div style="font-size:12px; opacity:0.65; margin-top:2px; font-weight:500;">Starting Logistics Engine & Parser...</div>
+          </div>
+
+          <!-- Apple Indeterminate Progress Bar -->
+          <div style="width:160px; height:3.5px; background:rgba(255,255,255,0.08); border-radius:99px; overflow:hidden; position:relative; margin-top:4px;">
+            <div style="position:absolute; top:0; bottom:0; background:linear-gradient(90deg, #10b981, #34d399); border-radius:99px; animation: pwaIndeterminate 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;"></div>
+          </div>
+        </div>
+
+        <!-- Bento Layout Preview Skeleton -->
+        <div class="pwa-card" style="width:100%; max-width:740px; padding:18px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div class="pwa-shimmer-box" style="width:150px; height:18px; border-radius:6px;"></div>
+            <div class="pwa-shimmer-box" style="width:90px; height:28px; border-radius:8px;"></div>
+          </div>
+          <div class="pwa-shimmer-box" style="width:100%; height:44px; border-radius:12px;"></div>
+          <div style="display:flex; gap:8px;">
+            <div class="pwa-shimmer-box" style="width:30%; height:12px; border-radius:4px;"></div>
+            <div class="pwa-shimmer-box" style="width:40%; height:12px; border-radius:4px;"></div>
+          </div>
+          <div class="pwa-shimmer-box" style="width:85%; height:12px; border-radius:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Mobile Bottom Tab Bar Skeleton (iPhone / Android) -->
+      <div class="pwa-mobile-only pwa-footer-border" style="align-items:center; justify-content:space-around; padding: 10px 14px max(env(safe-area-inset-bottom), 10px); background:rgba(12,18,30,0.85);">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="pwa-shimmer-box" style="width:20px; height:20px; border-radius:6px;"></div>
+          <div class="pwa-shimmer-box" style="width:36px; height:8px; border-radius:4px;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="pwa-shimmer-box" style="width:20px; height:20px; border-radius:6px;"></div>
+          <div class="pwa-shimmer-box" style="width:36px; height:8px; border-radius:4px;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="pwa-shimmer-box" style="width:20px; height:20px; border-radius:6px;"></div>
+          <div class="pwa-shimmer-box" style="width:36px; height:8px; border-radius:4px;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="pwa-shimmer-box" style="width:20px; height:20px; border-radius:6px;"></div>
+          <div class="pwa-shimmer-box" style="width:36px; height:8px; border-radius:4px;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+          <div class="pwa-shimmer-box" style="width:20px; height:20px; border-radius:6px;"></div>
+          <div class="pwa-shimmer-box" style="width:36px; height:8px; border-radius:4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Global dismissal bridge called by React App when ready
+      window.dismissAppPreloader = function() {
+        var p = document.getElementById('app-preloader');
+        if (p && !p.classList.contains('preloader-exit')) {
+          p.classList.add('preloader-exit');
+          setTimeout(function() {
+            if (p && p.parentNode) {
+              p.parentNode.removeChild(p);
+            }
+          }, 320);
+        }
+      };
+
+      // Auto-dismiss failsafe after 5.5s
+      setTimeout(function() {
+        if (typeof window.dismissAppPreloader === 'function') {
+          window.dismissAppPreloader();
+        }
+      }, 5500);
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

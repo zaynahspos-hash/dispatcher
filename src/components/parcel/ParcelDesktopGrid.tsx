@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { Parcel } from '../../utils/groqParser'
 import { TrashIcon, RefreshIcon } from '../Icons'
 import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
@@ -28,9 +28,9 @@ interface ParcelDesktopGridProps {
 }
 
 const DEFAULT_PARCEL_WIDTHS = {
-  checkbox: 44, index: 40, refId: 112, customer: 160, phone: 130, city: 144,
-  address: 280, cod: 105, items: 60, orderType: 115, weight: 75, detail: 140,
-  note: 170, copies: 65, action: 48
+  checkbox: 38, index: 34, refId: 110, customer: 145, phone: 125, city: 120,
+  address: 240, cod: 100, items: 50, orderType: 155, weight: 75, detail: 150,
+  note: 160, copies: 75, action: 44
 }
 
 export function ParcelDesktopGrid({
@@ -57,49 +57,81 @@ export function ParcelDesktopGrid({
     storageKey: 'parcel_desktop_grid_col_widths',
     defaultWidths: DEFAULT_PARCEL_WIDTHS,
     minWidths: {
-      checkbox: 28, index: 28, refId: 36, customer: 40, phone: 40, city: 40, address: 40,
+      checkbox: 28, index: 28, refId: 50, customer: 40, phone: 40, city: 40, address: 40,
       cod: 40, items: 36, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, action: 36
     },
     onMeasureCol: (colKey) => {
       const lengths = measureMaxContentLengths({ [colKey]: colKey }, parcels, {
-        refId: p => p.id, customer: p => p.name,
+        refId: p => p.id || '',
+        customer: p => p.name,
         phone: p => p.phone, city: p => p.city,
         address: p => p.address, cod: p => `Rs. ${p.total || 0}`,
-        items: p => String(p.items || 1), orderType: p => p.orderType || 'Normal',
+        items: p => String(p.items || 1), orderType: () => 'Normal (COD)    ',
         weight: p => `${p.weight || 0.5} kg`, detail: p => p.detail,
-        note: p => p.note, copies: p => String(p.airwayBillCopy || 1)
+        note: p => p.note, copies: () => 'COPIES  '
       })
       return lengths[colKey] || 12
     }
   })
 
-  const totalTableWidth = Object.values(widths).reduce((a, b) => a + b, 0)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+
+  // Listen for autofit event to smoothly reset horizontal scroll position so first columns are visible
+  useEffect(() => {
+    const handleAutoFitResetScroll = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+      }
+    }
+    window.addEventListener('autofit_parcel_desktop_grid_col_widths', handleAutoFitResetScroll)
+    return () => {
+      window.removeEventListener('autofit_parcel_desktop_grid_col_widths', handleAutoFitResetScroll)
+    }
+  }, [])
+
+  // Whenever expandDefaults changes, smoothly scroll back to left so Ref ID and Customer are never hidden
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+    }
+  }, [expandDefaults])
+
+  // Calculate table width strictly for ACTIVE / RENDERED columns only (never inflate with hidden default columns)
+  const activeColKeys = [
+    'checkbox', 'index', 'refId', 'customer', 'phone', 'city', 'address', 'cod', 'items', 'orderType',
+    ...(expandDefaults ? ['weight', 'detail', 'note', 'copies'] : []),
+    'action'
+  ]
+  const totalTableWidth = activeColKeys.reduce(
+    (sum, key) => sum + (widths[key] || DEFAULT_PARCEL_WIDTHS[key as keyof typeof DEFAULT_PARCEL_WIDTHS] || 100),
+    0
+  )
 
   return (
     <div className="hidden lg:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden w-full max-w-full min-w-0">
       {/* Horizontal scroll container with interactive Excel resizable column widths */}
-      <div className="overflow-x-auto min-h-[400px] pb-32 max-w-full min-w-0">
-        <table className="text-xs border-collapse table-fixed select-none" style={{ width: `${totalTableWidth}px`, minWidth: `${totalTableWidth}px` }}>
+      <div ref={scrollContainerRef} className="overflow-x-auto min-h-[400px] pb-32 max-w-full min-w-0">
+        <table className="text-xs border-collapse table-fixed select-none w-full" style={{ minWidth: `${totalTableWidth}px` }}>
           <colgroup>
-            <col style={{ width: `${widths.checkbox}px` }} />
-            <col style={{ width: `${widths.index}px` }} />
-            <col style={{ width: `${widths.refId}px` }} />
-            <col style={{ width: `${widths.customer}px` }} />
-            <col style={{ width: `${widths.phone}px` }} />
-            <col style={{ width: `${widths.city}px` }} />
-            <col style={{ width: `${widths.address}px` }} />
-            <col style={{ width: `${widths.cod}px` }} />
-            <col style={{ width: `${widths.items}px` }} />
-            <col style={{ width: `${widths.orderType}px` }} />
+            <col style={{ width: `${widths.checkbox || DEFAULT_PARCEL_WIDTHS.checkbox}px` }} />
+            <col style={{ width: `${widths.index || DEFAULT_PARCEL_WIDTHS.index}px` }} />
+            <col style={{ width: `${widths.refId || DEFAULT_PARCEL_WIDTHS.refId}px` }} />
+            <col style={{ width: `${widths.customer || DEFAULT_PARCEL_WIDTHS.customer}px` }} />
+            <col style={{ width: `${widths.phone || DEFAULT_PARCEL_WIDTHS.phone}px` }} />
+            <col style={{ width: `${widths.city || DEFAULT_PARCEL_WIDTHS.city}px` }} />
+            <col style={{ width: `${widths.address || DEFAULT_PARCEL_WIDTHS.address}px` }} />
+            <col style={{ width: `${widths.cod || DEFAULT_PARCEL_WIDTHS.cod}px` }} />
+            <col style={{ width: `${widths.items || DEFAULT_PARCEL_WIDTHS.items}px` }} />
+            <col style={{ width: `${widths.orderType || DEFAULT_PARCEL_WIDTHS.orderType}px` }} />
             {expandDefaults && (
               <>
-                <col style={{ width: `${widths.weight || 75}px` }} />
-                <col style={{ width: `${widths.detail || 140}px` }} />
-                <col style={{ width: `${widths.note || 170}px` }} />
-                <col style={{ width: `${widths.copies || 65}px` }} />
+                <col style={{ width: `${widths.weight || DEFAULT_PARCEL_WIDTHS.weight}px` }} />
+                <col style={{ width: `${widths.detail || DEFAULT_PARCEL_WIDTHS.detail}px` }} />
+                <col style={{ width: `${widths.note || DEFAULT_PARCEL_WIDTHS.note}px` }} />
+                <col style={{ width: `${widths.copies || DEFAULT_PARCEL_WIDTHS.copies}px` }} />
               </>
             )}
-            <col style={{ width: `${widths.action}px` }} />
+            <col style={{ width: `${widths.action || DEFAULT_PARCEL_WIDTHS.action}px` }} />
           </colgroup>
           <thead className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/90 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
             <tr>
@@ -149,7 +181,7 @@ export function ParcelDesktopGrid({
                 Items
                 <div {...getResizerProps('items')} />
               </th>
-              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+              <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
                 Order Type
                 <div {...getResizerProps('orderType')} />
               </th>
@@ -204,12 +236,13 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Ref ID (Flush Excel Cell) */}
-                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0 ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
-                    <div className="flex items-center min-h-[40px] pr-1.5 min-w-0 overflow-hidden">
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-[180px] ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
+                    <div className="flex items-center min-h-[40px] px-2 gap-1.5 min-w-0">
                       <input
                         value={parcel.id || ''}
                         onChange={e => updateField(i, 'id', e.target.value)}
-                        className={`flex-1 min-w-0 h-full px-2.5 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
+                        placeholder="Ref ID"
+                        className={`flex-1 min-w-[70px] h-full py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset rounded ${
                           conflictedIndices?.has(i) ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-slate-800 dark:text-slate-100'
                         }`}
                         title={
@@ -225,10 +258,10 @@ export function ParcelDesktopGrid({
                           type="button"
                           onClick={() => onResolveSingleRow(i)}
                           title={`${conflictReasons?.get(i) === 'already_in_db' ? 'Already in DB' : 'Duplicate ID'} — Click to assign next available serial`}
-                          className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/25 hover:bg-amber-500 hover:text-slate-950 text-amber-800 dark:text-amber-300 font-sans font-bold flex items-center gap-1 transition cursor-pointer shrink-0"
+                          className="px-2 py-0.5 rounded-md text-[10px] bg-amber-500 hover:bg-amber-600 text-slate-950 font-sans font-bold flex items-center gap-1 transition cursor-pointer shrink-0 whitespace-nowrap shadow-2xs active:scale-95"
                         >
-                          <RefreshIcon size={10} />
-                          <span className="hidden xl:inline">{conflictReasons?.get(i) === 'already_in_db' ? 'In DB' : 'Dup'}</span>
+                          <RefreshIcon size={10} className="shrink-0" />
+                          <span className="shrink-0">{conflictReasons?.get(i) === 'already_in_db' ? 'In DB' : 'Dup'}</span>
                         </button>
                       )}
                     </div>
@@ -299,7 +332,7 @@ export function ParcelDesktopGrid({
                       value={parcel.address || ''}
                       onChange={e => updateField(i, 'address', e.target.value)}
                       placeholder="House, street, area..."
-                      className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      className={`w-full min-w-0 ${autoExpandLines ? 'h-12' : 'h-10'} px-3 py-2 bg-transparent text-xs text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset`}
                     />
                   </td>
 
@@ -333,7 +366,7 @@ export function ParcelDesktopGrid({
                     <select
                       value={parcel.orderType || 'Normal'}
                       onChange={e => updateField(i, 'orderType', e.target.value)}
-                      className="w-full h-10 px-2.5 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset cursor-pointer"
+                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset cursor-pointer"
                     >
                       {orderTypes.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>

@@ -69,7 +69,20 @@ export function useResizableColumns({
       try {
         const saved = localStorage.getItem(storageKey)
         if (saved) {
-          return { ...defaultWidths, ...JSON.parse(saved) }
+          const parsed = JSON.parse(saved)
+          const merged = { ...defaultWidths, ...parsed }
+          // Ensure all columns exist and respect minimum width boundaries
+          Object.keys(defaultWidths).forEach(k => {
+            if (!merged[k] || merged[k] <= 0) {
+              merged[k] = defaultWidths[k]
+            }
+          })
+          Object.keys(minWidths).forEach(k => {
+            if (minWidths[k] && merged[k] < minWidths[k]) {
+              merged[k] = minWidths[k]
+            }
+          })
+          return merged
         }
       } catch {
         // Fallback to defaults
@@ -159,9 +172,9 @@ export function useResizableColumns({
   }, [defaultWidths, saveWidths])
 
   const autoFitColumn = useCallback(
-    (colKey: string, maxLen?: number, extraPadding = 32) => {
+    (colKey: string, maxLen?: number, extraPadding = 30) => {
       const len = maxLen !== undefined ? maxLen : (onMeasureCol ? onMeasureCol(colKey) : 12)
-      const calculated = Math.ceil(len * 8.2) + extraPadding
+      const calculated = Math.ceil(len * 9.2) + extraPadding
       const minW = minWidths[colKey] !== undefined ? minWidths[colKey] : 32
       const updatedWidth = Math.max(minW, Math.min(540, calculated))
 
@@ -175,13 +188,43 @@ export function useResizableColumns({
   )
 
   const autoFitAll = useCallback(
-    (lengths: Record<string, number>, extraPadding = 32) => {
+    (lengths: Record<string, number>, extraPadding = 36) => {
       setWidths(prev => {
         const next: ColumnWidthConfig = { ...prev }
         for (const [colKey, maxLen] of Object.entries(lengths)) {
-          const calculated = Math.ceil(maxLen * 8.2) + extraPadding
-          const minW = minWidths[colKey] !== undefined ? minWidths[colKey] : 32
-          next[colKey] = Math.max(minW, Math.min(540, calculated))
+          // Generous character scaling (9.5px per character + 36px cell padding/resizer buffer)
+          const calculated = Math.ceil(maxLen * 9.5) + extraPadding
+          const baseMinW = minWidths[colKey] !== undefined ? minWidths[colKey] : 32
+
+          // Column-specific minimum auto-fit floor to guarantee all icons, buttons, and select dropdowns fit
+          const autoFitFloor =
+            colKey === 'customer' ? 145 :
+            colKey === 'phone' ? 125 :
+            colKey === 'city' ? 120 :
+            colKey === 'address' ? 240 :
+            colKey === 'orderType' ? 155 :
+            colKey === 'statusTracking' ? 185 :
+            colKey === 'actions' || colKey === 'action' ? 115 :
+            colKey === 'refId' ? 115 :
+            colKey === 'cod' ? 100 :
+            colKey === 'detail' || colKey === 'note' ? 160 :
+            colKey === 'weight' ? 75 :
+            colKey === 'copies' ? 75 : baseMinW
+
+          // Safe upper bounds per column so full text is displayed without artificial truncation
+          const maxAllowed = 
+            colKey === 'address' ? 520 :
+            colKey === 'customer' ? 320 :
+            colKey === 'detail' || colKey === 'note' ? 420 :
+            colKey === 'refId' ? 180 :
+            colKey === 'statusTracking' ? 240 :
+            colKey === 'city' ? 190 :
+            colKey === 'phone' ? 150 :
+            colKey === 'orderType' ? 180 :
+            colKey === 'cod' ? 140 : 220
+
+          const targetWidth = Math.max(autoFitFloor, calculated)
+          next[colKey] = Math.max(baseMinW, Math.min(maxAllowed, targetWidth))
         }
         saveWidths(next)
         return next

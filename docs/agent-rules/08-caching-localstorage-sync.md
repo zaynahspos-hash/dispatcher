@@ -104,4 +104,13 @@ supabase.auth.onAuthStateChange((event) => {
 - **Dual Cloud & Metadata Sync**:
   - On upload, `avatar_url` is persisted to both `user_settings.settings.avatar_url` and Supabase Auth metadata (`supabase.auth.updateUser({ data: { avatar_url } })`) to ensure multi-device continuity.
 
+---
+
+## 7. Dual-Source Conflict-Free Caching & Tracking Sync (RULE C13)
+- **CN Primary Anchor**: The PostEx Consignment Note (`tracking_number`) is the single immutable anchor for all cached parcels.
+- **Timestamp Versioning**: Updates are only applied if `incoming.updated_at >= cached.updated_at`. Stale responses are silently rejected.
+- **Atomic In-Memory Merge**: When syncing external orders (PostEx Portal, Shopify, WooCommerce, Custom Store APIs, Bulk Excel), local metadata (custom internal notes, order items, packaging state) must be preserved and merged atomically.
+- **Zero Cloudflare Policy**: Cloudflare edge caching is permanently forbidden for dynamic authenticated SaaS routes to guarantee 0ms real-time sync without stale cache discrepancies or 524 timeouts.
+
+
 

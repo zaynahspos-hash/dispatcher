@@ -1,4 +1,5 @@
 import { SearchIcon, RefreshIcon, CloseIcon } from '../Icons'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 
 export type ResultsStatusFilter = 'all' | 'success' | 'error' | 'manual' | 'cancelled'
 
@@ -77,7 +78,9 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
       </div>
 
       {/* Segmented Status Pill Tabs (Native Touch Scroll) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x">
+      <ScrollableChipsBar
+        containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+      >
         {tabs.map(tab => {
           const isActive = statusFilter === tab.id
           return (
@@ -104,7 +107,7 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
             </button>
           )
         })}
-      </div>
+      </ScrollableChipsBar>
     </div>
   )
 }

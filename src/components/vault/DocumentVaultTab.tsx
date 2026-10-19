@@ -17,6 +17,7 @@ import {
 import { useToast } from '../common/Toast'
 import { SharedPagination } from '../common/SharedPagination'
 import { usePagination } from '../../hooks/usePagination'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 
 interface DocumentVaultTabProps {
   settings: Settings
@@ -117,8 +118,10 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   // Counts for tabs
   const airwayCount = useMemo(() => docs.filter(d => d.type === 'airway_bill').length, [docs])
   const loadSheetCount = useMemo(() => docs.filter(d => d.type === 'load_sheet').length, [docs])
-  const totalParcelsFiltered = useMemo(() => filteredDocs.reduce((acc, d) => acc + d.count, 0), [filteredDocs])
-  const totalCodFiltered = useMemo(() => filteredDocs.reduce((acc, d) => acc + d.totalCOD, 0), [filteredDocs])
+  const totalAllParcels = useMemo(() => docs.reduce((acc, d) => acc + (d.count || 0), 0), [docs])
+  const totalAllCOD = useMemo(() => docs.reduce((acc, d) => acc + (d.totalCOD || 0), 0), [docs])
+  const totalParcelsFiltered = useMemo(() => filteredDocs.reduce((acc, d) => acc + (d.count || 0), 0), [filteredDocs])
+  const totalCodFiltered = useMemo(() => filteredDocs.reduce((acc, d) => acc + (d.totalCOD || 0), 0), [filteredDocs])
 
   // Single Delete
   const handleDeleteOne = (id: string) => {
@@ -173,58 +176,126 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 space-y-4 w-full max-w-full min-w-0">
+    <div className="space-y-3.5 transition-colors duration-200 w-full min-w-0 max-w-full">
       
-      {/* Top Header & Stat Summary */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-            <FolderIcon size={24} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Document Vault
-              </h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold">
-                {docs.length} Batches
-              </span>
-            </div>
-            <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Organized local storage for PostEx Airway Bills (CNs) and Load Sheets on this device.
-            </p>
+      {/* 1. Sleek Integrated 4-Box KPI Summary Bar (Matches ParcelKPIBar & ResultsKPIBar) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800/80 shadow-xs">
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Document Batches
+          </span>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-white">
+              {docs.length}
+            </span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              ({selectedIds.length > 0 ? `${selectedIds.length} selected, ` : ''}{totalAllParcels} parcels)
+            </span>
           </div>
         </div>
 
-        {/* Sync from History and Clear Actions */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={handleSyncFromHistory}
-            className="h-8.5 px-3.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs border border-slate-200/80 dark:border-slate-700/80"
-            title="Index all existing booked parcels from history into CN batches"
-          >
-            <SyncIcon size={13} className="text-emerald-500" />
-            <span>Sync from History</span>
-          </button>
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Stored COD Value
+          </span>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="text-xs font-bold text-slate-400">Rs.</span>
+            <span className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+              {totalAllCOD.toLocaleString()}
+            </span>
+          </div>
+        </div>
 
-          {docs.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className="h-8.5 px-3.5 rounded-full border border-rose-200/60 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-medium transition-all cursor-pointer active:scale-95"
-            >
-              Clear Vault
-            </button>
-          )}
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Airway Bills (CNs)
+          </span>
+          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{airwayCount} Saved Batches</span>
+          </div>
+        </div>
+
+        <div className="p-3.5 sm:p-4">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Courier Load Sheets
+          </span>
+          <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <span className={`w-2 h-2 rounded-full ${loadSheetCount > 0 ? 'bg-sky-500' : 'bg-slate-400'}`} />
+            <span>{loadSheetCount} Generated Sheets</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Filter & Search Control Bar */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 shadow-2xs space-y-3">
+      {/* 2. Unified Action Toolbar (Matches ParcelKPIBar & ResultsKPIBar) */}
+      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={handleSyncFromHistory}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+            title="Index all existing booked parcels from history into CN batches"
+          >
+            <SyncIcon size={14} className="text-emerald-500 shrink-0" />
+            <span>Sync from History</span>
+          </button>
+
+          {filteredDocs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+            >
+              <span>{selectedIds.length === filteredDocs.length ? 'Deselect All' : 'Select All'}</span>
+            </button>
+          )}
+
+          {selectedIds.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={handleCopySelectedCNs}
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              >
+                {isCopiedAll ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+                <span>Copy CNs ({selectedIds.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              >
+                <TrashIcon size={14} />
+                <span>Delete ({selectedIds.length})</span>
+              </button>
+            </>
+          )}
+        </div>
+
+        {docs.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="w-full sm:w-auto h-9 px-3.5 rounded-lg border border-rose-200/80 dark:border-rose-900/50 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-semibold text-xs hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap sm:ml-auto"
+            title="Clear all stored documents on this device"
+          >
+            <TrashIcon size={14} className="shrink-0" />
+            <span>Clear Vault</span>
+          </button>
+        )}
+      </div>
+
+      {/* 3. Filter Bar (Segmented Category Tabs + Date Presets + Search) */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
         
         {/* Row 1: Document Category Segmented Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 overflow-x-auto no-scrollbar touch-pan-x">
+        <ScrollableChipsBar
+          containerClassName="flex items-center gap-1 p-1 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 overflow-x-auto no-scrollbar touch-pan-x"
+          fadeColorClass={{
+            left: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90',
+            right: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90'
+          }}
+        >
           {[
             { id: 'all' as const, label: 'All Documents', count: docs.length },
             { id: 'airway_bill' as const, label: 'Airway Bills (CNs)', count: airwayCount },
@@ -234,14 +305,14 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setCategoryFilter(tab.id)}
-              className={`flex-1 min-w-[130px] h-8.5 px-3 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 min-w-[130px] h-8.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shrink-0 sm:shrink ${
                 categoryFilter === tab.id
-                  ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-semibold'
+                  ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>{tab.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-medium ${
+              <span className="whitespace-nowrap">{tab.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
                 categoryFilter === tab.id
                   ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                   : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -250,12 +321,15 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
               </span>
             </button>
           ))}
-        </div>
+        </ScrollableChipsBar>
 
-        {/* Row 2: Date Filters & Search */}
+        {/* Row 2: Date Presets & Real-time Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Date Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none">
+          {/* Date Chips */}
+          <ScrollableChipsBar
+            className="flex-1 min-w-0"
+            containerClassName="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none"
+          >
             {[
               { id: 'all' as DateFilter, label: 'All Dates' },
               { id: 'today' as DateFilter, label: 'Today' },
@@ -267,19 +341,19 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
                 key={pill.id}
                 type="button"
                 onClick={() => setDateFilter(pill.id)}
-                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
+                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                   dateFilter === pill.id
-                    ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                    ? 'bg-emerald-600 text-white shadow-xs font-bold'
                     : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/70 dark:border-slate-700/70'
                 }`}
               >
                 {pill.label}
               </button>
             ))}
-          </div>
+          </ScrollableChipsBar>
 
           {/* Real-time Search Box */}
-          <div className="relative w-full md:max-w-xs">
+          <div className="relative w-full md:max-w-xs shrink-0">
             <SearchIcon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -291,8 +365,8 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
           </div>
         </div>
 
-        {/* Row 3: Filtered View Summary Chips (Clean Single Row on Mobile) */}
-        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-100 dark:border-slate-800/60">
+        {/* Row 3: Filtered View Summary */}
+        <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-100 dark:border-slate-800/60">
           <div className="flex items-center gap-2 flex-wrap text-[11px] sm:text-xs">
             <span><strong>{filteredDocs.length}</strong> batches</span>
             <span>&bull;</span>
@@ -304,43 +378,8 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
               </>
             )}
           </div>
-
-          {filteredDocs.length > 0 && (
-            <button
-              type="button"
-              onClick={handleSelectAll}
-              className="h-7 px-3 rounded-full text-xs font-medium text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer self-end sm:self-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 transition-all active:scale-95"
-            >
-              {selectedIds.length === filteredDocs.length ? 'Deselect All' : 'Select All'}
-            </button>
-          )}
         </div>
       </div>
-
-      {/* Multi-Selection Action Floating Bar */}
-      {selectedIds.length > 0 && (
-        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs text-emerald-900 dark:text-emerald-200 font-semibold shadow-xs">
-          <span>{selectedIds.length} batch(es) selected</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopySelectedCNs}
-              className="h-8 px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            >
-              {isCopiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-              <span>Copy Selected CNs</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleBulkDelete}
-              className="h-8 px-3.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            >
-              <TrashIcon size={13} />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Documents Batch List */}
       {filteredDocs.length === 0 ? (

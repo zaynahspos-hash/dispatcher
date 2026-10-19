@@ -59,6 +59,19 @@ input:focus, select:focus, textarea:focus {
   outline: none;
 }
 
+@keyframes nudgeLeft {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+}
+
+.animate-nudge-left {
+  animation: nudgeLeft 1.1s ease-in-out infinite;
+}
+
 :root {
   --color-gray-150: #f1f5f9;
   --color-gray-250: #e2e8f0;
@@ -86,6 +99,23 @@ input:focus, select:focus, textarea:focus {
 
 .dark {
   color-scheme: dark;
+
+  /* Status badge dark theme colors (Calibrated alpha opacity) */
+  --status-success-bg: rgba(16, 185, 129, 0.12);
+  --status-success-border: rgba(16, 185, 129, 0.25);
+  --status-success-text: #34d399;
+
+  --status-danger-bg: rgba(244, 63, 94, 0.12);
+  --status-danger-border: rgba(244, 63, 94, 0.25);
+  --status-danger-text: #fb7185;
+
+  --status-warning-bg: rgba(245, 158, 11, 0.12);
+  --status-warning-border: rgba(245, 158, 11, 0.25);
+  --status-warning-text: #fbbf24;
+
+  --status-info-bg: rgba(14, 165, 233, 0.12);
+  --status-info-border: rgba(14, 165, 233, 0.25);
+  --status-info-text: #38bdf8;
 }
 
 /* PWA & Mobile Touch Scrollbar hide utilities */

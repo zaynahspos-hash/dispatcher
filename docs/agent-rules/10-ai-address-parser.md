@@ -30,3 +30,32 @@ If Groq API is unavailable, unconfigured, or returns an HTTP error:
 - Matches known city names from `cityList.ts`.
 - Extracts amounts using regex `/(?:rs\.?|pkr|total[:\s]*)\s*(\d+)/i`.
 - Ensures merchants are NEVER blocked even during AI provider downtime.
+
+---
+
+## 4. Rate-Limit Safe Multi-Batch Pipeline (Free Tier Guard)
+When merchants paste multiple orders (e.g. 10, 20, 50+ orders):
+1. **Intelligent Chunking**: Orders are chunked into batches of 4 (`chunkSize = 4`) to stay comfortably below provider TPM (Tokens Per Minute) ceilings and prevent HTTP 504 timeouts.
+2. **Provider-Calibrated Inter-Batch Pacing**:
+   - **Gemini Free Tier (15 RPM)**: Enforces `2800ms` inter-batch pacing delay.
+   - **Groq Free Tier (30 RPM / 6000 TPM)**: Enforces `1800ms` inter-batch pacing delay.
+   - **OpenAI (20 RPM)**: Enforces `2200ms` inter-batch pacing delay.
+3. **Live Latency & Dynamic ETA Countdown**:
+   - Measures real-time API roundtrip latency (`performance.now()`).
+   - Calculates dynamic remaining time: `remainingBatches * ((avgLatencyMs / 1000) + (pacingDelayMs / 1000))`.
+   - Live 1-second countdown ticker provides smooth remaining time feedback (`~Xs remaining`).
+
+---
+
+## 5. Apple Native Loading Sheet & Zero-Emoji Standard (RULE AI-SHEET)
+1. **Apple iOS / macOS Dialog Anatomy**:
+   - Dialog rendered as a sleek, native sheet (`rounded-3xl`, `bg-white dark:bg-[#0c121e]`, single border).
+   - Activity ring with smooth inner spinner and subtle emerald status dot.
+   - Micro-chips displaying: Model name (`gemini-1.5-flash`), Network Latency (`220ms` with SVG `ZapIcon`), and Rate Limit Guard (`15 RPM Free Tier` with SVG `ShieldIcon`).
+   - Segmented metric bar for `Total Orders`, `Cleaned`, and `In Queue`.
+2. **Strict Ban on AI Gamer / Slop Aesthetics**:
+   - Zero clunky neon-colored gamer boxes or glowing arcade progress bars.
+   - Zero raw emojis (`⚡`, `🛡️`, `⏱️` are strictly banned in UI per Rule 33; use clean SVGs).
+3. **Zero Data Loss Guarantee**:
+   - If AI quota or network limits fail completely, the system automatically activates `parseTextFallback`, fills the staged table with extracted orders, advances serials, and notifies the merchant with a toast. User data is NEVER discarded.
+

@@ -11,8 +11,6 @@ interface ParcelKPIBarProps {
   expandDefaults?: boolean
   onToggleExpandDefaults?: () => void
   onAutoFitColumns?: (e?: React.MouseEvent) => void
-  autoExpandLines?: boolean
-  onToggleAutoExpandLines?: () => void
   onAddRow: () => void
   onExportExcel: () => void
   onClearAll: () => void
@@ -32,8 +30,6 @@ export function ParcelKPIBar({
   expandDefaults,
   onToggleExpandDefaults,
   onAutoFitColumns,
-  autoExpandLines = false,
-  onToggleAutoExpandLines,
   onAddRow,
   onExportExcel,
   onClearAll,
@@ -136,7 +132,7 @@ export function ParcelKPIBar({
       {/* Action Toolbar */}
       <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
         {/* Secondary Utilities: Add Row, Export, Clear All */}
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar scroll-smooth touch-pan-x py-0.5 max-w-full min-w-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={onAddRow}
             className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
@@ -162,39 +158,23 @@ export function ParcelKPIBar({
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
-              title="Toggle display of logistics defaults: Weight, Product Detail, Transaction Note, and Copies"
+              title="Toggle display of logistics defaults on desktop or expand/collapse cards on mobile"
             >
-              <span>{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
+              <span className="sm:hidden">{expandDefaults ? 'Collapse All' : 'Expand All'}</span>
+              <span className="hidden sm:inline">{expandDefaults ? 'Defaults Expanded' : 'Expand Defaults'}</span>
             </button>
           )}
 
-          {/* Desktop Only: Horizontal Column Auto-Fit */}
+          {/* Auto-Fit (Desktop: Horizontal column fit • Mobile: Vertical card auto-expand) */}
           {onAutoFitColumns && (
             <button
               type="button"
               onClick={onAutoFitColumns}
-              className="hidden sm:inline-flex h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
-              title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
+              className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap"
+              title="Auto-fit columns on desktop or cards on mobile • Alt+Click to reset defaults"
             >
               <AutoFitIcon size={14} className="text-emerald-500 shrink-0" />
               <span>Auto-Fit</span>
-            </button>
-          )}
-
-          {/* Mobile Only: Expand / Collapse All Cards Downward */}
-          {onToggleAutoExpandLines && (
-            <button
-              type="button"
-              onClick={onToggleAutoExpandLines}
-              className={`sm:hidden flex-1 h-9 px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-xs whitespace-nowrap ${
-                autoExpandLines
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-              title="Toggle expand or collapse all mobile cards downward"
-            >
-              <AutoFitIcon size={14} className={autoExpandLines ? 'text-emerald-600 dark:text-emerald-400 shrink-0' : 'text-slate-500 shrink-0'} />
-              <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
             </button>
           )}
 

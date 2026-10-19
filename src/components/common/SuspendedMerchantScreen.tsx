@@ -1,4 +1,5 @@
 import React from 'react'
+import { WhatsAppIcon } from '../Icons'
 
 interface SuspendedMerchantScreenProps {
   email: string
@@ -32,9 +33,10 @@ export const SuspendedMerchantScreen: React.FC<SuspendedMerchantScreenProps> = (
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleContactWhatsApp}
-            className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20"
           >
-            Contact Admin
+            <WhatsAppIcon size={16} className="fill-current text-white shrink-0" />
+            <span>Contact Admin on WhatsApp</span>
           </button>
           <button
             onClick={onLogout}

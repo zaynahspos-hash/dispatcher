@@ -30,3 +30,4 @@ scripts/*.local.js
 *.njsproj
 *.sln
 *.sw?
+*.xlsx

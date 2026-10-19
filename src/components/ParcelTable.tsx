@@ -60,26 +60,17 @@ export default function ParcelTable({
   const toast = useToast()
 
   const handleToggleExpandDefaults = () => {
-    setExpandDefaults(prev => {
-      const next = !prev
-      localStorage.setItem('zaynah_table_expand_defaults', String(next))
-      return next
-    })
-  }
-
-  const handleToggleAutoExpandLines = () => {
-    setAutoExpandLines(prev => {
-      const next = !prev
+    const next = !expandDefaults
+    setExpandDefaults(next)
+    localStorage.setItem('zaynah_table_expand_defaults', String(next))
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+    if (isMobile) {
+      setAutoExpandLines(next)
       localStorage.setItem('zaynah_table_auto_expand_lines', String(next))
-      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-        if (next) {
-          toast.success('All Cards Expanded', 'All mobile parcel cards expanded for quick editing.')
-        } else {
-          toast.info('All Cards Collapsed', 'All mobile parcel cards collapsed into compact summary strips.')
-        }
-      }
-      return next
-    })
+      toast.info(next ? 'All Cards Expanded' : 'All Cards Collapsed', next ? 'Expanded all parcel cards for quick editing.' : 'Collapsed cards into compact summary overview.')
+    } else {
+      toast.info(next ? 'Defaults Columns Expanded' : 'Defaults Columns Hidden', next ? 'Showing Weight, Detail, Note & Copies columns.' : 'Hidden optional logistics columns.')
+    }
   }
 
   const historyIds = useMemo(() => buildHistoryIdSet(history), [history])
@@ -284,22 +275,46 @@ export default function ParcelTable({
   const handleAutoFitColumns = (e?: React.MouseEvent) => {
     if (e?.altKey) {
       triggerTableReset('parcel_desktop_grid_col_widths')
-      toast.info('Column Widths Reset', 'Reset column widths to default.')
+      setAutoExpandLines(false)
+      setExpandDefaults(false)
+      localStorage.setItem('zaynah_table_auto_expand_lines', 'false')
+      localStorage.setItem('zaynah_table_expand_defaults', 'false')
+      toast.info('Column Widths Reset', 'Reset column widths and card views to default.')
       return
     }
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+
+    if (isMobile) {
+      // Mobile view Auto-Fit (Rule DS8): Vertical card expansion downwards
+      const next = !autoExpandLines
+      setAutoExpandLines(next)
+      setExpandDefaults(next)
+      localStorage.setItem('zaynah_table_auto_expand_lines', String(next))
+      localStorage.setItem('zaynah_table_expand_defaults', String(next))
+      toast.success(
+        next ? 'Mobile Cards Auto-Fitted' : 'Mobile Cards Collapsed',
+        next ? 'Expanded all parcel cards vertically for complete visibility.' : 'Collapsed cards into compact summary overview.'
+      )
+      return
+    }
+
+    // Desktop view: Horizontal column width auto-fit based on maximum content length
     const lengths = measureMaxContentLengths(
       { refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY', address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS', orderType: 'ORDER TYPE', weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'TRANSACTION NOTE', copies: 'COPIES' },
       parcels,
       {
-        refId: p => p.id, customer: p => p.name, phone: p => p.phone, city: p => p.city, address: p => p.address,
-        cod: p => `Rs. ${p.total || 0}`, items: p => String(p.items || 1), orderType: p => p.orderType || 'Normal',
-        weight: p => `${p.weight || 0.5} kg`, detail: p => p.detail, note: p => p.note, copies: p => String(p.airwayBillCopy || 1)
+        refId: p => {
+          const hasConflict = conflictInfo.totalConflicts > 0 || (p.id ? historyIds.has(p.id.toLowerCase().trim()) : false)
+          return `${p.id || ''}${hasConflict ? '          [In DB]' : '     '}`
+        },
+        customer: p => p.name, phone: p => p.phone, city: p => p.city, address: p => p.address,
+        cod: p => `Rs. ${p.total || 0}`, items: p => String(p.items || 1), orderType: () => 'Normal (COD)    ',
+        weight: p => `${p.weight || 0.5} kg`, detail: p => p.detail, note: p => p.note, copies: () => 'COPIES  '
       }
     )
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
-      toast.success('Column Widths Auto-Fitted', 'Adjusted column widths to maximum text length.')
-    }
+    triggerTableAutoFit('parcel_desktop_grid_col_widths', lengths)
+    toast.success('Column Widths Auto-Fitted', 'Adjusted column widths to maximum text length.')
   }
 
   return (
@@ -316,8 +331,6 @@ export default function ParcelTable({
         expandDefaults={expandDefaults}
         onToggleExpandDefaults={handleToggleExpandDefaults}
         onAutoFitColumns={handleAutoFitColumns}
-        autoExpandLines={autoExpandLines}
-        onToggleAutoExpandLines={handleToggleAutoExpandLines}
         onAddRow={addRow}
         onExportExcel={exportExcel}
         onClearAll={clearAll}

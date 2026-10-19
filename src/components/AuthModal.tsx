@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
-import { ChevronLeftIcon } from './Icons'
+import { ChevronLeftIcon, WhatsAppIcon } from './Icons'
 
 interface AuthModalProps {
   onClose: () => void
@@ -22,6 +22,11 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [isAwaitingConfirmation, setIsAwaitingConfirmation] = useState(false)
   const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
   const [isResendingConfirmation, setIsResendingConfirmation] = useState(false)
+  const [confirmationOtp, setConfirmationOtp] = useState('')
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+
+  // Rule AUTH-DOMAIN1: Strictly use official production domain for email links
+  const PRODUCTION_APP_URL = 'https://dispatcher.zaynahspos.com'
 
   // Ensure matching row exists in public.users (RULE D13: snake_case)
   const ensureUserProfile = async (user: any) => {
@@ -86,10 +91,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
       // 2. If not sent via custom endpoint, trigger Supabase fallback
       if (!sentViaCustomSmtp) {
-        const domain = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? 'https://dispatcher.zaynahspos.com'
-          : window.location.origin
-        const redirectTo = `${domain}/#recovery=true`
+        const redirectTo = `${PRODUCTION_APP_URL}/#recovery=true`
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo,
         })
@@ -128,12 +130,12 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
       if (mode === 'signup') {
         const cleanEmail = email.trim().toLowerCase()
 
-        // 1. Supabase sign up with confirmation redirect
+        // 1. Direct Supabase Auth Signup (Auto-confirmed via database trigger & Supabase auth config)
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/#type=signup`
+            emailRedirectTo: `${PRODUCTION_APP_URL}/#type=signup`
           }
         })
 
@@ -145,18 +147,29 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             setTimeout(() => {
               onSuccess()
               onClose()
-            }, 600)
+            }, 500)
             return
-          } else {
-            // Email confirmation is required by Supabase
-            setIsAwaitingConfirmation(true)
-            setUnconfirmedEmail(cleanEmail)
-            setSuccessMsg(`Confirmation email sent to ${cleanEmail}! Please check your inbox.`)
+          }
+
+          // If session not immediately attached by Supabase, sign in directly (email is auto-confirmed in DB)
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          })
+
+          if (!signInError && signInData?.user) {
+            await ensureUserProfile(signInData.user)
+            localStorage.setItem('has_logged_in', 'true')
+            setSuccessMsg('Account created successfully! Logging you in...')
+            setTimeout(() => {
+              onSuccess()
+              onClose()
+            }, 500)
             return
           }
         }
 
-        // 2. If email is already registered, attempt auto sign-in or advise user
+        // 2. If user already exists, sign in directly or prompt user
         if (signUpError) {
           const errText = (signUpError.message || '').toLowerCase()
           if (errText.includes('already registered') || errText.includes('already exists') || (signUpData as any)?.user?.identities?.length === 0) {
@@ -171,18 +184,42 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
               setTimeout(() => {
                 onSuccess()
                 onClose()
-              }, 600)
-              return
-            }
-            if (signInError && (signInError.message || '').toLowerCase().includes('email not confirmed')) {
-              setIsAwaitingConfirmation(true)
-              setUnconfirmedEmail(cleanEmail)
-              setErrorMsg('Your email is not verified yet. Please check your inbox for the confirmation link.')
+              }, 500)
               return
             }
             throw new Error('This email is already registered. Please sign in or click "Forgot password?".')
           }
+        }
 
+        // 3. Fallback: Direct PostgreSQL Registration endpoint (/api/auth/register)
+        try {
+          const regRes = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password })
+          })
+          const regData = await regRes.json()
+          if (regRes.ok && regData.success) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            })
+            if (!signInError && signInData?.user) {
+              await ensureUserProfile(signInData.user)
+              localStorage.setItem('has_logged_in', 'true')
+              setSuccessMsg('Account created successfully! Logging you in...')
+              setTimeout(() => {
+                onSuccess()
+                onClose()
+              }, 500)
+              return
+            }
+          }
+        } catch (apiErr: any) {
+          console.warn('[handleSignUp Modal] Direct register fallback error:', apiErr.message)
+        }
+
+        if (signUpError) {
           throw new Error(signUpError.message || 'Registration failed.')
         }
       } else {
@@ -195,7 +232,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
           if ((error.message || '').toLowerCase().includes('email not confirmed')) {
             setIsAwaitingConfirmation(true)
             setUnconfirmedEmail(email.trim().toLowerCase())
-            setErrorMsg('Your email has not been confirmed yet. Please verify via the link sent to your inbox.')
+            setErrorMsg('Your email has not been confirmed yet. Please verify via the code or link sent to your inbox.')
             return
           }
           throw error
@@ -228,19 +265,71 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     setIsResendingConfirmation(true)
     setErrorMsg('')
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: targetEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/#type=signup`
-        }
+      const res = await fetch('/api/auth/send-confirmation-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail, password })
       })
-      if (error) throw error
-      setSuccessMsg(`Fresh confirmation link sent to ${targetEmail}! Please check your email.`)
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setSuccessMsg(`Fresh verification code sent to ${targetEmail} from zaynahspos@gmail.com!`)
+      } else {
+        throw new Error(data.error || 'Failed to resend confirmation email.')
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to resend confirmation email.')
     } finally {
       setIsResendingConfirmation(false)
+    }
+  }
+
+  // Handle 6-Digit OTP verification in modal
+  const handleVerifyOtpConfirmation = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const cleanCode = confirmationOtp.trim().replace(/\D/g, '')
+    const cleanEmail = (unconfirmedEmail || email).trim().toLowerCase()
+    if (!cleanCode || cleanCode.length !== 6) {
+      setErrorMsg('Please enter the full 6-digit verification code.')
+      return
+    }
+    setIsVerifyingOtp(true)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/auth/verify-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, code: cleanCode })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Invalid or expired verification code.')
+      }
+
+      setSuccessMsg('Email verified successfully! Logging you in...')
+
+      if (password) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        })
+        if (!signInError && signInData?.user) {
+          await ensureUserProfile(signInData.user)
+          localStorage.setItem('has_logged_in', 'true')
+          setTimeout(() => {
+            onSuccess()
+            onClose()
+          }, 600)
+          return
+        }
+      }
+
+      setIsAwaitingConfirmation(false)
+      setMode('signin')
+      setSuccessMsg('Account activated successfully! Please sign in with your password.')
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Verification failed. Please check the code and try again.')
+    } finally {
+      setIsVerifyingOtp(false)
     }
   }
 
@@ -358,16 +447,41 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             </div>
             <h3 className="text-base font-bold text-white tracking-tight">Verify Your Email</h3>
             <p className="text-xs text-slate-400 leading-relaxed px-1">
-              Confirmation link sent to <span className="text-emerald-400 font-mono font-semibold">{unconfirmedEmail}</span>. Tap the link in your email to activate your account.
+              Verification code and link sent from <span className="text-emerald-400 font-semibold">zaynahspos@gmail.com</span> to <span className="text-emerald-400 font-mono font-semibold">{unconfirmedEmail}</span>.
             </p>
-            <div className="pt-2 flex flex-col gap-2">
+
+            {/* 6-Digit OTP Code Verification Form */}
+            <form onSubmit={handleVerifyOtpConfirmation} className="my-2 p-3 bg-slate-950 border border-slate-800 rounded-xl text-left">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1 text-center">
+                Enter 6-Digit Code from Email
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={confirmationOtp}
+                  onChange={(e) => setConfirmationOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-lg text-sm font-mono tracking-[4px] text-center text-white placeholder-slate-600 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isVerifyingOtp || confirmationOtp.length !== 6}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center justify-center shadow-md shadow-emerald-600/20"
+                >
+                  {isVerifyingOtp ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+            </form>
+
+            <div className="pt-1 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={handleResendConfirmation}
                 disabled={isResendingConfirmation}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-emerald-400 font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 border border-slate-700"
               >
-                {isResendingConfirmation ? 'Sending Link...' : 'Resend Confirmation Email'}
+                {isResendingConfirmation ? 'Sending Code...' : 'Resend Email from zaynahspos@gmail.com'}
               </button>
               <button
                 type="button"
@@ -377,7 +491,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                   setErrorMsg('')
                   setSuccessMsg('')
                 }}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-xs transition cursor-pointer"
+                className="w-full py-2 text-slate-400 hover:text-white font-medium rounded-xl text-xs transition cursor-pointer"
               >
                 Back to Sign In
               </button>
@@ -411,9 +525,10 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
               <button
                 type="button"
                 onClick={handleOpenWhatsAppAdmin}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                Contact Admin on WhatsApp (+92 302 724 5937)
+                <WhatsAppIcon size={14} className="fill-current text-[#25D366] shrink-0" />
+                <span>Contact Admin on WhatsApp (+92 302 724 5937)</span>
               </button>
 
               <button

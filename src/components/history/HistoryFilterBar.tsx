@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon, CloseIcon } from '../Icons'
+import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon, CloseIcon, CalendarIcon, WhatsAppIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
-import { StatusFilterType } from './types'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
+import { StatusFilterType, SourceFilterType, getLocalTodayDate } from './types'
 
 interface HistoryFilterBarProps {
   searchQuery: string
@@ -18,6 +19,8 @@ interface HistoryFilterBarProps {
   handleClearFilters: () => void
   statusFilter: StatusFilterType
   setStatusFilter: (filter: StatusFilterType) => void
+  sourceFilter?: SourceFilterType
+  setSourceFilter?: (filter: SourceFilterType) => void
   whatsappFilter?: 'all' | 'pending' | 'sent'
   setWhatsappFilter?: (filter: 'all' | 'pending' | 'sent') => void
   onAutoFitColumns?: (e?: React.MouseEvent) => void
@@ -26,13 +29,21 @@ interface HistoryFilterBarProps {
     pendingLoadsheet: number
     booked: number
     inTransit: number
+    outForDelivery?: number
+    actionRequired?: number
     delivered: number
     returned: number
     cancelled: number
     waSent?: number
     waPending?: number
   }
+  sourceCounts?: {
+    all: number
+    app: number
+    portal: number
+  }
 }
+
 
 export function HistoryFilterBar({
   searchQuery,
@@ -49,40 +60,67 @@ export function HistoryFilterBar({
   handleClearFilters,
   statusFilter,
   setStatusFilter,
+  sourceFilter = 'all',
+  setSourceFilter,
   whatsappFilter = 'all',
   setWhatsappFilter,
   onAutoFitColumns,
-  counts
+  counts,
+  sourceCounts
 }: HistoryFilterBarProps) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
+  const today = getLocalTodayDate()
+  const isCustomDate = Boolean((fromDate && fromDate !== today) || (toDate && toDate !== today))
+
   const activeFiltersCount = 
-    (fromDate ? 1 : 0) + 
-    (toDate ? 1 : 0) + 
+    (isCustomDate ? 1 : 0) + 
     (statusSelect !== 'all' ? 1 : 0) + 
-    (pickupFilter !== 'all' ? 1 : 0)
+    (pickupFilter !== 'all' ? 1 : 0) +
+    (whatsappFilter !== 'all' ? 1 : 0) +
+    (sourceFilter !== 'all' ? 1 : 0)
+
+  // Apple iOS Segmented Date Presets Boundaries
+  const now = new Date()
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const todayStr = formatDate(now)
+  const yestDate = new Date()
+  yestDate.setDate(now.getDate() - 1)
+  const yestStr = formatDate(yestDate)
+
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(now.getDate() - 7)
+  const last7Str = formatDate(sevenDaysAgo)
+
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const thisMonthStr = formatDate(firstDayOfMonth)
+
+  const activePreset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | null =
+    fromDate === todayStr && toDate === todayStr ? 'today' :
+    fromDate === yestStr && toDate === yestStr ? 'yesterday' :
+    fromDate === last7Str && toDate === todayStr ? 'last7' :
+    fromDate === thisMonthStr && toDate === todayStr ? 'thisMonth' :
+    null
 
   const handleQuickDate = (type: 'today' | 'yesterday' | 'last7' | 'thisMonth') => {
-    const now = new Date()
-    const formatDate = (d: Date) => d.toISOString().split('T')[0]
-
     if (type === 'today') {
-      setFromDate(formatDate(now))
-      setToDate(formatDate(now))
+      setFromDate(todayStr)
+      setToDate(todayStr)
     } else if (type === 'yesterday') {
-      const yest = new Date()
-      yest.setDate(now.getDate() - 1)
-      setFromDate(formatDate(yest))
-      setToDate(formatDate(yest))
+      setFromDate(yestStr)
+      setToDate(yestStr)
     } else if (type === 'last7') {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(now.getDate() - 7)
-      setFromDate(formatDate(sevenDaysAgo))
-      setToDate(formatDate(now))
+      setFromDate(last7Str)
+      setToDate(todayStr)
     } else if (type === 'thisMonth') {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-      setFromDate(formatDate(firstDay))
-      setToDate(formatDate(now))
+      setFromDate(thisMonthStr)
+      setToDate(todayStr)
     }
   }
 
@@ -91,10 +129,13 @@ export function HistoryFilterBar({
     { id: 'all', label: 'All', count: counts.all },
     { id: 'booked', label: 'Booked', count: counts.booked },
     { id: 'intransit', label: 'In Transit', count: counts.inTransit },
+    { id: 'out_for_delivery', label: 'Out for Delivery', count: counts.outForDelivery ?? 0, isAttention: false },
+    { id: 'action_required', label: 'Action Required', count: counts.actionRequired ?? 0, isAttention: true },
     { id: 'delivered', label: 'Delivered', count: counts.delivered },
     { id: 'returned', label: 'Returned', count: counts.returned },
     { id: 'cancelled', label: 'Cancelled', count: counts.cancelled }
   ] as const
+
 
   return (
     <div className="space-y-3.5 mb-5 w-full max-w-full min-w-0">
@@ -172,62 +213,107 @@ export function HistoryFilterBar({
 
         {/* Collapsible Filter Details */}
         <div className={`mt-3.5 pt-3.5 border-t border-slate-200/80 dark:border-slate-800/80 ${mobileFiltersOpen ? 'block' : 'hidden md:block'}`}>
+          {/* Native Apple iOS Segmented Date Presets */}
+          <div className="mb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 sm:p-2.5 bg-slate-50/80 dark:bg-slate-900/40 rounded-2xl border border-slate-200/70 dark:border-slate-800/70">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Date Presets</span>
+              </span>
+              {activePreset ? (
+                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  {activePreset === 'today' && 'Today'}
+                  {activePreset === 'yesterday' && 'Yesterday'}
+                  {activePreset === 'last7' && 'Last 7 Days'}
+                  {activePreset === 'thisMonth' && 'This Month'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2 py-0.5 rounded-full">
+                  Custom Range
+                </span>
+              )}
+            </div>
+
+            {/* Apple iOS Segmented Control */}
+            <ScrollableChipsBar
+              className="w-full sm:w-auto inline-flex"
+              containerClassName="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-inner w-full sm:w-auto overflow-x-auto no-scrollbar gap-1"
+              fadeColorClass={{
+                left: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90',
+                right: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleQuickDate('today')}
+                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                  activePreset === 'today'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDate('yesterday')}
+                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                  activePreset === 'yesterday'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                }`}
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDate('last7')}
+                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                  activePreset === 'last7'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                }`}
+              >
+                Last 7 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDate('thisMonth')}
+                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                  activePreset === 'thisMonth'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                }`}
+              >
+                This Month
+              </button>
+            </ScrollableChipsBar>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
             {/* From Date */}
             <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">From Date</label>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDate('today')}
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                  >
-                    Today
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDate('last7')}
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                  >
-                    7d
-                  </button>
-                </div>
-              </div>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                From Date
+              </label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
+                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100 h-9 font-medium"
               />
             </div>
 
             {/* To Date */}
             <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">To Date</label>
-                <div className="flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDate('yesterday')}
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                  >
-                    Yest.
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDate('thisMonth')}
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                  >
-                    Month
-                  </button>
-                </div>
-              </div>
+              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                To Date
+              </label>
               <input
                 type="date"
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100"
+                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100 h-9 font-medium"
               />
             </div>
 
@@ -267,11 +353,76 @@ export function HistoryFilterBar({
         </div>
       </div>
 
+      {/* Source Origin Filter Pills (App vs PostEx External / Shopify / Stores) */}
+      {setSourceFilter && (
+        <ScrollableChipsBar
+          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+        >
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0">
+            Source:
+          </span>
+          <button
+            type="button"
+            onClick={() => setSourceFilter('all')}
+            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              sourceFilter === 'all'
+                ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 border-slate-900 dark:border-emerald-500/30 shadow-xs'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>All Sources</span>
+            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+              sourceFilter === 'all' ? 'bg-white/20 dark:bg-emerald-400/20 text-white dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}>
+              {sourceCounts?.all ?? counts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSourceFilter('app')}
+            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              sourceFilter === 'app'
+                ? 'bg-emerald-600 text-white shadow-xs border-emerald-600'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>Booked in App</span>
+            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+              sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+            }`}>
+              {sourceCounts?.app ?? 0}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSourceFilter('postex_portal')}
+            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              sourceFilter === 'postex_portal'
+                ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>External / Portal / Stores</span>
+            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+              sourceFilter === 'postex_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}>
+              {sourceCounts?.portal ?? 0}
+            </span>
+          </button>
+        </ScrollableChipsBar>
+      )}
+
       {/* Segmented Status Pill Tabs & WhatsApp Filter Tabs (Native Touch Scroll) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x">
+        <ScrollableChipsBar
+          className="flex-1 min-w-0"
+          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+        >
           {tabs.map(tab => {
             const isActive = statusFilter === tab.id
+            const isAttention = (tab as any).isAttention && tab.count > 0
             return (
               <button
                 key={tab.id}
@@ -279,28 +430,36 @@ export function HistoryFilterBar({
                 onClick={() => setStatusFilter(tab.id)}
                 className={`h-8 flex items-center gap-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
                   isActive
-                    ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 border-slate-900 dark:border-emerald-500/30 shadow-xs'
-                    : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                    ? isAttention
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs font-bold'
+                      : 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                    : isAttention
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                      : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
                   isActive
-                    ? 'bg-white/20 dark:bg-emerald-400/20 text-white dark:text-emerald-300'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    ? 'bg-white/20 text-white'
+                    : isAttention
+                      ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                 }`}>
                   {tab.count}
                 </span>
               </button>
             )
           })}
-        </div>
+        </ScrollableChipsBar>
+
 
         {/* WhatsApp Sent / Pending Quick Filter Toggle */}
         {setWhatsappFilter && (
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 shrink-0 self-start md:self-auto shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1.5">
-              WA:
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1.5 flex items-center gap-1">
+              <WhatsAppIcon size={12} className="text-[#25D366] fill-current shrink-0" />
+              <span>WA:</span>
             </span>
             <button
               type="button"

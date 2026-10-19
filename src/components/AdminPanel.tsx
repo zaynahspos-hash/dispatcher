@@ -4,6 +4,7 @@ import { UserProfile, LogEntry, CustomerEntry } from './admin/types'
 import { AdminStatsBar } from './admin/AdminStatsBar'
 import { AdminMerchantsTab } from './admin/AdminMerchantsTab'
 import { AdminCustomerDirectoryTab } from './admin/AdminCustomerDirectoryTab'
+import { ScrollableChipsBar } from './common/ScrollableChipsBar'
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -190,10 +191,17 @@ export default function AdminPanel() {
       />
 
       {/* 2. Sub-tab Navigation (Segmented Control) */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 w-fit">
+      <ScrollableChipsBar
+        className="w-fit max-w-full"
+        containerClassName="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-x-auto no-scrollbar"
+        fadeColorClass={{
+          left: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90',
+          right: 'from-slate-100 via-slate-100/90 to-transparent dark:from-slate-900 dark:via-slate-900/90'
+        }}
+      >
         <button
           onClick={() => setAdminTab('merchants')}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             adminTab === 'merchants'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -203,7 +211,7 @@ export default function AdminPanel() {
         </button>
         <button
           onClick={() => setAdminTab('customers')}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             adminTab === 'customers'
               ? 'bg-white dark:bg-[#0c121e] text-slate-900 dark:text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -211,7 +219,7 @@ export default function AdminPanel() {
         >
           Customer Directory ({uniqueCustomers.length})
         </button>
-      </div>
+      </ScrollableChipsBar>
 
       {/* 3. Render Tab Content */}
       {adminTab === 'merchants' ? (

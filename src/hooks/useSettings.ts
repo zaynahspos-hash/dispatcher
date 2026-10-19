@@ -2,6 +2,22 @@ import { useState, useEffect, useCallback } from 'react'
 import { Settings } from '../utils/groqParser'
 import { supabase } from '../utils/supabaseClient'
 import { clearCachedAvatar } from '../utils/avatarCache'
+import { DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../components/history/types'
+
+// Automatically purge corrupted emoji keys from localStorage
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.includes('whatsapp_template') || key.includes('whatsapp_note'))) {
+        const val = localStorage.getItem(key)
+        if (val && isCorruptText(val)) {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+  } catch {}
+}
 
 const DEFAULTS: Settings = {
   groq_api_key: '',
@@ -38,15 +54,25 @@ const DEFAULTS: Settings = {
   kimi_api_key: '',
   kimi_model: 'moonshot-v1-8k',
   mistral_api_key: '',
-  whatsapp_template: 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}',
-  whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}',
+  whatsapp_template: '📦 postex.pk • Tracking Alert 🚚\n\nDear {customer_name}, aap ka order book ho gaya hai! 🎉\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
+  whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉',
   avatar_url: '',
   order_id_prefix: 'tv-',
   order_id_next_num: '1001',
+  whatsapp_enable_booking_alert: false,
+  whatsapp_enable_out_for_delivery_alert: true,
+  whatsapp_enable_action_required_alert: true,
+  whatsapp_enable_delivered_alert: false,
+  whatsapp_template_booking: DEFAULT_MILESTONE_TEMPLATES.booking,
+  whatsapp_template_out_for_delivery: DEFAULT_MILESTONE_TEMPLATES.out_for_delivery,
+  whatsapp_template_action_required: DEFAULT_MILESTONE_TEMPLATES.action_required,
+  whatsapp_template_delivered: DEFAULT_MILESTONE_TEMPLATES.delivered,
+  whatsapp_min_delay_sec: 30,
+  whatsapp_max_delay_sec: 50,
 }
 
-const DEFAULT_WHATSAPP_TEMPLATE = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
-const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
+const DEFAULT_WHATSAPP_TEMPLATE = DEFAULT_MILESTONE_TEMPLATES.booking
+const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────
 // All keys are namespaced with the user's UUID so that two tenants on the
@@ -54,7 +80,7 @@ const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number O
 
 const CRITICAL_SECRET_KEYS: Array<keyof Settings> = [
   'postex_token', 'groq_api_key', 'gemini_api_key', 'openai_api_key',
-  'anthropic_api_key', 'deepseek_api_key', 'openrouter_api_key', 'avatar_url'
+  'anthropic_api_key', 'deepseek_api_key', 'openrouter_api_key'
 ]
 
 function userSettingsKey(userId: string, field: keyof Settings) {
@@ -65,36 +91,56 @@ function userVersionKey(userId: string) {
   return `u_${userId}_settings_version`
 }
 
-/** Read a single field from localStorage for this user */
-function readLocal(userId: string, field: keyof Settings): string {
+function readLocal(userId: string, field: keyof Settings): any {
   let val = localStorage.getItem(userSettingsKey(userId, field))
-  if (!val && CRITICAL_SECRET_KEYS.includes(field)) {
-    val = localStorage.getItem(`zaynah_vault_${field}`) || ''
-  }
   if (field === 'whatsapp_note') {
-    if (!val || val === 'Thank you for shopping with us!' || !val.includes('\u{1F4F1}') || !val.includes('\u{1F69A}')) {
-      return DEFAULT_WHATSAPP_NOTE
+    if (!val || val === 'Thank you for shopping with us!' || isCorruptText(val) || !val.includes('📱')) {
+      writeLocal(userId, 'whatsapp_note', DEFAULTS.whatsapp_note)
+      return DEFAULTS.whatsapp_note
     }
   }
-  if (field === 'whatsapp_template') {
-    if (!val || val.includes('Dear {name}, your order has been booked.') || !val.includes('\u2705')) {
-      return DEFAULT_WHATSAPP_TEMPLATE
+  if (field === 'whatsapp_template' || field === 'whatsapp_template_booking') {
+    if (!val || isCorruptText(val) || !val.includes('📦')) {
+      writeLocal(userId, field, DEFAULTS.whatsapp_template)
+      return DEFAULTS.whatsapp_template
     }
   }
-  return val || (DEFAULTS[field] as string) || ''
+  if (field === 'whatsapp_template_out_for_delivery') {
+    if (!val || isCorruptText(val) || !val.includes('🛵')) {
+      writeLocal(userId, field, DEFAULT_MILESTONE_TEMPLATES.out_for_delivery)
+      return DEFAULT_MILESTONE_TEMPLATES.out_for_delivery
+    }
+  }
+  if (field === 'whatsapp_template_action_required') {
+    if (!val || isCorruptText(val) || !val.includes('⚠️')) {
+      writeLocal(userId, field, DEFAULT_MILESTONE_TEMPLATES.action_required)
+      return DEFAULT_MILESTONE_TEMPLATES.action_required
+    }
+  }
+  if (field === 'whatsapp_template_delivered') {
+    if (!val || isCorruptText(val) || !val.includes('✅')) {
+      writeLocal(userId, field, DEFAULT_MILESTONE_TEMPLATES.delivered)
+      return DEFAULT_MILESTONE_TEMPLATES.delivered
+    }
+  }
+  if (field.startsWith('whatsapp_enable_')) {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return Boolean(DEFAULTS[field])
+  }
+  if (field === 'whatsapp_min_delay_sec' || field === 'whatsapp_max_delay_sec') {
+    if (val !== null && val !== '') return Number(val)
+    return Number(DEFAULTS[field]) || 30
+  }
+  return val !== null ? val : (DEFAULTS[field] ?? '')
 }
 
-/** Write a single field to localStorage for this user */
-function writeLocal(userId: string, field: keyof Settings, value: string) {
-  localStorage.setItem(userSettingsKey(userId, field), value)
-  if (CRITICAL_SECRET_KEYS.includes(field)) {
-    if (value) {
-      localStorage.setItem(`zaynah_vault_${field}`, value)
-    } else {
-      localStorage.removeItem(`zaynah_vault_${field}`)
-    }
-  }
+/** Write a single field to localStorage strictly for this user (RULE D15) */
+function writeLocal(userId: string, field: keyof Settings, value: any) {
+  const strVal = value === undefined || value === null ? '' : String(value)
+  localStorage.setItem(userSettingsKey(userId, field), strVal)
 }
+
 
 /** Write all settings to localStorage for this user */
 function writeAllLocal(userId: string, data: Settings) {
@@ -195,31 +241,91 @@ export function useSettings() {
         if (!dbSettings.gemini_model || dbSettings.gemini_model.includes('2.0') || dbSettings.gemini_model.includes('1.5') || dbSettings.gemini_model.includes('1.0') || dbSettings.gemini_model === 'custom') {
           dbSettings.gemini_model = 'gemini-3-flash-preview'
         }
-        if (!dbSettings.whatsapp_note || dbSettings.whatsapp_note === 'Thank you for shopping with us!' || !dbSettings.whatsapp_note.includes('\u{1F4F1}')) {
+        let needsDbRepair = false
+        if (
+          !dbSettings.whatsapp_note || 
+          dbSettings.whatsapp_note === 'Thank you for shopping with us!' || 
+          isCorruptText(dbSettings.whatsapp_note) ||
+          !dbSettings.whatsapp_note.includes('📱')
+        ) {
           dbSettings.whatsapp_note = DEFAULT_WHATSAPP_NOTE
+          needsDbRepair = true
         }
-        if (!dbSettings.whatsapp_template || dbSettings.whatsapp_template.includes('Dear {name}, your order has been booked.') || !dbSettings.whatsapp_template.includes('\u2705')) {
+        if (
+          !dbSettings.whatsapp_template || 
+          dbSettings.whatsapp_template.includes('Dear {name}, your order has been booked.') || 
+          isCorruptText(dbSettings.whatsapp_template) ||
+          !dbSettings.whatsapp_template.includes('📦')
+        ) {
           dbSettings.whatsapp_template = DEFAULT_WHATSAPP_TEMPLATE
+          needsDbRepair = true
+        }
+        if (!dbSettings.whatsapp_template_booking || isCorruptText(dbSettings.whatsapp_template_booking) || !dbSettings.whatsapp_template_booking.includes('📦')) {
+          dbSettings.whatsapp_template_booking = DEFAULT_MILESTONE_TEMPLATES.booking
+          needsDbRepair = true
+        }
+        if (!dbSettings.whatsapp_template_out_for_delivery || isCorruptText(dbSettings.whatsapp_template_out_for_delivery) || !dbSettings.whatsapp_template_out_for_delivery.includes('🛵')) {
+          dbSettings.whatsapp_template_out_for_delivery = DEFAULT_MILESTONE_TEMPLATES.out_for_delivery
+          needsDbRepair = true
+        }
+        if (!dbSettings.whatsapp_template_action_required || isCorruptText(dbSettings.whatsapp_template_action_required) || !dbSettings.whatsapp_template_action_required.includes('⚠️')) {
+          dbSettings.whatsapp_template_action_required = DEFAULT_MILESTONE_TEMPLATES.action_required
+          needsDbRepair = true
+        }
+        if (!dbSettings.whatsapp_template_delivered || isCorruptText(dbSettings.whatsapp_template_delivered) || !dbSettings.whatsapp_template_delivered.includes('✅')) {
+          dbSettings.whatsapp_template_delivered = DEFAULT_MILESTONE_TEMPLATES.delivered
+          needsDbRepair = true
         }
         const dbUpdatedAt = data.updated_at || ''
         const localVersion = localStorage.getItem(userVersionKey(currentUser.id))
 
-        if (dbUpdatedAt && localVersion !== dbUpdatedAt) {
+        if (needsDbRepair || (dbUpdatedAt && localVersion !== dbUpdatedAt)) {
           const merged = { ...DEFAULTS, ...dbSettings }
-          CRITICAL_SECRET_KEYS.forEach(k => {
-            if (!merged[k]) {
-              const fallback = readLocal(currentUser.id, k) || localStorage.getItem(`zaynah_vault_${k}`) || (k === 'avatar_url' ? currentUser.user_metadata?.avatar_url : '')
-              if (fallback) merged[k] = fallback
+          // RULE D15: Enforce strict multi-tenant ownership on avatar_url
+          if (merged.avatar_url && merged.avatar_url.includes('/avatars/')) {
+            const match = merged.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
+            if (match && match[1] && match[1].toLowerCase() !== currentUser.id.toLowerCase()) {
+              console.warn(`[useSettings] Stripped cross-tenant avatar leak for ${currentUser.email}`)
+              merged.avatar_url = ''
+              writeLocal(currentUser.id, 'avatar_url', '')
+              supabase.auth.updateUser({ data: { avatar_url: '' } }).catch(() => {})
             }
-          })
+          }
           setSettings(merged)
           writeAllLocal(currentUser.id, merged)
-          localStorage.setItem(userVersionKey(currentUser.id), dbUpdatedAt)
+          if (dbUpdatedAt) localStorage.setItem(userVersionKey(currentUser.id), dbUpdatedAt)
+
+          if (needsDbRepair) {
+            supabase
+            Promise.resolve(
+              supabase
+                .from('user_settings')
+                .upsert({
+                  user_id: currentUser.id,
+                  settings: dbSettings,
+                  updated_at: new Date().toISOString()
+                })
+            )
+              .then(() => console.log('[useSettings] Auto-healed corrupted WhatsApp emoji templates in Supabase DB'))
+              .catch((err: any) => console.error('[useSettings] Failed to save repaired templates to DB:', err))
+          }
         } else {
           const localSettings = readAllLocal(currentUser.id)
+          // RULE D15: Clean any foreign avatar from local settings
+          if (localSettings.avatar_url && localSettings.avatar_url.includes('/avatars/')) {
+            const match = localSettings.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
+            if (match && match[1] && match[1].toLowerCase() !== currentUser.id.toLowerCase()) {
+              localSettings.avatar_url = ''
+              writeLocal(currentUser.id, 'avatar_url', '')
+            }
+          }
           if (!localSettings.avatar_url && currentUser.user_metadata?.avatar_url) {
-            localSettings.avatar_url = currentUser.user_metadata.avatar_url
-            writeLocal(currentUser.id, 'avatar_url', localSettings.avatar_url)
+            const metaAvatar = currentUser.user_metadata.avatar_url
+            const match = metaAvatar.match(/\/avatars\/([a-f0-9-]+)\//i)
+            if (!match || (match[1] && match[1].toLowerCase() === currentUser.id.toLowerCase())) {
+              localSettings.avatar_url = metaAvatar
+              writeLocal(currentUser.id, 'avatar_url', localSettings.avatar_url)
+            }
           }
           setSettings(localSettings)
         }
@@ -246,7 +352,7 @@ export function useSettings() {
       const guestSettings = { ...DEFAULTS }
       CRITICAL_SECRET_KEYS.forEach(k => {
         const v = localStorage.getItem(`zaynah_vault_${k}`)
-        if (v) guestSettings[k] = v
+        if (v) (guestSettings as any)[k] = v
       })
       setSettings(guestSettings)
       return
@@ -322,13 +428,16 @@ export function useSettings() {
   async function logout() {
     if (user) {
       clearLocalForUser(user.id)
-      // Also clear tenant-scoped booked_history and booking_results caches
       localStorage.removeItem(`booked_history_${user.id}`)
       localStorage.removeItem(`booking_results_${user.id}`)
       localStorage.removeItem(`booked_history_synced_at_${user.id}`)
+      localStorage.removeItem(`postex_portal_synced_at_${user.id}`)
       clearCachedAvatar(user.id)
       if (user.email) clearCachedAvatar(user.email)
     }
+    // Purge any legacy global keys to guarantee zero cross-tenant bleeding (RULE D15)
+    localStorage.removeItem('zaynah_vault_avatar_url')
+    localStorage.removeItem('zaynah_vault_postex_token')
     await supabase.auth.signOut()
     setSettings(DEFAULTS)
     setUser(null)

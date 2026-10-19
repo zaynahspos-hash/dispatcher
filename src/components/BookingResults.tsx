@@ -9,10 +9,11 @@ import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
-import { BookedParcel } from './history/types'
+import { BookedParcel, DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from './history/types'
 import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
+import { useToast } from './common/Toast'
 
 export interface BookingResult {
   id: string
@@ -65,14 +66,19 @@ export default function BookingResults({
     return localStorage.getItem('zaynah_results_expand_defaults') === 'true'
   })
 
+  const toast = useToast()
   const waTracker = useWhatsAppSentTracker(userId || settings?.postex_token, history, onUpdateHistory)
 
   const handleToggleExpandDefaults = () => {
-    setExpandDefaults(prev => {
-      const next = !prev
-      localStorage.setItem('zaynah_results_expand_defaults', String(next))
-      return next
-    })
+    const next = !expandDefaults
+    setExpandDefaults(next)
+    localStorage.setItem('zaynah_results_expand_defaults', String(next))
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+    if (isMobile) {
+      toast.info(next ? 'All Cards Expanded' : 'All Cards Collapsed', next ? 'Expanded all result cards for detailed viewing.' : 'Collapsed cards into compact summary overview.')
+    } else {
+      toast.info(next ? 'Defaults Columns Expanded' : 'Defaults Columns Hidden', next ? 'Showing Weight, Detail, Note & Copies columns.' : 'Hidden optional logistics columns.')
+    }
   }
 
   const handleOpenVault = () => {
@@ -99,16 +105,15 @@ export default function BookingResults({
     else if (!cleanPhone.startsWith('92') && cleanPhone.length === 10) cleanPhone = '92' + cleanPhone
 
     const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain \u{1F4F1}\u{1F514} taake delivery rider asani se rabta kar sake \u{1F69A}\u{1F4A8}\n\nReview dejye ga lazmi is number pe \u2B50\u{1F4DD} aur agar 2-5 din mein parcel receive nahi hota \u23F3 to is number pe rabta karna hai \u260E\uFE0F\n\nHappy Shopping! \u{1F6CD}\uFE0F\u{1F60A}\u{1F389}'
-    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' && settings.whatsapp_note.includes('\u{1F4F1}')
+    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
+    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' && !isCorruptText(settings.whatsapp_note) && settings.whatsapp_note.includes('📱')
       ? settings.whatsapp_note 
       : defaultNote
 
     const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
-    let template = settings.whatsapp_template || 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
-    if (template.includes('Dear {name}, your order has been booked') || !template.includes('\u2705')) {
-      template = 'postex.pk \u2022 Tracking Alert \u{1F4E6}\u2728\n\nDear {customer_name}, aap ka order book ho gaya hai \u2705\nAap ise yahan track kar sakti hain \u{1F50D}\u{1F447}\n{portal_link}\n\n{note}'
-    }
+    let template = (settings.whatsapp_template && !isCorruptText(settings.whatsapp_template) && settings.whatsapp_template.includes('📦'))
+      ? settings.whatsapp_template
+      : DEFAULT_MILESTONE_TEMPLATES.booking
 
     template = template
       .replace(/{(?:name|customer_name)}/g, parcel.name)
@@ -237,25 +242,45 @@ export default function BookingResults({
   const handleAutoFitColumns = (e?: React.MouseEvent) => {
     if (e?.altKey) {
       triggerTableReset('results_desktop_grid_col_widths')
+      setExpandDefaults(false)
+      localStorage.setItem('zaynah_results_expand_defaults', 'false')
+      toast.info('Column Widths Reset', 'Reset column widths and card views to default.')
       return
     }
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+
+    if (isMobile) {
+      // Mobile view Auto-Fit (Rule DS8): Vertical card expansion downwards
+      const next = !expandDefaults
+      setExpandDefaults(next)
+      localStorage.setItem('zaynah_results_expand_defaults', String(next))
+      toast.success(
+        next ? 'Mobile Cards Auto-Fitted' : 'Mobile Cards Collapsed',
+        next ? 'Expanded all result cards vertically for complete visibility.' : 'Collapsed cards into compact summary overview.'
+      )
+      return
+    }
+
+    // Desktop view: Horizontal column width auto-fit
     const lengths = measureMaxContentLengths(
       {
         refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
         address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', orderType: 'ORDER TYPE',
-        weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'TRANSACTION NOTE',
-        copies: 'COPIES', statusTracking: 'STATUS & TRACKING'
+        weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'NOTE / INSTRUCTIONS',
+        copies: 'COPIES', statusTracking: 'STATUS / TRACKING'
       },
       results,
       {
         refId: r => r.id, customer: r => r.name, phone: r => r.phone,
         city: r => r.city, address: r => r.address, cod: r => `Rs. ${r.total || 0}`,
-        orderType: r => r.orderType || 'Normal', weight: r => `${r.weight || 0.5} kg`,
+        orderType: () => 'Normal (COD)    ', weight: r => `${r.weight || 0.5} kg`,
         detail: r => r.detail, note: r => r.note,
-        copies: r => String(r.airwayBillCopy || 1), statusTracking: r => `${r.tracking || ''} ${r.status || ''}`
+        copies: () => 'COPIES  ', statusTracking: r => `${r.tracking || '2226280000000'}     `
       }
     )
     triggerTableAutoFit('results_desktop_grid_col_widths', lengths)
+    toast.success('Column Widths Auto-Fitted', 'Adjusted column widths to maximum text length.')
   }
 
   if (results.length === 0) {
@@ -351,7 +376,7 @@ export default function BookingResults({
             orderTypes={ORDER_TYPES}
             expandDefaults={expandDefaults}
             isWhatsAppSent={waTracker.isSent}
-            onMarkWhatsAppSent={waTracker.markSent}
+            onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
             onToggleWhatsAppSent={waTracker.toggleSent}
           />
 
@@ -367,7 +392,7 @@ export default function BookingResults({
             cancellingTracking={cancellingTracking}
             getWhatsAppLink={getWhatsAppLink}
             isWhatsAppSent={waTracker.isSent}
-            onMarkWhatsAppSent={waTracker.markSent}
+            onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
             onToggleWhatsAppSent={waTracker.toggleSent}
             expandDefaults={expandDefaults}
           />
@@ -379,7 +404,7 @@ export default function BookingResults({
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100]}
+            pageSizeOptions={[10, 25, 50, 100, 200, 300]}
             itemLabel="results"
             className="mt-2"
           />

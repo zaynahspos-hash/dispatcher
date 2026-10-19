@@ -1,27 +1,16 @@
 import { useState } from 'react'
 import { Settings } from '../utils/groqParser'
-import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice } from '../utils/postexApi'
+import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice, fetchAllMerchantOrders } from '../utils/postexApi'
 import { saveAirwayDocument, saveLoadSheetDocument } from '../utils/localPdfVault'
 import {
   BookedParcel,
   ActionStatusState,
   getStatusCategory,
-  isCancelledStatus,
   determineNewStatus,
-  isCancellable
+  isCancellable,
+  isPlaceholder,
+  mergePostExOrders
 } from '../components/history/types'
-
-interface UseBookedHistoryOperationsProps {
-  settings: Settings
-  history: BookedParcel[]
-  onUpdateHistory: (updated: BookedParcel[]) => void
-  filteredParcels: BookedParcel[]
-}
-
-const isPlaceholder = (val: string) => {
-  const v = (val || '').trim().toLowerCase()
-  return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
-}
 
 const getLatestPostExStatus = (dist: any): string => {
   const list = dist?.transactionStatusHistory
@@ -32,11 +21,22 @@ const getLatestPostExStatus = (dist: any): string => {
   return dist?.transactionStatus || dist?.orderStatus || 'Booked'
 }
 
+interface UseBookedHistoryOperationsProps {
+  settings: Settings
+  history: BookedParcel[]
+  onUpdateHistory: (updated: BookedParcel[]) => void
+  filteredParcels: BookedParcel[]
+  fromDate?: string
+  toDate?: string
+}
+
 export function useBookedHistoryOperations({
   settings,
   history,
   onUpdateHistory,
-  filteredParcels
+  filteredParcels: _filteredParcels,
+  fromDate,
+  toDate
 }: UseBookedHistoryOperationsProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -67,7 +67,7 @@ export function useBookedHistoryOperations({
         saveAirwayDocument(settings.postex_token, {
           batchName: `PostEx Airway Bill (${selectedIds.length} Parcels)`,
           trackingNumbers: selectedIds,
-          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.invoice_amount || 0), 0)
+          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.total || 0), 0)
         })
         setActionStatus({ type: 'success', message: `PDF airway bills downloaded & saved to Vault (${selectedIds.length} CNs)!` })
       } else {
@@ -116,10 +116,12 @@ export function useBookedHistoryOperations({
           pickupCode: settings.postex_pickup || '',
           batchName: `Load Sheet (${selectedIds.length} Parcels)`,
           trackingNumbers: selectedIds,
-          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.invoice_amount || 0), 0)
+          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.total || 0), 0)
         })
         const updatedHistory = history.map(item => {
-          if (selectedIds.includes(item.tracking)) return { ...item, status: 'BOOKED' }
+          if (selectedIds.includes(item.tracking)) {
+            return { ...item, status: 'BOOKED', hasLoadSheet: true, loadsheet_generated: true }
+          }
           return item
         })
         onUpdateHistory(updatedHistory)
@@ -208,9 +210,14 @@ export function useBookedHistoryOperations({
 
         const updatedHistory = history.map(item => {
           if (item.tracking === tracking) {
+            const rawLower = rawStatus.toLowerCase().trim()
+            const isUnbooked = rawLower === 'unbooked'
+            const isManifested = !isUnbooked && rawLower !== 'cancelled'
             return {
               ...item,
               status: determineNewStatus(item.status, rawStatus),
+              hasLoadSheet: isUnbooked ? false : (item.hasLoadSheet || isManifested),
+              loadsheet_generated: isUnbooked ? false : (item.loadsheet_generated || isManifested),
               name: isPlaceholder(item.name) && !isPlaceholder(customerName) ? customerName : item.name,
               phone: !item.phone && customerPhone ? customerPhone : item.phone,
               city: !item.city && cityName ? cityName : item.city,
@@ -232,80 +239,99 @@ export function useBookedHistoryOperations({
     }
   }
 
-  const handleRefreshAll = async () => {
-    const activeParcels = filteredParcels.filter(item => {
-      if (!item.tracking || !item.tracking.trim()) return false
-      const s = (item.status || '').toLowerCase()
-      return !s.includes('deliver')
-    })
+  const handleSyncSelected = async () => {
+    if (selectedIds.length === 0) return
+    if (!settings.postex_token) {
+      setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
+      return
+    }
 
-    if (activeParcels.length === 0) {
-      setActionStatus({ type: 'success', message: 'No parcels with tracking numbers in current view to refresh.' })
+    setIsLoading(true)
+    setIsSyncingAll(true)
+    setActionStatus(null)
+    setSyncProgress(`Syncing ${selectedIds.length} orders...`)
+
+    let mergedHistory = [...history]
+    let completedCount = 0
+
+    for (const tracking of selectedIds) {
+      try {
+        const res = await trackOrder(settings.postex_token, tracking)
+        if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
+          const rawStatus = getLatestPostExStatus(res.dist)
+          const customerName = res.dist?.customerName || ''
+          const customerPhone = res.dist?.customerPhone || ''
+          const cityName = res.dist?.cityName || ''
+          const deliveryAddress = res.dist?.deliveryAddress || ''
+          const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
+
+          const idx = mergedHistory.findIndex(p => p.tracking === tracking)
+          if (idx !== -1) {
+            const currentItem = mergedHistory[idx]
+            const rawLower = rawStatus.toLowerCase().trim()
+            const isUnbooked = rawLower === 'unbooked'
+            const isManifested = !isUnbooked && rawLower !== 'cancelled'
+            mergedHistory[idx] = {
+              ...currentItem,
+              status: determineNewStatus(currentItem.status, rawStatus),
+              hasLoadSheet: isUnbooked ? false : (currentItem.hasLoadSheet || isManifested),
+              loadsheet_generated: isUnbooked ? false : (currentItem.loadsheet_generated || isManifested),
+              name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
+              phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
+              city: !currentItem.city && cityName ? cityName : currentItem.city,
+              address: !currentItem.address && deliveryAddress ? deliveryAddress : currentItem.address,
+              total: (!currentItem.total || currentItem.total === 0) && invoicePayment ? invoicePayment : currentItem.total
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Error syncing CN ${tracking}:`, err)
+      } finally {
+        completedCount++
+        setSyncProgress(`Synced ${completedCount}/${selectedIds.length}...`)
+      }
+    }
+
+    onUpdateHistory(mergedHistory)
+    setIsLoading(false)
+    setIsSyncingAll(false)
+    setSyncProgress('')
+    setActionStatus({
+      type: 'success',
+      message: `Successfully synchronized ${selectedIds.length} selected orders!`
+    })
+  }
+
+  const handleRefreshAll = async () => {
+    if (!settings.postex_token) {
+      setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
       return
     }
 
     setIsSyncingAll(true)
     setActionStatus(null)
-    let successCount = 0
-    const updatedHistory = [...history]
+    setSyncProgress('Connecting to PostEx API...')
 
-    const queue = [...activeParcels]
-    const activeParcelsCount = queue.length
-    let completedCount = 0
+    let mergedHistory = [...history]
+    let fetchedOrdersCount = 0
 
-    const worker = async () => {
-      while (queue.length > 0) {
-        const item = queue.shift()
-        if (!item) break
-
-        try {
-          const res = await trackOrder(settings.postex_token, item.tracking)
-          if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-            const rawStatus = getLatestPostExStatus(res.dist)
-            const customerName = res.dist?.customerName || ''
-            const customerPhone = res.dist?.customerPhone || ''
-            const cityName = res.dist?.cityName || ''
-            const deliveryAddress = res.dist?.deliveryAddress || ''
-            const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
-
-            const idx = updatedHistory.findIndex(p => p.tracking === item.tracking)
-            if (idx !== -1) {
-              const currentItem = updatedHistory[idx]
-              updatedHistory[idx] = {
-                ...currentItem,
-                status: determineNewStatus(currentItem.status, rawStatus),
-                name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
-                phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
-                city: !currentItem.city && cityName ? cityName : currentItem.city,
-                address: !currentItem.address && deliveryAddress ? deliveryAddress : currentItem.address,
-                total: (!currentItem.total || currentItem.total === 0) && invoicePayment ? invoicePayment : currentItem.total
-              }
-            }
-            successCount++
-          }
-        } catch (err) {
-          console.error(`Error syncing CN ${item.tracking}:`, err)
-        } finally {
-          completedCount++
-          setSyncProgress(`Refreshing ${completedCount}/${activeParcelsCount}: CN ${item.tracking}`)
-        }
+    try {
+      // Pass fromDate and toDate if user has chosen date filters
+      const postexOrders = await fetchAllMerchantOrders(settings.postex_token, fromDate, toDate)
+      if (Array.isArray(postexOrders) && postexOrders.length > 0) {
+        fetchedOrdersCount = postexOrders.length
+        mergedHistory = mergePostExOrders(mergedHistory, postexOrders)
       }
+    } catch (e: any) {
+      console.warn('PostEx get-all-order sync error:', e)
     }
 
-    const concurrency = Math.min(10, queue.length)
-    const workerPromises = []
-    for (let i = 0; i < concurrency; i++) {
-      workerPromises.push(worker())
-    }
-    
-    await Promise.all(workerPromises)
-
-    onUpdateHistory(updatedHistory)
+    onUpdateHistory(mergedHistory)
     setIsSyncingAll(false)
     setSyncProgress('')
     setActionStatus({
       type: 'success',
-      message: `Successfully synchronized details and statuses for ${successCount} active parcel(s)!`
+      message: `Successfully synchronized ${fetchedOrdersCount > 0 ? `${fetchedOrdersCount} orders from PostEx` : 'all parcel statuses'} in real-time!`
     })
   }
 
@@ -376,6 +402,7 @@ export function useBookedHistoryOperations({
     handleCancelSelected,
     handleCancelSingle,
     handleSyncStatus,
+    handleSyncSelected,
     handleRefreshAll,
     handleSubmitAdvice
   }

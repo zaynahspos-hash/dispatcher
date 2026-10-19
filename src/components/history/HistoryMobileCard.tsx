@@ -1,13 +1,15 @@
-import { SyncIcon, CancelIcon, InfoIcon, WhatsAppIcon, ChevronDownIcon } from '../Icons'
+import { useState } from 'react'
+import { SyncIcon, CancelIcon, InfoIcon, ChevronDownIcon, CheckIcon } from '../Icons'
+import { WhatsAppActionButton } from '../common/WhatsAppActionButton'
 import {
   BookedParcel,
   isCancelledStatus,
-  isBookedStatus,
   isUnderReview,
   getDisplayStatus,
-  getStatusCategory,
+  getStatusBadgeStyle,
   isCancellable,
-  getWhatsAppLink
+  WhatsAppAlertState,
+  isParcelWhatsAppSent
 } from './types'
 
 interface HistoryMobileCardProps {
@@ -20,9 +22,11 @@ interface HistoryMobileCardProps {
   isSyncing: boolean
   onCancel: (tracking: string) => void
   onOpenAdvice: (parcel: BookedParcel) => void
+  onOpenWhatsApp: (parcel: BookedParcel) => void
   whatsappNote?: string
   whatsappTemplate?: string
   isWhatsAppSent?: boolean
+  alertState?: WhatsAppAlertState
   onMarkWhatsAppSent?: (tracking: string, id?: string) => void
   onToggleWhatsAppSent?: (tracking: string) => void
 }
@@ -37,193 +41,263 @@ export function HistoryMobileCard({
   isSyncing,
   onCancel,
   onOpenAdvice,
-  whatsappNote,
-  whatsappTemplate,
+  onOpenWhatsApp,
   isWhatsAppSent,
-  onMarkWhatsAppSent,
-  onToggleWhatsAppSent
+  alertState = 'none'
 }: HistoryMobileCardProps) {
-  const effectiveWhatsAppSent = Boolean(parcel.whatsapp_sent || parcel.whatsappSent || isWhatsAppSent)
+  const [copied, setCopied] = useState(false)
+  const effectiveWhatsAppSent = isParcelWhatsAppSent(parcel, isWhatsAppSent ? () => true : undefined)
+
+  const effectiveState: WhatsAppAlertState = (alertState && alertState !== 'none')
+    ? alertState
+    : (parcel.whatsapp_booking_sent && parcel.whatsapp_status_sent)
+      ? 'both'
+      : parcel.whatsapp_booking_sent
+        ? 'booking_only'
+        : parcel.whatsapp_status_sent
+          ? 'status_only'
+          : effectiveWhatsAppSent
+            ? 'booking_only'
+            : 'none'
+
   const canCancel = isCancellable(parcel.status, parcel.loadsheet_generated)
 
+  const handleCopyCN = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (parcel.tracking) {
+      navigator.clipboard.writeText(parcel.tracking)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    }
+  }
+
   return (
-    <div className={`bg-white dark:bg-[#0c121e] border rounded-2xl p-3.5 transition-all shadow-xs w-full max-w-full min-w-0 ${
-      isSelected
-        ? 'border-emerald-500/50 ring-1 ring-emerald-500/20 bg-emerald-500/[0.02]'
-        : 'border-slate-200/80 dark:border-slate-800'
-    }`}>
-      {/* Top Header: Always Visible Summary Strip */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+    <div
+      className={`p-3.5 rounded-2xl bg-white dark:bg-[#0c121e] border transition-all duration-200 shadow-xs w-full max-w-full min-w-0 ${
+        isSelected
+          ? 'border-emerald-500/50 ring-1 ring-emerald-500/20 bg-emerald-500/[0.02]'
+          : 'border-slate-200/90 dark:border-slate-800'
+      }`}
+    >
+      {/* 1. Top Row: Checkbox, Tracking Pill, City Badge, Status Badge & Price */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={e => onToggleSelect(parcel.tracking, e.target.checked)}
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer shrink-0"
           />
-          <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggleExpand}>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[150px]">
-                {parcel.name || 'Unnamed Recipient'}
-              </span>
-              {effectiveWhatsAppSent ? (
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                  Sent
-                </span>
-              ) : (
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
-                  WA Pending
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono mt-0.5">
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold select-all">{parcel.tracking}</span>
-              <span>&bull;</span>
-              <span className="uppercase font-semibold text-slate-500">{parcel.city}</span>
-            </div>
-          </div>
+
+          {/* Tracking Number Pill (Matches Results tab) */}
+          <a
+            href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-mono text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 truncate cursor-pointer active:scale-95"
+            title={`Track ${parcel.tracking} on PostEx`}
+          >
+            <CheckIcon size={11} className="shrink-0" />
+            <span>{parcel.tracking}</span>
+          </a>
+
+          {/* City Badge */}
+          {parcel.city && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase tracking-wide shrink-0">
+              {parcel.city}
+            </span>
+          )}
+
+          {/* Live Status Badge (Calibrated Alpha Opacity) */}
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-nowrap shrink-0 ${getStatusBadgeStyle(
+              parcel.status,
+              parcel.tracking,
+              parcel.loadsheet_generated
+            )}`}
+          >
+            {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="text-right cursor-pointer" onClick={onToggleExpand}>
-            {(() => {
-              const cat = getStatusCategory(parcel.status, parcel.tracking)
-              const underReview = isUnderReview(parcel.status)
-              let badgeClass = 'bg-[var(--status-info-bg)] border-[var(--status-info-border)] text-[var(--status-info-text)]'
-              if (cat === 'delivered' || cat === 'booked' || parcel.status === 'success') {
-                badgeClass = 'bg-[var(--status-success-bg)] border-[var(--status-success-border)] text-[var(--status-success-text)]'
-              } else if (cat === 'cancelled' || cat === 'returned') {
-                badgeClass = 'bg-[var(--status-danger-bg)] border-[var(--status-danger-border)] text-[var(--status-danger-text)]'
-              } else if (underReview) {
-                badgeClass = 'bg-[var(--status-warning-bg)] border-[var(--status-warning-border)] text-[var(--status-warning-text)]'
-              }
-              return (
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${badgeClass}`}>
-                  {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
-                </span>
-              )
-            })()}
-            <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-              Rs. {Number(parcel.total || 0).toLocaleString()}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
-          >
-            <ChevronDownIcon size={15} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
+        {/* COD Price Token (Matches Parcels & Results tabs) */}
+        <div className="text-right shrink-0">
+          <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+            Rs. {Number(parcel.total || 0).toLocaleString()}
+          </span>
         </div>
       </div>
 
-      {/* Expanded Details Drawer */}
+      {/* 2. Recipient & Phone Row */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
+          <span className="truncate">{parcel.name || 'Unnamed Recipient'}</span>
+          {parcel.phone && (
+            <span className="font-mono text-[11px] text-slate-400 font-semibold shrink-0">
+              {parcel.phone}
+            </span>
+          )}
+        </div>
+        {parcel.address && (
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed truncate mt-0.5">
+            {parcel.address}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Sub-meta Tags: WhatsApp Alert State, Portal Source, Booking Date */}
+      <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+        {effectiveWhatsAppSent ? (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#25D366]/15 text-[#128C7E] dark:text-[#25D366] border border-[#25D366]/25 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
+            {effectiveState === 'both' ? 'Both Sent' : 'Sent'}
+          </span>
+        ) : (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">
+            WA Pending
+          </span>
+        )}
+
+        {parcel.source === 'postex_portal' && (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25">
+            Portal
+          </span>
+        )}
+
+        {parcel.bookingDate && (
+          <span className="text-[10px] text-slate-400 font-medium ml-auto">
+            {new Date(parcel.bookingDate).toLocaleString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              hour: 'numeric',
+              minute: '2-digit'
+            })}
+          </span>
+        )}
+      </div>
+
+      {/* 4. Expanded Logistics Details Drawer */}
       {isExpanded && (
-        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2.5 animate-in fade-in duration-100 text-xs">
+        <div className="mb-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
           <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-400">
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Phone Number</span>
-              <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{parcel.phone || '—'}</span>
-            </div>
             <div>
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Order Ref ID</span>
               <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{parcel.id || '—'}</span>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-400">
             <div>
               <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Booking Date</span>
               <span className="font-medium text-slate-800 dark:text-slate-200">
-                {parcel.bookingDate ? new Date(parcel.bookingDate).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—'}
+                {parcel.bookingDate
+                  ? new Date(parcel.bookingDate).toLocaleString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    })
+                  : '—'}
               </span>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Live Status</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{parcel.status}</span>
-                <button
-                  type="button"
-                  onClick={() => onSyncStatus(parcel.tracking)}
-                  disabled={isSyncing}
-                  className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer p-0.5"
-                  title="Sync Status from PostEx"
-                >
-                  {isSyncing ? (
-                    <svg className="animate-spin h-3 w-3 text-emerald-500" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
-                    <SyncIcon size={12} />
-                  )}
-                </button>
-              </div>
             </div>
           </div>
 
           {parcel.address && (
             <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Delivery Address</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">Full Address</span>
               <p className="text-slate-700 dark:text-slate-300 font-medium text-[11px] leading-relaxed mt-0.5 break-words">
                 {parcel.address}
               </p>
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-2 flex-wrap">
-            {isUnderReview(parcel.status) && (
-              <button
-                type="button"
-                onClick={() => onOpenAdvice(parcel)}
-                className="h-8 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer"
-              >
-                <InfoIcon size={12} />
-                <span>Advice</span>
-              </button>
-            )}
-
-            {!isCancelledStatus(parcel.status) && (
-              <a
-                href={getWhatsAppLink(parcel, whatsappNote, whatsappTemplate)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => {
-                  if (e.altKey) {
-                    e.preventDefault()
-                    onToggleWhatsAppSent?.(parcel.tracking)
-                  } else {
-                    onMarkWhatsAppSent?.(parcel.tracking, parcel.id)
-                  }
-                }}
-                className={`h-8 px-3 rounded-xl font-bold flex items-center gap-1 text-xs transition cursor-pointer shadow-xs active:scale-95 ${
-                  effectiveWhatsAppSent
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 shadow-emerald-500/20'
-                    : 'border border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
-                }`}
-              >
-                <WhatsAppIcon size={13} className="fill-current" />
-                <span>{effectiveWhatsAppSent ? 'Sent' : 'WhatsApp'}</span>
-              </a>
-            )}
-
-            {canCancel && (
-              <button
-                type="button"
-                onClick={() => onCancel(parcel.tracking)}
-                disabled={isSyncing}
-                className="h-8 px-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-600 font-semibold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer disabled:opacity-50 shadow-xs"
-                title="Cancel Booking"
-              >
-                <CancelIcon size={12} />
-                <span>Cancel</span>
-              </button>
-            )}
-          </div>
         </div>
       )}
+
+      {/* 5. Bottom Actions Bar (Matches Results tab: WhatsApp, Copy CN, Advice, Cancel, Sync, Expand) */}
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* WhatsApp Action Button */}
+          {!isCancelledStatus(parcel.status) && (
+            <WhatsAppActionButton
+              variant="chip"
+              isSent={effectiveWhatsAppSent}
+              onClick={() => onOpenWhatsApp(parcel)}
+              label={effectiveState === 'both' ? 'Both Sent' : effectiveWhatsAppSent ? 'Sent' : 'WhatsApp'}
+              title="Send WhatsApp Order Update"
+            />
+          )}
+
+          {/* Copy CN Button (Matches Results tab) */}
+          {parcel.tracking && (
+            <button
+              type="button"
+              onClick={handleCopyCN}
+              className={`h-8 px-2.5 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                copied
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+              title="Copy Consignment Tracking Number"
+            >
+              {copied ? 'Copied!' : 'Copy CN'}
+            </button>
+          )}
+
+          {/* Shipper Advice Button (Only if review/action required) */}
+          {isUnderReview(parcel.status) && (
+            <button
+              type="button"
+              onClick={() => onOpenAdvice(parcel)}
+              className="h-8 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer active:scale-95"
+              title="Submit Shipper Advice"
+            >
+              <InfoIcon size={12} />
+              <span>Advice</span>
+            </button>
+          )}
+
+          {/* Cancel Button (Only if cancellable) */}
+          {canCancel && (
+            <button
+              type="button"
+              onClick={() => onCancel(parcel.tracking)}
+              disabled={isSyncing}
+              className="h-8 px-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-600 font-semibold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer disabled:opacity-50 shadow-xs active:scale-95"
+              title="Cancel Booking"
+            >
+              <CancelIcon size={12} />
+              <span>Cancel</span>
+            </button>
+          )}
+        </div>
+
+        {/* Right side utilities: Sync Status & Expand Drawer */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onSyncStatus(parcel.tracking)}
+            disabled={isSyncing}
+            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition cursor-pointer flex items-center justify-center disabled:opacity-50 active:scale-95 shadow-2xs"
+            title="Sync Live Status from PostEx"
+          >
+            {isSyncing ? (
+              <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <SyncIcon size={13} />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-2xs"
+            title={isExpanded ? 'Hide Extra Details' : 'View Extra Details'}
+          >
+            <ChevronDownIcon size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

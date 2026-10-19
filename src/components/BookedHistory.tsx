@@ -1,7 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Settings } from '../utils/groqParser'
-import { SyncIcon, HistoryIcon, AlertIcon, CheckIcon, CloseIcon, RefreshIcon } from './Icons'
-import { BookedParcel, StatusFilterType, isCancellable } from './history/types'
+import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon } from './Icons'
+import { 
+  BookedParcel, 
+  StatusFilterType, 
+  SourceFilterType, 
+  isCancellable,
+  isCancelledStatus,
+  getStatusCategory,
+  getLocalTodayDate
+} from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
@@ -9,6 +17,7 @@ import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
+import { WhatsAppSelectModal } from './history/WhatsAppSelectModal'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
@@ -31,21 +40,32 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   }, [])
 
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('pending_loadsheet')
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterType>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const [fromDate, setFromDate] = useState<string>(() => getLocalTodayDate())
+  const [toDate, setToDate] = useState<string>(() => getLocalTodayDate())
   const [statusSelect, setStatusSelect] = useState('all')
   const [pickupFilter, setPickupFilter] = useState('all')
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
+  const [whatsAppModalParcel, setWhatsAppModalParcel] = useState<BookedParcel | null>(null)
+
   const waTracker = useWhatsAppSentTracker(userId || settings?.postex_token, history, onUpdateHistory)
 
   const handleClearFilters = () => {
-    setSearchQuery(''); setFromDate(''); setToDate(''); setStatusSelect('all'); setPickupFilter('all'); setWhatsappFilter('all')
+    const today = getLocalTodayDate()
+    setSearchQuery('')
+    setFromDate(today)
+    setToDate(today)
+    setStatusFilter('pending_loadsheet')
+    setStatusSelect('all')
+    setPickupFilter('all')
+    setWhatsappFilter('all')
+    setSourceFilter('all')
   }
 
   // Filter and dynamic counts hook
-  const { counts, filteredParcels } = useBookedHistoryFilter({
-    history, statusFilter, searchQuery, fromDate, toDate,
+  const { counts, sourceCounts, filteredParcels } = useBookedHistoryFilter({
+    history, statusFilter, sourceFilter, searchQuery, fromDate, toDate,
     statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
@@ -57,9 +77,9 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     adviceStatusId, setAdviceStatusId, adviceRemarks, setAdviceRemarks,
     isSubmittingAdvice, adviceError, setAdviceError, handlePrintSelected,
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
-    handleSyncStatus, handleRefreshAll, handleSubmitAdvice
+    handleSyncStatus, handleSyncSelected, handleRefreshAll, handleSubmitAdvice
   } = useBookedHistoryOperations({
-    settings, history, onUpdateHistory, filteredParcels
+    settings, history, onUpdateHistory, filteredParcels, fromDate, toDate
   })
 
   // DB-Optimized Shared Pagination
@@ -96,8 +116,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   return (
     <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
       {/* Header and Sync Actions */}
-      <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between w-full sm:w-auto">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>Booked History</span>
             <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
@@ -106,11 +126,11 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleToggleAutoExpandLines}
-            className={`h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
+            className={`flex-1 sm:flex-initial h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
               autoExpandLines
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -123,7 +143,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             type="button"
             onClick={handleRefreshAll}
             disabled={isSyncingAll || isLoading}
-            className="h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0"
+            className="flex-1 sm:flex-initial h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
           >
             {isSyncingAll ? (
               <>
@@ -151,9 +171,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         pickupFilter={pickupFilter} setPickupFilter={setPickupFilter}
         uniqueCities={uniqueCities} handleClearFilters={handleClearFilters}
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+        sourceFilter={sourceFilter} setSourceFilter={setSourceFilter}
         whatsappFilter={whatsappFilter} setWhatsappFilter={setWhatsappFilter}
         counts={counts}
+        sourceCounts={sourceCounts}
       />
+
 
       {/* Action Notification Banner */}
       {actionStatus && (
@@ -198,10 +221,13 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         selectedCount={selectedIds.length}
         totalCount={paginatedParcels.length}
         cancellableCount={history.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
+        printableCount={history.filter(p => selectedIds.includes(p.tracking) && !isCancelledStatus(p.status) && getStatusCategory(p.status, p.tracking) !== 'returned').length}
+        loadsheetableCount={history.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
         onGenerateLoadSheet={handleGenerateLoadSheet}
         onCancelSelected={handleCancelSelected}
+        onSyncSelected={handleSyncSelected}
         isLoading={isLoading}
         isCancellingAll={isCancellingAll}
         cancelProgress={cancelProgress}
@@ -219,17 +245,17 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       ) : (
         <div className="flex flex-col gap-4">
           {/* Desktop Table: 100% Non-Movable Responsive Layout */}
-          <div className="hidden lg:block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full">
-            <table className="w-full min-w-0 max-w-full text-left text-xs border-collapse table-fixed select-none">
+          <div className="hidden lg:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full">
+            <table className="w-full min-w-[960px] max-w-full text-left text-xs border-collapse select-none">
               <colgroup>
-                <col style={{ width: '40px' }} />
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '16%' }} />
+                <col style={{ width: '44px' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '12%' }} />
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '29%' }} />
-                <col style={{ width: '7%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '8%' }} />
               </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
@@ -252,13 +278,13 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
                     />
                   </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Consignee</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Customer</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap min-w-[145px]">Tracking Info</th>
                   <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Destination</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Booking Date</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right">COD Amount</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Status</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-center">Action</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Booking Date</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap">COD Amount</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap min-w-[155px]">Status</th>
+                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-center whitespace-nowrap" title="WhatsApp: Sky Blue = Booking Only • Amber = Status Only • Emerald = Both Sent">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -277,11 +303,10 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                       setAdviceRemarks('')
                       setAdviceError(null)
                     }}
+                    onOpenWhatsApp={setWhatsAppModalParcel}
                     whatsappNote={settings.whatsapp_note}
                     whatsappTemplate={settings.whatsapp_template}
                     isWhatsAppSent={waTracker.isSent(parcel.tracking) || waTracker.isSent(parcel.id)}
-                    onMarkWhatsAppSent={waTracker.markSent}
-                    onToggleWhatsAppSent={waTracker.toggleSent}
                     autoExpandLines={autoExpandLines}
                   />
                 ))}
@@ -300,10 +325,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             syncingTracking={syncingTracking}
             handleCancelSingle={handleCancelSingle}
             onOpenAdvice={p => { setAdviceParcel(p); setAdviceStatusId(2); setAdviceRemarks(''); setAdviceError(null) }}
+            onOpenWhatsApp={setWhatsAppModalParcel}
             whatsappNote={settings.whatsapp_note}
             whatsappTemplate={settings.whatsapp_template}
             isWhatsAppSent={waTracker.isSent}
-            onMarkWhatsAppSent={waTracker.markSent}
+            getAlertState={waTracker.getAlertState}
+            onMarkWhatsAppSent={(tracking, id) => waTracker.markSent(tracking, undefined, id)}
             onToggleWhatsAppSent={waTracker.toggleSent}
             autoExpandLines={autoExpandLines}
           />
@@ -315,7 +342,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100]}
+            pageSizeOptions={[10, 25, 50, 100, 200, 300]}
             itemLabel="booked parcels"
             className="mt-4"
           />
@@ -330,6 +357,18 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         adviceRemarks={adviceRemarks} setAdviceRemarks={setAdviceRemarks}
         onSubmit={handleSubmitAdvice} isSubmitting={isSubmittingAdvice} error={adviceError}
       />
+
+      {/* Manual WhatsApp Select Modal (2 Clean Options) */}
+      <WhatsAppSelectModal
+        parcel={whatsAppModalParcel}
+        onClose={() => setWhatsAppModalParcel(null)}
+        whatsappNote={settings.whatsapp_note}
+        whatsappTemplate={settings.whatsapp_template}
+        isBookingSent={waTracker.isBookingSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
+        isStatusSent={waTracker.isStatusSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
+        onMarkSent={(tracking, id, type) => waTracker.markSent(tracking, type, id)}
+      />
     </div>
   )
 }
+
