@@ -4,6 +4,7 @@ import { Parcel, Settings } from './groqParser'
 const IS_DEV = (import.meta as any).env.DEV;
 const POSTEX_HOST = IS_DEV ? '/postex-api' : 'https://api.postex.pk';
 const BASE = `${POSTEX_HOST}/services/integration/api`
+const POSTEX_PUBLIC_HOST = IS_DEV ? '/postex-public' : 'https://postex.pk';
 
 function headers(token: string) {
   return { token, 'Content-Type': 'application/json' }
@@ -357,11 +358,41 @@ export async function saveShipperAdvice(token: string, trackingNumber: string, s
 }
 
 export async function trackOrder(token: string, trackingNumber: string) {
-  const res = await axios.get(
-    `${BASE}/order/v1/track-order/${trackingNumber}`,
-    { headers: headers(token) }
-  )
-  return res.data
+  const cleanCN = (trackingNumber || '').trim()
+  if (!cleanCN) {
+    return { statusCode: 400, statusMessage: 'Tracking number is missing' }
+  }
+
+  // 1. Try authenticated merchant API if token is provided
+  if (token && token.trim()) {
+    try {
+      const res = await axios.get(
+        `${BASE}/order/v1/track-order/${cleanCN}`,
+        { headers: headers(token) }
+      )
+      if (res?.data && (res.data.statusCode === 200 || res.data.statusCode === '200' || res.data.dist)) {
+        return res.data
+      }
+    } catch (err: any) {
+      console.warn('Merchant track-order failed, attempting public fallback:', err?.message)
+    }
+  }
+
+  // 2. Fallback to public tracking endpoint (used by postex.pk/tracking)
+  try {
+    const pubRes = await axios.post(
+      `${POSTEX_PUBLIC_HOST}/api/tracking-order`,
+      { trackingNumber: cleanCN },
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+    if (pubRes?.data && (pubRes.data.statusCode === 200 || pubRes.data.statusCode === '200' || pubRes.data.dist)) {
+      return pubRes.data
+    }
+  } catch (pubErr: any) {
+    console.warn('Public tracking-order fallback failed:', pubErr?.message)
+  }
+
+  return { statusCode: 400, statusMessage: 'Tracking status not found' }
 }
 
 export async function fetchAllMerchantOrders(

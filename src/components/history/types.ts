@@ -156,6 +156,36 @@ export const isUnbookedStatus = (status: string) => {
   )
 }
 
+export const isDetailedMilestone = (status: string): boolean => {
+  const s = (status || '').toLowerCase().trim()
+  if (!s) return false
+  return (
+    s.includes('depart') ||
+    s.includes('arrive') ||
+    s.includes('received at') ||
+    s.includes('at transit') ||
+    s.includes('postex warehouse')
+  )
+}
+
+export const getLatestPostExStatus = (dist: any): string => {
+  if (!dist) return 'Booked'
+  const list = dist.transactionStatusHistory
+  if (Array.isArray(list) && list.length > 0) {
+    // Sort descending by timestamp so newest milestone is always index 0
+    const sorted = [...list].sort((a, b) => {
+      const timeA = new Date(a.modifiedDatetime || a.createdDatetime || a.datetime || 0).getTime()
+      const timeB = new Date(b.modifiedDatetime || b.createdDatetime || b.datetime || 0).getTime()
+      return timeB - timeA
+    })
+    const msg = sorted[0]?.transactionStatusMessage || list[0]?.transactionStatusMessage
+    if (typeof msg === 'string' && msg.trim()) {
+      return msg.trim()
+    }
+  }
+  return dist.transactionStatus || dist.orderStatus || 'Booked'
+}
+
 export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   if (!status) return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
   if (isCancelledStatus(status)) return 'Cancelled'
@@ -165,8 +195,13 @@ export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   const s = status.toLowerCase().trim()
   if (s.includes('return') && !s.includes('return to sender requested')) return 'Returned'
 
-  // If status is warehouse pickup (e.g. "At Little Mister Kids Clothing Warehouse"):
+  // If status is merchant warehouse (e.g. "At Little Mister Kids Clothing Warehouse"):
   if (s.startsWith('at ') && s.includes('warehouse') && !s.includes('postex')) {
+    return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
+  }
+
+  // If unbooked or generic booked:
+  if (isUnbookedStatus(s) || s === 'booked' || s === 'unassigned') {
     return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
   }
 
@@ -175,26 +210,16 @@ export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
     return 'Picked by Courier'
   }
 
-  // If in courier transit network:
-  if (
-    s.includes('transit') ||
-    s.includes('dispatched') ||
-    s.includes('depart') ||
-    s.includes('route') ||
-    s.includes('hub') ||
-    s.includes('station') ||
-    s.includes('arrive') ||
-    s.includes('postex warehouse')
-  ) {
+  // If exact generic transit:
+  if (s === 'in transit' || s === 'in-transit' || s === 'intransit' || s === 'en route' || s === 'en-route') {
     return 'In Transit'
   }
 
-  if (hasLoadSheet) return 'Ready for Pickup'
-  if (isUnbookedStatus(s) || s === 'booked') return 'Pending Loadsheet'
-
   // Clean redundant "for CN ..." or "for Tracking ..." suffixes from PostEx timeline entries
   const clean = status.replace(/\s+for\s+(CN|Tracking)\s+[\w\d]+/gi, '').trim()
-  return clean
+  if (clean) return clean
+
+  return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
 }
 
 export const determineNewStatus = (currentStatus: string, fetchedStatus: string) => {
@@ -207,6 +232,15 @@ export const determineNewStatus = (currentStatus: string, fetchedStatus: string)
   if (f.includes('unassigned') || f.includes('un-assigned') || f === 'success') {
     return 'Booked'
   }
+
+  // If current status is a detailed milestone (e.g. "Departed to SKARDU") and fetchedStatus is generic "In Transit", preserve detailed milestone!
+  if (
+    isDetailedMilestone(currentStatus) &&
+    (f === 'in transit' || f === 'in-transit' || f === 'intransit' || f === 'en route' || f === 'en-route')
+  ) {
+    return currentStatus
+  }
+
   return clean
 }
 

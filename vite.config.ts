@@ -81,6 +81,11 @@ export default defineConfig(({ mode }) => {
           target: 'https://api.postex.pk',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/postex-api/, ''),
+        },
+        '/postex-public': {
+          target: 'https://postex.pk',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/postex-public/, ''),
         }
       }
     }

@@ -136,7 +136,7 @@ export function HistoryTableRow({
 
               return (
                 <span
-                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap select-none shadow-2xs ${badgeColor}`}
+                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap select-none shadow-2xs max-w-[200px] truncate ${badgeColor}`}
                   title={displayStatus}
                 >
                   {displayStatus}

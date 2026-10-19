@@ -15,6 +15,7 @@ import {
   getMerchantAddresses, 
   getOrderTypes 
 } from '../../utils/postexApi'
+import { getLatestPostExStatus } from '../../components/history/types'
 
 export class PostExProvider implements ICourierProvider {
   readonly id: CourierId = 'postex'
@@ -95,8 +96,7 @@ export class PostExProvider implements ICourierProvider {
   ): Promise<CourierTrackingStatus> {
     const token = credentials.postex_token || credentials.token
     const res = await trackOrder(token || '', trackingNumber)
-    const historyList = res?.dist?.transactionStatusHistory || []
-    const latestStatus = Array.isArray(historyList) && historyList.length > 0 ? historyList[historyList.length - 1]?.transactionStatusMessage : null
+    const latestStatus = getLatestPostExStatus(res?.dist)
     return {
       trackingNumber,
       status: latestStatus || res?.dist?.orderStatus || res?.dist?.transactionStatus || 'Unknown',

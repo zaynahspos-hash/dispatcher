@@ -9,17 +9,9 @@ import {
   determineNewStatus,
   isCancellable,
   isPlaceholder,
-  mergePostExOrders
+  mergePostExOrders,
+  getLatestPostExStatus
 } from '../components/history/types'
-
-const getLatestPostExStatus = (dist: any): string => {
-  const list = dist?.transactionStatusHistory
-  if (Array.isArray(list) && list.length > 0) {
-    const msg = list[list.length - 1]?.transactionStatusMessage
-    if (typeof msg === 'string' && msg.trim()) return msg.trim()
-  }
-  return dist?.transactionStatus || dist?.orderStatus || 'Booked'
-}
 
 interface UseBookedHistoryOperationsProps {
   settings: Settings

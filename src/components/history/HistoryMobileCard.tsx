@@ -110,11 +110,12 @@ export function HistoryMobileCard({
 
           {/* Live Status Badge (Calibrated Alpha Opacity) */}
           <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-nowrap shrink-0 ${getStatusBadgeStyle(
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-nowrap shrink-0 max-w-[155px] truncate ${getStatusBadgeStyle(
               parcel.status,
               parcel.tracking,
               parcel.loadsheet_generated
             )}`}
+            title={getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
           >
             {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
           </span>
