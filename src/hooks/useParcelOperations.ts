@@ -121,7 +121,8 @@ export function useParcelOperations({
     let chunkSize = 12
 
     if (activeProvider === 'gemini') {
-      activeModel = settings.gemini_model || 'gemini-1.5-flash'
+      const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+      activeModel = VALID_GEMINI_MODELS.includes(settings.gemini_model || '') ? (settings.gemini_model as string) : 'gemini-1.5-flash'
       pacingRPM = '15 RPM Free Tier'
       pacingDelayMs = 1200 // 1.2s delay between batches, safely under 15 RPM
       chunkSize = 12       // 12 orders/batch = 4 batches for 46 orders (~20s total)

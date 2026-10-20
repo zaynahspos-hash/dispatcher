@@ -241,10 +241,12 @@ export function useSettings() {
         // DB has settings — load them and refresh local cache
         const dbSettings = data.settings as unknown as Settings
         const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        let needsDbRepair = false
         if (!dbSettings.gemini_model || !VALID_GEMINI_MODELS.includes(dbSettings.gemini_model)) {
           dbSettings.gemini_model = 'gemini-1.5-flash'
+          writeLocal(user.id, 'gemini_model', 'gemini-1.5-flash')
+          needsDbRepair = true
         }
-        let needsDbRepair = false
         if (
           !dbSettings.whatsapp_note || 
           dbSettings.whatsapp_note === 'Thank you for shopping with us!' || 
