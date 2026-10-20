@@ -145,7 +145,11 @@ export function ParcelMobileCards({
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-xs font-black font-mono px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-xs whitespace-nowrap shrink-0">
+                <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-lg border shadow-xs whitespace-nowrap shrink-0 ${
+                  Number(parcel.total || 0) === 0
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
+                }`}>
                   Rs. {Number(parcel.total || 0).toLocaleString()}
                 </span>
                 <button
@@ -191,6 +195,11 @@ export function ParcelMobileCards({
                   <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     {parcel.city || 'No City'}
                   </span>
+                  {parcel.orderType && parcel.orderType !== 'Normal' && (
+                    <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                      {parcel.orderType}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0 ml-2">
                   Edit &rarr;
@@ -278,7 +287,11 @@ export function ParcelMobileCards({
                   <select
                     value={parcel.orderType || 'Normal'}
                     onChange={e => updateField(i, 'orderType', e.target.value)}
-                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
+                    className={`w-full px-2.5 py-2 rounded-xl border text-xs font-semibold focus:outline-none ${
+                      (parcel.orderType && parcel.orderType !== 'Normal')
+                        ? 'text-amber-600 dark:text-amber-400 font-bold border-amber-300 dark:border-amber-700 bg-amber-500/10'
+                        : 'text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-[#070b12] border-slate-200 dark:border-slate-800'
+                    }`}
                   >
                     {orderTypes.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -322,7 +335,11 @@ export function ParcelMobileCards({
                     onChange={e => updateField(i, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
                     onFocus={e => e.target.select()}
                     placeholder="0"
-                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs font-mono font-black text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className={`w-full px-2.5 py-2 rounded-xl border text-xs font-mono font-black focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                      Number(parcel.total || 0) === 0
+                        ? 'text-amber-500 dark:text-amber-400 border-amber-300 dark:border-amber-700/80 bg-amber-500/5 placeholder:text-amber-500 dark:placeholder:text-amber-400 font-black'
+                        : 'text-emerald-600 dark:text-emerald-400 bg-slate-50 dark:bg-[#070b12] border-slate-200 dark:border-slate-800'
+                    }`}
                   />
                 </div>
 

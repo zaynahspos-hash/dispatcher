@@ -185,7 +185,7 @@ export default function ParcelTable({
       weight: parseFloat(settings.default_weight) || 0.5,
       orderType: 'Normal',
       airwayBillCopy: 1,
-      detail: settings.default_product || 'Apparel & Goods',
+      detail: settings.default_product || 'Kids Clothes',
       note: settings.default_note || 'Call before delivery',
     }
     setParcels(prev => [...prev, newParcel])

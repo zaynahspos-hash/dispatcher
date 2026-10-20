@@ -152,7 +152,7 @@ CRITICAL MANDATORY RULES:
      * The input may contain ANY city, tehsil, district, town, or village in Pakistan (not limited to major cities; e.g. Daska, Chunian, Kamoke, Kot Addu, Pattoki, Swabi, Vehari, Shakargarh, Haripur, Chiniot, Lodhran, Toba Tek Singh, Larkana, Nawabshah, Kohat, Bannu, Turbat, Hub, Muzaffarabad, Mirpur AJK, etc.).
      * You must accurately extract the geographic destination and output its standard, recognized English courier hub/city name (e.g., Karachi, Lahore, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Quetta, Sialkot, Gujranwala, Sargodha, Bahawalpur, Sukkur, Jhang, Kasur, Dera Ghazi Khan, Rahim Yar Khan, Abbottabad, Mardan, Gujrat, Sheikhupura, Sahiwal, Okara, etc.).
      * If a small village, tehsil, or rural union council is given (e.g., 'Chak 45 Tehsil Pattoki'), map to the primary operational courier delivery city.
-   - Product Details: Translate/clean to English or Roman Urdu (e.g., '3 Lawn Suits', '1 Watch', 'Makeup Kit', 'Kids Clothes', '2 Pcs Unstitched Clothes', '1 Track Suit').
+   - Product Details: ALWAYS use the merchant's saved preset "${settings.default_product || 'Kids Clothes'}". NEVER guess or extract different items from chat text.
 
 2. PHONE NUMBER EXTRACTION:
    - Always 03XXXXXXXXX (11 digits, starting with 03).
@@ -194,7 +194,7 @@ Format:
     "weight": 0.5,
     "orderType": "Normal",
     "airwayBillCopy": 1,
-    "detail": "3 Lawn Suits",
+    "detail": "${settings.default_product || 'Kids Clothes'}",
     "note": "Call before delivery"
   }
 ]
@@ -396,7 +396,7 @@ Format:
             weight: Number(p.weight || settings.default_weight || 0.5),
             orderType: p.orderType || 'Normal',
             airwayBillCopy: Number(p.airwayBillCopy || 1),
-            detail: String(p.detail || settings.default_product || 'Kids Clothes'),
+            detail: String(settings.default_product || 'Kids Clothes').trim(),
             note: String(p.note || settings.default_note || 'Call before delivery')
           }
         })

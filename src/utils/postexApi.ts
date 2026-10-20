@@ -91,10 +91,10 @@ export async function cancelOrder(token: string, trackingNumber: string) {
 
 export async function createOrder(token: string, parcel: Parcel, settings: Settings) {
 
-  // Apply default product name if checked, otherwise override with default_product
-  const deliveryDetail = settings.postex_product_check === '0'
-    ? (settings.default_product || 'Kids Clothes')
-    : (parcel.detail || settings.default_product || 'Kids Clothes')
+  // Apply default product preset from settings
+  const deliveryDetail = (settings.default_product && settings.default_product.trim())
+    ? settings.default_product.trim()
+    : (parcel.detail || 'Kids Clothes')
 
   // Apply auto weight calculation
   let weight = parseFloat(String(parcel.weight)) || parseFloat(settings.default_weight) || 0.5

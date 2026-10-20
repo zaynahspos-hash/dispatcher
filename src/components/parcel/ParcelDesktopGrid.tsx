@@ -336,15 +336,21 @@ export function ParcelDesktopGrid({
                     />
                   </td>
 
-                  {/* COD Amount (Right Aligned Font Mono) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0">
+                  {/* COD Amount (Right Aligned Font Mono) - Yellow/Amber for 0 COD, Green for > 0 */}
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0 ${
+                    Number(parcel.total || 0) === 0 ? 'bg-amber-500/5 dark:bg-amber-950/15' : ''
+                  }`}>
                     <input
                       type="number"
                       value={parcel.total === 0 ? '' : parcel.total}
                       onChange={e => updateField(i, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
                       onFocus={e => e.target.select()}
                       placeholder="0"
-                      className="w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
+                        Number(parcel.total || 0) === 0
+                          ? 'text-amber-500 dark:text-amber-400 placeholder:text-amber-500 dark:placeholder:text-amber-400 font-black'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}
                     />
                   </td>
 
@@ -361,12 +367,18 @@ export function ParcelDesktopGrid({
                     />
                   </td>
 
-                  {/* Order Type */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
+                  {/* Order Type - Yellow text for anything other than Normal */}
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 ${
+                    (parcel.orderType && parcel.orderType !== 'Normal') ? 'bg-amber-500/10 dark:bg-amber-950/25' : ''
+                  }`}>
                     <select
                       value={parcel.orderType || 'Normal'}
                       onChange={e => updateField(i, 'orderType', e.target.value)}
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset cursor-pointer"
+                      className={`w-full h-10 px-3 py-2 bg-transparent text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset cursor-pointer ${
+                        (parcel.orderType && parcel.orderType !== 'Normal')
+                          ? 'text-amber-600 dark:text-amber-400 font-black'
+                          : 'font-medium text-slate-800 dark:text-slate-200'
+                      }`}
                     >
                       {orderTypes.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>

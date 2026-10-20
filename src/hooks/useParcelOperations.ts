@@ -669,7 +669,7 @@ export function useParcelOperations({
       weight: Number(result.weight) || Number(settings.default_weight) || 0.5,
       orderType: result.orderType || 'Normal',
       airwayBillCopy: result.airwayBillCopy || 1,
-      detail: result.detail || settings.default_product || 'Kids Clothes',
+      detail: String(settings.default_product || result.detail || 'Kids Clothes').trim(),
       note: result.note || settings.default_note || 'Call before delivery',
     }
 

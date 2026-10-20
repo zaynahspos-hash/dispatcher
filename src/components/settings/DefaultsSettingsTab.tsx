@@ -77,7 +77,7 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
             Default Product Description
           </label>
           <input
-            value={settings.default_product || 'Apparel & Goods'}
+            value={settings.default_product !== undefined ? settings.default_product : 'Kids Clothes'}
             onChange={e => updateSetting('default_product', e.target.value)}
             className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
