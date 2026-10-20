@@ -115,26 +115,31 @@ export function useParcelOperations({
     }
 
     // Determine Provider Model & Safe Rate Limit Pacing
-    let activeModel = 'llama-3.3-70b-versatile'
-    let pacingRPM = '30 RPM Free Tier'
-    let pacingDelayMs = 1800
+    let activeModel = 'gemini-1.5-flash'
+    let pacingRPM = '15 RPM Free Tier'
+    let pacingDelayMs = 1200
+    let chunkSize = 12
 
     if (activeProvider === 'gemini') {
       activeModel = settings.gemini_model || 'gemini-1.5-flash'
       pacingRPM = '15 RPM Free Tier'
-      pacingDelayMs = 2800 // Gemini free tier allows 15 requests per minute
+      pacingDelayMs = 1200 // 1.2s delay between batches, safely under 15 RPM
+      chunkSize = 12       // 12 orders/batch = 4 batches for 46 orders (~20s total)
     } else if (activeProvider === 'groq') {
-      activeModel = settings.groq_model || 'llama-3.3-70b-versatile'
+      activeModel = settings.groq_model || 'llama-3.1-8b-instant'
       pacingRPM = '30 RPM Free Tier'
-      pacingDelayMs = 1800
+      pacingDelayMs = 800
+      chunkSize = 15       // Groq easily handles 15 orders at blazing speed (< 600ms)
     } else if (activeProvider === 'openai') {
       activeModel = settings.openai_model || 'gpt-4o-mini'
       pacingRPM = '20 RPM Safe Guard'
-      pacingDelayMs = 2200
+      pacingDelayMs = 1000
+      chunkSize = 12
     } else {
       activeModel = (settings as any)[`${activeProvider}_model`] || activeProvider
       pacingRPM = 'Safe Pacing Guard'
-      pacingDelayMs = 1800
+      pacingDelayMs = 1000
+      chunkSize = 12
     }
 
     setLoading(true)
@@ -156,8 +161,8 @@ export function useParcelOperations({
         rateLimitInfo: pacingRPM
       })
 
-      // Fast-path: For <= 6 orders, parse in a single unified call
-      if (blocks.length <= 6) {
+      // Fast-path: For <= 12 orders, parse in a single unified call (ultra-fast 0ms batch delay)
+      if (blocks.length <= 12) {
         setLoadingMessage(`Extracting & cleaning orders with ${activeProvider.toUpperCase()}...`)
         setLoadingProgress({
           title: `Extracting with ${activeProvider.toUpperCase()}`,
@@ -203,8 +208,7 @@ export function useParcelOperations({
         return
       }
 
-      // Multi-Batch Rate-Limit Safe Pipeline for large pastes (> 6 orders)
-      const chunkSize = 4 // Safe chunking to prevent TPM overflow and request timeouts
+      // Multi-Batch Rate-Limit Safe Pipeline for large pastes (> 12 orders)
       const totalBatches = Math.ceil(blocks.length / chunkSize)
       let completedCount = 0
       let avgLatencyMs = 1200

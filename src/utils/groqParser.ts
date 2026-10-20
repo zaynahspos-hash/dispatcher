@@ -101,7 +101,7 @@ export async function parseParcelText(
     const providerMap: Record<string, { key?: string; model?: string; defaultModel: string }> = {
       groq: { key: settings.groq_api_key, model: settings.groq_model, defaultModel: 'llama-3.1-8b-instant' },
       openrouter: { key: settings.openrouter_api_key, model: settings.openrouter_model, defaultModel: 'meta-llama/llama-3.1-8b-instruct:free' },
-      gemini: { key: settings.gemini_api_key, model: settings.gemini_model, defaultModel: 'gemini-3.5-flash-lite' },
+      gemini: { key: settings.gemini_api_key, model: settings.gemini_model, defaultModel: 'gemini-1.5-flash' },
       openai: { key: settings.openai_api_key, model: settings.openai_model, defaultModel: 'gpt-4o-mini' },
       anthropic: { key: settings.anthropic_api_key, model: settings.anthropic_model, defaultModel: 'claude-3-haiku-20240307' },
       deepseek: { key: settings.deepseek_api_key, model: settings.deepseek_model, defaultModel: 'deepseek-chat' },
@@ -114,8 +114,8 @@ export async function parseParcelText(
     const apiKeyString = cfg.key
     let model = cfg.model || cfg.defaultModel
     if (model === 'custom' || !model) model = cfg.defaultModel
-    if (provider === 'gemini' && (model.includes('2.0') || model.includes('1.5') || model.includes('2.5') || model.includes('preview'))) {
-      model = 'gemini-3.5-flash-lite'
+    if (provider === 'gemini' && (model.includes('3.') || model.includes('preview') || model === 'custom')) {
+      model = 'gemini-1.5-flash'
     }
 
     const keys = apiKeyString
@@ -216,8 +216,8 @@ Format:
 
         if (provider === 'gemini') {
           let currentModel = model
-          if (!currentModel || currentModel.includes('2.0') || currentModel.includes('1.5') || currentModel.includes('2.5') || currentModel === 'custom') {
-            currentModel = 'gemini-3.5-flash-lite'
+          if (!currentModel || currentModel.includes('3.') || currentModel.includes('preview') || currentModel === 'custom') {
+            currentModel = 'gemini-1.5-flash'
           }
 
           const generationConfig: any = {
@@ -238,11 +238,11 @@ Format:
               generationConfig
             })
           } catch (modelErr: any) {
-            // Auto fallback if model is unavailable / discontinued
+            // Auto fallback if model is unavailable, hits 503 capacity limit, or has error
             const errMsg = modelErr.response?.data?.error?.message || modelErr.message || ''
             const status = modelErr.response?.status
             console.warn(`[Gemini] Model ${currentModel} error (${status}): ${errMsg}. Auto-switching to working alternative...`)
-            currentModel = (currentModel === 'gemini-3.5-flash-lite') ? 'gemini-3.8-flash' : 'gemini-flash-lite-latest'
+            currentModel = (currentModel === 'gemini-1.5-flash') ? 'gemini-2.0-flash' : 'gemini-1.5-flash'
             const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
             res = await axios.post(fallbackUrl, {
               contents: [{

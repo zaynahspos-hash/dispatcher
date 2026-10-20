@@ -14,8 +14,8 @@ export const PROVIDER_METADATA: Record<string, {
     name: 'Google Gemini',
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyLabel: 'Get Free Gemini Key (1,500 req/day)',
-    defaultModel: 'gemini-3.5-flash-lite',
-    models: ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'],
+    defaultModel: 'gemini-1.5-flash',
+    models: ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'],
     badge: '1,500 Free Req/Day'
   },
   groq: {
