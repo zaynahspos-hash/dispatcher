@@ -4,6 +4,7 @@ import { Parcel } from '../utils/groqParser'
 import { PasteIcon, SparklesIcon, UploadIcon, InfoIcon, DownloadIcon, CheckIcon } from './Icons'
 import { useToast } from './common/Toast'
 import { ScrollableChipsBar } from './common/ScrollableChipsBar'
+import { ZaynahsMascot, MascotState } from './ZaynahsMascot'
 
 interface PasteInputProps {
   onParse: (text: string) => void
@@ -69,7 +70,13 @@ Items: Dental Care Kit`
 export default function PasteInput({ onParse, onExcelParse, loading }: PasteInputProps) {
   const [text, setText] = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [testState, setTestState] = useState<MascotState | null>(null)
+  const [showMascotDemo, setShowMascotDemo] = useState(false)
   const toast = useToast()
+
+  const currentMascotState: MascotState = testState || (
+    loading ? 'cleaning' : text.trim().length > 0 ? 'reading' : 'idle'
+  )
 
   function handleExcelFile(file: File) {
     if (!file) return
@@ -162,29 +169,122 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
   return (
     <div className="space-y-6 w-full max-w-full min-w-0">
       
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              <PasteIcon size={20} />
-            </span>
-            WhatsApp Order Dispatcher
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Raw WhatsApp chats ko smart AI models (Groq LLaMA-3.1 / Gemini) se 1-click clean parcel records mein convert karein.
-          </p>
+      {/* Page Header with Zaynahs Mascot */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-900/5 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center shrink-0 shadow-xs cursor-pointer hover:scale-105 transition" onClick={() => setShowMascotDemo(!showMascotDemo)} title="Click to test Zaynahs Mascot animations">
+            <ZaynahsMascot state={currentMascotState} size={44} reviewCount={3} />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <span>WhatsApp Order Dispatcher</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Raw chats ko smart AI models se 1-click clean parcel records mein convert karein.
+            </p>
+          </div>
         </div>
 
-        {/* Quick Excel Download Button */}
-        <button
-          onClick={downloadSampleExcel}
-          className="self-start sm:self-auto px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 cursor-pointer shadow-xs"
-        >
-          <DownloadIcon size={14} className="text-emerald-500" />
-          <span>Download Sample Excel</span>
-        </button>
+        {/* Quick Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowMascotDemo(!showMascotDemo)}
+            className={`px-3 py-2 text-xs font-bold rounded-xl border transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
+              showMascotDemo
+                ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <SparklesIcon size={14} className="text-amber-500" />
+            <span>Mascot Lab ({currentMascotState})</span>
+          </button>
+
+          <button
+            onClick={downloadSampleExcel}
+            className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition flex items-center gap-2 cursor-pointer shadow-xs"
+          >
+            <DownloadIcon size={14} className="text-emerald-500" />
+            <span>Download Sample Excel</span>
+          </button>
+        </div>
       </div>
+
+      {/* Interactive Mascot Testing Lab (Collapsible Preview Section) */}
+      {showMascotDemo && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-white dark:from-[#090d16] dark:to-[#0c121e] border-2 border-emerald-500/30 shadow-md space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Zaynahs Mascot Live Animation Preview</span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  60 FPS Spring
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Har animation state test karne ke liye neeche button pe tap karein.
+              </p>
+            </div>
+            <button
+              onClick={() => { setTestState(null); setShowMascotDemo(false) }}
+              className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              Close Lab
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-6 justify-center py-2">
+            {/* Mascot Showcase with Caption */}
+            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-[#070b12] border border-slate-200/80 dark:border-slate-800/80 shadow-xs min-w-[200px]">
+              <ZaynahsMascot state={currentMascotState} size={110} reviewCount={3} showCaption={true} />
+            </div>
+
+            {/* State Selection Buttons */}
+            <div className="flex-1 space-y-2 w-full">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 block">
+                Select Mascot State to Preview:
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  { key: 'idle', label: '1. Idle (Breathe & Blink)', desc: 'Nothing pasted yet' },
+                  { key: 'reading', label: '2. Reading (Scan Rows)', desc: 'Scanning pasted text' },
+                  { key: 'cleaning', label: '3. Cleaning (Dual Orbits)', desc: 'AI Neural Cleaning' },
+                  { key: 'warning', label: '4. Warning (Exclamation)', desc: 'Missing phone/address' },
+                  { key: 'success', label: '5. Success (Hop & Sparkle)', desc: '100% verified orders' },
+                  { key: 'review', label: '6. Review Badge (3)', desc: 'Rows need merchant review' }
+                ].map(item => {
+                  const isCurrent = currentMascotState === item.key
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setTestState(item.key as MascotState)}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer active:scale-95 flex flex-col justify-between ${
+                        isCurrent
+                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className="text-xs font-bold truncate">{item.label}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">{item.desc}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {testState && (
+                <div className="pt-2 flex items-center justify-end">
+                  <button
+                    onClick={() => setTestState(null)}
+                    className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                  >
+                    &larr; Return to Automatic Flow State
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Template Chips */}
       <div>
@@ -252,6 +352,19 @@ Amount: Rs. 2500
 Items: 2 Suits"
               className="w-full h-80 sm:h-96 p-4 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800/90 text-slate-900 dark:text-slate-100 font-mono text-xs sm:text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
             />
+
+            {/* Zaynahs Mascot Empty State */}
+            {!text && (
+              <div className="hidden sm:flex absolute bottom-5 right-5 pointer-events-none flex-col items-center p-3 rounded-2xl bg-white/90 dark:bg-[#0c121e]/90 border border-slate-200/90 dark:border-slate-800/90 shadow-sm max-w-[210px] text-center select-none animate-in fade-in duration-300">
+                <ZaynahsMascot state="idle" size={60} />
+                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 mt-1">
+                  Zaynahs Ready
+                </p>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Paste WhatsApp messages to clean automatically
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Action Row */}

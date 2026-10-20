@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ZapIcon, ShieldIcon, ClockIcon } from '../Icons'
+import { ZaynahsMascot } from '../ZaynahsMascot'
 
 export interface LoadingProgress {
   title?: string
@@ -64,14 +65,13 @@ export const GlobalLoadingOverlay: React.FC<GlobalLoadingOverlayProps> = ({
     <div className="fixed inset-0 bg-black/70 backdrop-blur-none flex items-center justify-center z-50 p-4 animate-in fade-in duration-150 select-none">
       <div className="bg-white dark:bg-[#0c121e] rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200/90 dark:border-slate-800 max-w-md w-full space-y-4 animate-in zoom-in-95 duration-150">
         
-        {/* Top Header: Apple Activity Ring & Titles */}
+        {/* Top Header: Zaynahs Mascot & Titles */}
         <div className="flex items-start gap-3.5">
-          <div className="relative w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5">
-            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-              <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-[#0c121e]" />
+          <div className="relative w-12 h-12 rounded-2xl bg-slate-900/5 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center shrink-0 overflow-visible mt-0.5 shadow-xs">
+            <ZaynahsMascot 
+              state={percentage >= 100 ? 'success' : (title.toLowerCase().includes('clean') || title.toLowerCase().includes('normaliz') ? 'cleaning' : 'reading')} 
+              size={48} 
+            />
           </div>
 
           <div className="min-w-0 flex-1">

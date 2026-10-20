@@ -113,9 +113,11 @@ export async function parseParcelText(
 
     const apiKeyString = cfg.key
     let model = cfg.model || cfg.defaultModel
-    if (model === 'custom' || !model) model = cfg.defaultModel
-    if (provider === 'gemini' && (model.includes('3.') || model.includes('preview') || model === 'custom')) {
-      model = 'gemini-1.5-flash'
+    if (provider === 'gemini') {
+      const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+      if (!model || !VALID_GEMINI_MODELS.includes(model)) {
+        model = 'gemini-1.5-flash'
+      }
     }
 
     const keys = apiKeyString
@@ -216,7 +218,8 @@ Format:
 
         if (provider === 'gemini') {
           let currentModel = model
-          if (!currentModel || currentModel.includes('3.') || currentModel.includes('preview') || currentModel === 'custom') {
+          const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+          if (!currentModel || !VALID_GEMINI_MODELS.includes(currentModel)) {
             currentModel = 'gemini-1.5-flash'
           }
 

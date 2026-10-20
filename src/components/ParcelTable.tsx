@@ -4,6 +4,7 @@ import { Parcel, Settings } from '../utils/groqParser'
 import { BookedParcel } from './history/types'
 import { CITY_LIST } from '../utils/cityList'
 import { PlusIcon, HistoryIcon } from './Icons'
+import { ZaynahsMascot } from './ZaynahsMascot'
 import { useToast } from './common/Toast'
 import { getFilteredCities } from './parcel/cityAutocomplete'
 import { ParcelKPIBar } from './parcel/ParcelKPIBar'
@@ -252,9 +253,9 @@ export default function ParcelTable({
 
   if (parcels.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-12 text-center shadow-sm">
-        <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto mb-4">
-          <HistoryIcon size={32} />
+      <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/90 dark:border-slate-800/90 p-10 sm:p-12 text-center shadow-sm">
+        <div className="flex justify-center mb-4">
+          <ZaynahsMascot state="idle" size={90} showCaption captionText="Zaynahs tayyar hai • Parcel grid khali hai" />
         </div>
         <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-1">
           Staging Parcel Grid is Empty

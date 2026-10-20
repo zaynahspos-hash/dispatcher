@@ -156,7 +156,8 @@ function readAllLocal(userId: string): Settings {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     result[k] = readLocal(userId, k)
   })
-  if (!result.gemini_model || result.gemini_model.includes('3.') || result.gemini_model.includes('preview') || result.gemini_model === 'custom') {
+  const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+  if (!result.gemini_model || !VALID_GEMINI_MODELS.includes(result.gemini_model)) {
     result.gemini_model = 'gemini-1.5-flash'
   }
   return result as Settings
@@ -239,7 +240,8 @@ export function useSettings() {
       if (data && data.settings) {
         // DB has settings — load them and refresh local cache
         const dbSettings = data.settings as unknown as Settings
-        if (!dbSettings.gemini_model || dbSettings.gemini_model.includes('3.') || dbSettings.gemini_model.includes('preview') || dbSettings.gemini_model === 'custom') {
+        const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        if (!dbSettings.gemini_model || !VALID_GEMINI_MODELS.includes(dbSettings.gemini_model)) {
           dbSettings.gemini_model = 'gemini-1.5-flash'
         }
         let needsDbRepair = false
