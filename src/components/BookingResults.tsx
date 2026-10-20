@@ -214,7 +214,7 @@ export default function BookingResults({
   }
 
   const handleAddNewResult = () => {
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let nextNum = parseInt(settings.order_id_next_num || '1001', 10)
     if (isNaN(nextNum)) nextNum = 1001
 

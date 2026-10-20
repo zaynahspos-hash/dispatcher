@@ -3,6 +3,7 @@ import { Settings } from '../utils/groqParser'
 import { supabase } from '../utils/supabaseClient'
 import { clearCachedAvatar } from '../utils/avatarCache'
 import { DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../components/history/types'
+import { getMerchantAddresses } from '../utils/postexApi'
 
 // Automatically purge corrupted emoji keys from localStorage
 if (typeof window !== 'undefined' && window.localStorage) {
@@ -57,7 +58,7 @@ const DEFAULTS: Settings = {
   whatsapp_template: '📦 postex.pk • Tracking Alert 🚚\n\nDear {customer_name}, aap ka order book ho gaya hai! 🎉\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
   whatsapp_note: 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉',
   avatar_url: '',
-  order_id_prefix: 'tv-',
+  order_id_prefix: 'Ord-',
   order_id_next_num: '1001',
   whatsapp_enable_booking_alert: false,
   whatsapp_enable_out_for_delivery_alert: true,
@@ -275,6 +276,36 @@ export function useSettings() {
         if (!dbSettings.whatsapp_template_delivered || isCorruptText(dbSettings.whatsapp_template_delivered) || !dbSettings.whatsapp_template_delivered.includes('✅')) {
           dbSettings.whatsapp_template_delivered = DEFAULT_MILESTONE_TEMPLATES.delivered
           needsDbRepair = true
+        }
+        // Auto-heal legacy 'tv-' prefix to 'Ord-' in DB
+        if (dbSettings.order_id_prefix === 'tv-' || !dbSettings.order_id_prefix) {
+          dbSettings.order_id_prefix = 'Ord-'
+          needsDbRepair = true
+        }
+        // Auto-switch to gemini if gemini key is provided but provider was left as groq
+        if (dbSettings.gemini_api_key && !dbSettings.groq_api_key && (dbSettings.ai_provider === 'groq' || !dbSettings.ai_provider)) {
+          dbSettings.ai_provider = 'gemini'
+          needsDbRepair = true
+        }
+        // Auto-sync return address code with postex_return
+        if (!dbSettings.postex_return && (dbSettings as any).return_address_code) {
+          dbSettings.postex_return = (dbSettings as any).return_address_code
+          needsDbRepair = true
+        }
+        // Auto-fetch and assign pickup address if PostEx token exists but pickup address is unassigned
+        if (dbSettings.postex_token && !dbSettings.postex_pickup) {
+          try {
+            const addrRes = await getMerchantAddresses(dbSettings.postex_token)
+            if (addrRes?.dist && Array.isArray(addrRes.dist) && addrRes.dist.length > 0) {
+              dbSettings.postex_pickup = addrRes.dist[0].addressCode
+              if (!dbSettings.postex_return) {
+                dbSettings.postex_return = addrRes.dist[0].addressCode
+              }
+              needsDbRepair = true
+            }
+          } catch (e) {
+            console.warn('[useSettings] Auto-fetch pickup address on load error:', e)
+          }
         }
         const dbUpdatedAt = data.updated_at || ''
         const localVersion = localStorage.getItem(userVersionKey(currentUser.id))

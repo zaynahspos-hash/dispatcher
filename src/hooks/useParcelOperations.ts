@@ -360,7 +360,7 @@ export function useParcelOperations({
     const newBookings: BookedParcel[] = []
     const updatedParcelsMap = new Map<string, string>()
 
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let currentNextNum = parseInt(settings.order_id_next_num || '1001', 10)
     if (isNaN(currentNextNum)) currentNextNum = 1001
     const usedSerialsInSession = buildHistoryIdSet(history)
@@ -646,7 +646,7 @@ export function useParcelOperations({
     setLoadingMessage(`Booking ${result.name} on PostEx...`)
     const token = settings.postex_token
 
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let currentNextNum = parseInt(settings.order_id_next_num || '1001', 10)
     if (isNaN(currentNextNum)) currentNextNum = 1001
     const usedSerialsInSession = buildHistoryIdSet(history)

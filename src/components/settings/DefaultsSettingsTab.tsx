@@ -1,6 +1,7 @@
 import React from 'react'
 import { Settings } from '../../utils/groqParser'
 import { ORDER_TYPES } from '../ParcelTable'
+import { SaveIcon } from '../Icons'
 
 interface DefaultsSettingsTabProps {
   settings: Settings
@@ -13,9 +14,9 @@ interface DefaultsSettingsTabProps {
 export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
   settings,
   updateSetting,
-  onSave: _onSave,
-  saving: _saving,
-  hasChanges: _hasChanges
+  onSave,
+  saving = false,
+  hasChanges = false
 }) => {
   return (
     <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-5">
@@ -112,8 +113,8 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
             </label>
             <input
               type="text"
-              placeholder="e.g. tv-, ord-, ZN-"
-              value={settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'}
+              placeholder="e.g. Ord-, tv-, ZN-"
+              value={settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'}
               onChange={e => updateSetting('order_id_prefix', e.target.value)}
               className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono transition"
             />
@@ -137,8 +138,28 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
         <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80 text-[11px]">
           <span className="text-slate-500 dark:text-slate-400 font-medium">Next Generated Fallback ID:</span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-            {(settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-')}{(settings.order_id_next_num || '1001')}
+            {(settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-')}{(settings.order_id_next_num || '1001')}
           </span>
+        </div>
+
+        {/* Save Defaults Action Button */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+          <span className="text-[11px] text-slate-400">
+            {hasChanges ? 'Unsaved changes in defaults' : 'All defaults are in sync'}
+          </span>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className={`h-9 px-4 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 ${
+              hasChanges 
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 ring-2 ring-emerald-500/30'
+                : 'bg-emerald-600/90 hover:bg-emerald-600 text-white'
+            }`}
+          >
+            <SaveIcon size={14} />
+            <span>{saving ? 'Saving...' : 'Save Order Defaults'}</span>
+          </button>
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ export function buildHistoryIdSet(history?: Array<{ id: string }>): Set<string> 
  * Find the next unused serial ID starting from startNum that does not collide with usedIds
  */
 export function getNextAvailableSerial(
-  prefix: string = 'tv-',
+  prefix: string = 'Ord-',
   startNum: number = 1001,
   usedIds: Set<string> = new Set()
 ): { nextId: string; nextNum: number } {
@@ -96,7 +96,7 @@ export function detectSerialConflicts(
 export function resolveAllSerialConflicts(
   parcels: Parcel[],
   historyIds: Set<string>,
-  prefix: string = 'tv-',
+  prefix: string = 'Ord-',
   startNum: number = 1001
 ): { updatedParcels: Parcel[]; nextNum: number; resolvedCount: number } {
   const used = new Set<string>(historyIds)

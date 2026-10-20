@@ -203,9 +203,22 @@ export default function App() {
     tabConfig.push({ id: 'admin' as Tab, label: 'Admin Control', mobileLabel: 'Admin', Icon: AdminIcon, badge: null })
   }
 
-  const activeProvider = settings.ai_provider || 'groq'
-  const activeKeyField = `${activeProvider}_api_key` as keyof Settings
-  const isSettingsConfigured = !!(settings[activeKeyField] && settings.postex_token && settings.postex_pickup)
+  // Intelligently check if AI is configured (either active provider key, or any entered AI key)
+  const hasAiKey = !!(
+    (settings.ai_provider && settings[`${settings.ai_provider}_api_key` as keyof Settings]) ||
+    settings.gemini_api_key ||
+    settings.groq_api_key ||
+    settings.openai_api_key ||
+    settings.openrouter_api_key ||
+    settings.anthropic_api_key ||
+    settings.deepseek_api_key
+  )
+
+  const isSettingsConfigured = !!(
+    hasAiKey &&
+    settings.postex_token &&
+    (settings.postex_pickup || (settings.postex_token && settings.postex_token.trim().length > 10))
+  )
 
   if (!initialAuthChecked) {
     return null

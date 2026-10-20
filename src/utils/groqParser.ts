@@ -353,7 +353,7 @@ Format:
         }
         const parsed = JSON.parse(cleaned)
         const rawList = Array.isArray(parsed) ? parsed : [parsed]
-        const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+        const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
         let currentNum = parseInt(settings.order_id_next_num || '1001', 10)
         if (isNaN(currentNum)) currentNum = 1001
 
@@ -559,7 +559,7 @@ export function parseTextFallback(
 ): ParseResult {
   const blocks = splitRawTextIntoOrderBlocks(rawText)
 
-  const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+  const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
   let currentNum = parseInt(settings.order_id_next_num || '1001', 10)
   if (isNaN(currentNum)) currentNum = 1001
 

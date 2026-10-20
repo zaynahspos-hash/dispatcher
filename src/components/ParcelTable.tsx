@@ -162,7 +162,7 @@ export default function ParcelTable({
   }
 
   function addRow() {
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let nextNum = parseInt(settings.order_id_next_num || '1001', 10)
     if (isNaN(nextNum)) nextNum = 1001
 
@@ -196,7 +196,7 @@ export default function ParcelTable({
   }
 
   function handleResolveSingleRow(index: number) {
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let nextNum = parseInt(settings.order_id_next_num || '1001', 10) || 1001
 
     const used = new Set<string>(historyIds)
@@ -213,7 +213,7 @@ export default function ParcelTable({
   }
 
   function handleResolveAllConflicts() {
-    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'tv-'
+    const prefix = settings.order_id_prefix !== undefined ? settings.order_id_prefix : 'Ord-'
     let nextNum = parseInt(settings.order_id_next_num || '1001', 10) || 1001
 
     const res = resolveAllSerialConflicts(parcels, historyIds, prefix, nextNum)

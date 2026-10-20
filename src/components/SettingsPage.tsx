@@ -100,7 +100,9 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       if (res && Array.isArray(res.dist)) {
         setAddresses(res.dist)
         if (!draftSettings.postex_pickup && res.dist.length > 0) {
-          setDraftSettings(prev => ({ ...prev, postex_pickup: res.dist[0].addressCode }))
+          const firstCode = res.dist[0].addressCode
+          setDraftSettings(prev => ({ ...prev, postex_pickup: firstCode }))
+          updateSetting('postex_pickup', firstCode)
         }
       }
     } catch (err: any) {

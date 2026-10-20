@@ -190,6 +190,7 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                   onChange={e => updateSetting('postex_pickup', e.target.value)}
                   className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 cursor-pointer"
                 >
+                  <option value="" disabled>Select Pickup Warehouse</option>
                   {addresses.map(a => (
                     <option key={a.addressCode} value={a.addressCode}>
                       {a.cityName} — {a.address} ({a.addressCode})
@@ -208,14 +209,41 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
 
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
-                Return Address Code (Optional)
+                Return Address Warehouse (Optional)
               </label>
-              <input
-                value={settings.return_address_code || ''}
-                onChange={e => updateSetting('return_address_code', e.target.value)}
-                placeholder="Same as pickup if blank"
-                className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
-              />
+              {addresses.length > 0 ? (
+                <select
+                  value={settings.postex_return || (settings as any).return_address_code || ''}
+                  onChange={e => {
+                    const val = e.target.value
+                    updateSetting({
+                      postex_return: val,
+                      return_address_code: val
+                    } as any)
+                  }}
+                  className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="">Same as Pickup Warehouse (Default)</option>
+                  {addresses.map(a => (
+                    <option key={a.addressCode} value={a.addressCode}>
+                      {a.cityName} — {a.address} ({a.addressCode})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={settings.postex_return || (settings as any).return_address_code || ''}
+                  onChange={e => {
+                    const val = e.target.value
+                    updateSetting({
+                      postex_return: val,
+                      return_address_code: val
+                    } as any)
+                  }}
+                  placeholder="Same as pickup if blank"
+                  className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                />
+              )}
             </div>
           </div>
         </div>
