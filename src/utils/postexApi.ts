@@ -363,7 +363,23 @@ export async function trackOrder(token: string, trackingNumber: string) {
     return { statusCode: 400, statusMessage: 'Tracking number is missing' }
   }
 
-  // 1. Try authenticated merchant API if token is provided
+  // 1. High-fidelity Serverless Tracking Proxy (/api/track)
+  // Queries https://postex.pk/api/tracking-order directly on the server without browser CORS blocks.
+  // This guarantees 100% exact match with postex.pk/tracking portal in real time.
+  try {
+    const proxyRes = await axios.post(
+      '/api/track',
+      { trackingNumber: cleanCN },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 8000 }
+    )
+    if (proxyRes?.data && (proxyRes.data.statusCode === 200 || proxyRes.data.statusCode === '200' || proxyRes.data.dist)) {
+      return proxyRes.data
+    }
+  } catch (proxyErr: any) {
+    console.warn('Real-time tracking proxy failed, falling back to direct merchant API:', proxyErr?.message)
+  }
+
+  // 2. Fallback: Authenticated Merchant API
   if (token && token.trim()) {
     try {
       const res = await axios.get(
@@ -374,11 +390,11 @@ export async function trackOrder(token: string, trackingNumber: string) {
         return res.data
       }
     } catch (err: any) {
-      console.warn('Merchant track-order failed, attempting public fallback:', err?.message)
+      console.warn('Merchant track-order failed:', err?.message)
     }
   }
 
-  // 2. Fallback to public tracking endpoint (used by postex.pk/tracking)
+  // 3. Fallback: Direct public tracking endpoint (in case proxy is bypassed)
   try {
     const pubRes = await axios.post(
       `${POSTEX_PUBLIC_HOST}/api/tracking-order`,

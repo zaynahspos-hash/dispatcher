@@ -23,9 +23,15 @@ export default defineConfig(({ mode }) => {
         name: 'api-auth-dev-server',
         configureServer(server) {
           server.middlewares.use(async (req, res, next) => {
-            if (req.url && req.url.startsWith('/api/auth/')) {
-              const routeName = req.url.split('?')[0].replace('/api/auth/', '');
-              const filePath = path.resolve(__dirname, `api/auth/${routeName}.js`);
+            if (req.url && req.url.startsWith('/api/')) {
+              const urlParts = req.url.split('?');
+              const routePath = urlParts[0].replace(/^\/api\//, '');
+              const queryString = urlParts[1] || '';
+              const query = Object.fromEntries(new URLSearchParams(queryString));
+              let filePath = path.resolve(__dirname, `api/${routePath}.js`);
+              if (!fs.existsSync(filePath)) {
+                filePath = path.resolve(__dirname, `api/${routePath}/index.js`);
+              }
               if (fs.existsSync(filePath)) {
                 try {
                   let body = '';
@@ -36,6 +42,7 @@ export default defineConfig(({ mode }) => {
                     } catch {
                       // ignore parse errors
                     }
+                    (req as any).query = query;
                     (res as any).status = (code: number) => {
                       res.statusCode = code;
                       return res;
