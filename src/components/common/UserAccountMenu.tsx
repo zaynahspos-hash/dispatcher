@@ -4,6 +4,7 @@ import { useToast } from './Toast'
 import { Settings } from '../../utils/groqParser'
 import { useAvatarUpload } from '../../hooks/useAvatarUpload'
 import { clearCachedAvatar } from '../../utils/avatarCache'
+import { supabase } from '../../utils/supabaseClient'
 import { PasswordSubTab } from './PasswordSubTab'
 import { 
   MoonIcon, 
@@ -73,6 +74,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
 
   if (!isOpen || !user) return null
 
+  const effectiveAvatarUrl = settings.avatar_url || user?.user_metadata?.avatar_url || ''
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -103,7 +106,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
             <div className="relative group shrink-0">
               <UserAvatar 
                 email={user.email} 
-                avatarUrl={settings.avatar_url} 
+                avatarUrl={effectiveAvatarUrl} 
                 size="lg" 
               />
               {uploadingAvatar ? (
@@ -150,9 +153,9 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                   disabled={uploadingAvatar}
                   className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer underline underline-offset-2 disabled:opacity-50"
                 >
-                  {uploadingAvatar ? 'Uploading...' : settings.avatar_url ? 'Change Photo' : 'Upload Photo'}
+                  {uploadingAvatar ? 'Uploading...' : effectiveAvatarUrl ? 'Change Photo' : 'Upload Photo'}
                 </button>
-                {settings.avatar_url && !uploadingAvatar && (
+                {effectiveAvatarUrl && !uploadingAvatar && (
                   <>
                     <span className="text-slate-300 dark:text-slate-700">•</span>
                     <button
@@ -161,6 +164,9 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                         if (user?.id) clearCachedAvatar(user.id)
                         if (user?.email) clearCachedAvatar(user.email)
                         updateSetting('avatar_url', '')
+                        if (user?.id) {
+                          supabase.auth.updateUser({ data: { avatar_url: '' } }).catch(() => {})
+                        }
                         toast.info('Profile photo removed.')
                       }}
                       className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"

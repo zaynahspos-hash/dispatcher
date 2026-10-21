@@ -79,7 +79,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
     handleSyncStatus, handleSyncSelected, handleRefreshAll, handleSubmitAdvice
   } = useBookedHistoryOperations({
-    settings, history, onUpdateHistory, filteredParcels, fromDate, toDate
+    settings, history, onUpdateHistory, filteredParcels, fromDate, toDate, userId
   })
 
   // DB-Optimized Shared Pagination

@@ -21,41 +21,61 @@ function getCacheKey(identifier: string): string {
   return `zaynah_avatar_cache_${cleanId}`
 }
 
+function isUrlMatch(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false
+  if (a === b) return true
+  return a.split('?')[0] === b.split('?')[0]
+}
+
 /**
  * Retrieve cached avatar data URL for a user identifier (user.id or email).
  * Verifies that the cached source URL matches current expected avatarUrl.
  */
 export function getCachedAvatar(identifier?: string | null, expectedUrl?: string | null): string | null {
-  if (!identifier || !expectedUrl) return null
+  if (!expectedUrl) return null
 
-  const key = getCacheKey(identifier)
-
-  // 1. Check in-memory hot cache
-  const inMem = memoryAvatarCache.get(key)
-  if (inMem) {
-    if (inMem.url === expectedUrl && inMem.dataUrl) {
+  // 1. Check primary identifier
+  if (identifier) {
+    const key = getCacheKey(identifier)
+    const inMem = memoryAvatarCache.get(key)
+    if (inMem && isUrlMatch(inMem.url, expectedUrl) && inMem.dataUrl) {
       return inMem.dataUrl
     }
+
+    try {
+      const raw = localStorage.getItem(key)
+      if (raw) {
+        const entry: CachedAvatarEntry = JSON.parse(raw)
+        if (entry && isUrlMatch(entry.url, expectedUrl) && entry.dataUrl) {
+          memoryAvatarCache.set(key, entry)
+          return entry.dataUrl
+        } else if (entry && !isUrlMatch(entry.url, expectedUrl)) {
+          localStorage.removeItem(key)
+          memoryAvatarCache.delete(key)
+        }
+      }
+    } catch {}
   }
 
-  // 2. Check localStorage cache
+  // 2. Check active user ID fallback (RULE C11)
   try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-
-    const entry: CachedAvatarEntry = JSON.parse(raw)
-    if (entry && entry.url === expectedUrl && entry.dataUrl) {
-      // Warm memory cache
-      memoryAvatarCache.set(key, entry)
-      return entry.dataUrl
-    } else if (entry && entry.url !== expectedUrl) {
-      // URL has changed! Invalidate stale cache immediately (RULE C11)
-      localStorage.removeItem(key)
-      memoryAvatarCache.delete(key)
+    const activeUserId = localStorage.getItem('zaynah_active_user_id')
+    if (activeUserId && activeUserId !== identifier) {
+      const altKey = getCacheKey(activeUserId)
+      const inMemAlt = memoryAvatarCache.get(altKey)
+      if (inMemAlt && isUrlMatch(inMemAlt.url, expectedUrl) && inMemAlt.dataUrl) {
+        return inMemAlt.dataUrl
+      }
+      const rawAlt = localStorage.getItem(altKey)
+      if (rawAlt) {
+        const entry: CachedAvatarEntry = JSON.parse(rawAlt)
+        if (entry && isUrlMatch(entry.url, expectedUrl) && entry.dataUrl) {
+          memoryAvatarCache.set(altKey, entry)
+          return entry.dataUrl
+        }
+      }
     }
-  } catch {
-    // Ignore JSON parse errors
-  }
+  } catch {}
 
   return null
 }

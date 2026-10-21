@@ -54,17 +54,6 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
     return () => window.removeEventListener('zaynah_vault_updated', handleUpdate)
   }, [refreshVault])
 
-  // Auto-sync if vault is currently empty and history contains booked parcels
-  useEffect(() => {
-    if (docs.length === 0 && history && history.length > 0) {
-      const validParcels = history.filter(p => p.tracking && p.tracking.trim())
-      if (validParcels.length > 0) {
-        const synced = syncVaultFromBookedParcels(userId, validParcels)
-        setDocs(synced)
-      }
-    }
-  }, [docs.length, history, userId])
-
   // Manual trigger to package existing history into CN batches
   const handleSyncFromHistory = () => {
     if (!history || history.length === 0) {

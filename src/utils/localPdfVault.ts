@@ -31,13 +31,56 @@ export interface SavedAirwayDocument {
   notes?: string
 }
 
-function normalizeUserKey(userId?: string): string {
-  if (!userId || userId === 'merchant' || userId === 'guest') return 'active_tenant'
-  return userId.replace(/[^a-zA-Z0-9_-]/g, '_')
+/**
+ * Resolves the active tenant UUID cleanly across all contexts.
+ * Prioritizes: (1) Valid user UUID, (2) Cached active user ID, (3) Supabase session in localStorage.
+ */
+export function resolveVaultTenantKey(userId?: string): string {
+  // 1. If explicit UUID or custom identifier passed
+  if (userId && userId !== 'merchant' && userId !== 'guest') {
+    // Check if it's a standard UUID
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      try { localStorage.setItem('zaynah_active_user_id', userId) } catch {}
+      return userId
+    }
+    // If it's a token or other string, check if we already have a real user UUID in localStorage
+    try {
+      const active = localStorage.getItem('zaynah_active_user_id')
+      if (active) return active
+    } catch {}
+    return userId.replace(/[^a-zA-Z0-9_-]/g, '_')
+  }
+
+  // 2. Check cached active user id
+  try {
+    const cached = localStorage.getItem('zaynah_active_user_id')
+    if (cached) return cached
+  } catch {}
+
+  // 3. Check Supabase auth session token in localStorage
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+        const item = localStorage.getItem(k)
+        if (item) {
+          const parsed = JSON.parse(item)
+          const uid = parsed?.user?.id
+          if (uid) {
+            localStorage.setItem('zaynah_active_user_id', uid)
+            return uid
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return 'active_tenant'
 }
 
 function getVaultStorageKey(userId?: string): string {
-  return `u_${normalizeUserKey(userId)}_document_vault_v2`
+  const tenantKey = resolveVaultTenantKey(userId)
+  return `u_${tenantKey}_document_vault_v2`
 }
 
 function notifyVaultChange() {
@@ -51,28 +94,59 @@ export function getSavedAirwayDocuments(userId?: string): SavedAirwayDocument[] 
   try {
     const key = getVaultStorageKey(userId)
     const raw = localStorage.getItem(key)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        return parsed.map(item => ({
-          ...item,
-          type: item.type || 'airway_bill'
-        }))
+    if (raw !== null) {
+      try {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => ({
+            ...item,
+            type: item.type || 'airway_bill'
+          }))
+        }
+      } catch {
+        return []
       }
     }
 
-    // Fallback: Check older v1 storage key if v2 is empty
-    const v1Key = `u_${userId || 'guest'}_airway_vault_v1`
-    const oldRaw = localStorage.getItem(v1Key)
-    if (oldRaw) {
-      const oldParsed = JSON.parse(oldRaw)
-      if (Array.isArray(oldParsed) && oldParsed.length > 0) {
-        const migrated: SavedAirwayDocument[] = oldParsed.map(item => ({
-          ...item,
-          type: 'airway_bill'
-        }))
-        localStorage.setItem(key, JSON.stringify(migrated))
-        return migrated
+    // Only if raw === null (key has never been written, not even '[]'):
+    // Check if documents exist in u_active_tenant_document_vault_v2 (if key was different)
+    if (key !== 'u_active_tenant_document_vault_v2') {
+      const activeTenantRaw = localStorage.getItem('u_active_tenant_document_vault_v2')
+      if (activeTenantRaw !== null) {
+        try {
+          const parsed = JSON.parse(activeTenantRaw)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            localStorage.setItem(key, activeTenantRaw)
+            localStorage.removeItem('u_active_tenant_document_vault_v2')
+            return parsed.map(item => ({ ...item, type: item.type || 'airway_bill' }))
+          }
+        } catch {}
+      }
+    }
+
+    // Fallback: Check older v1 storage key only if v2 has never been initialized
+    const tenantKey = resolveVaultTenantKey(userId)
+    const legacyKeys = [
+      `u_${userId || 'guest'}_airway_vault_v1`,
+      `u_${tenantKey}_airway_vault_v1`,
+      'u_active_tenant_airway_vault_v1',
+      'u_guest_airway_vault_v1'
+    ]
+    for (const v1Key of legacyKeys) {
+      const oldRaw = localStorage.getItem(v1Key)
+      if (oldRaw) {
+        localStorage.removeItem(v1Key)
+        try {
+          const oldParsed = JSON.parse(oldRaw)
+          if (Array.isArray(oldParsed) && oldParsed.length > 0) {
+            const migrated: SavedAirwayDocument[] = oldParsed.map(item => ({
+              ...item,
+              type: 'airway_bill'
+            }))
+            localStorage.setItem(key, JSON.stringify(migrated))
+            return migrated
+          }
+        } catch {}
       }
     }
     return []
@@ -98,7 +172,7 @@ export function saveAirwayDocument(
   const id = `cn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
   const newEntry: SavedAirwayDocument = {
     id,
-    userId: normalizeUserKey(userId),
+    userId: resolveVaultTenantKey(userId),
     type: 'airway_bill',
     batchName: doc.batchName || `CN Batch #${current.length + 1} (${doc.trackingNumbers.length} Parcels)`,
     trackingNumbers: doc.trackingNumbers,
@@ -140,7 +214,7 @@ export function saveLoadSheetDocument(
   const id = `ls_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
   const newEntry: SavedAirwayDocument = {
     id,
-    userId: normalizeUserKey(userId),
+    userId: resolveVaultTenantKey(userId),
     type: 'load_sheet',
     batchName: doc.batchName || `Load Sheet (${doc.trackingNumbers.length} Parcels)`,
     trackingNumbers: doc.trackingNumbers,
@@ -165,24 +239,69 @@ export function saveLoadSheetDocument(
 export function deleteAirwayDocument(userId: string | undefined, docId: string): SavedAirwayDocument[] {
   const current = getSavedAirwayDocuments(userId)
   const filtered = current.filter(d => d.id !== docId)
-  localStorage.setItem(getVaultStorageKey(userId), JSON.stringify(filtered))
+  const key = getVaultStorageKey(userId)
+  
+  localStorage.setItem(key, JSON.stringify(filtered))
+  // Keep active_tenant key synchronized if present
+  try {
+    const rawActive = localStorage.getItem('u_active_tenant_document_vault_v2')
+    if (rawActive) {
+      const parsed = JSON.parse(rawActive)
+      if (Array.isArray(parsed)) {
+        localStorage.setItem('u_active_tenant_document_vault_v2', JSON.stringify(parsed.filter((d: any) => d.id !== docId)))
+      }
+    }
+  } catch {}
+
   notifyVaultChange()
   return filtered
 }
 
 /** Delete multiple documents by IDs */
 export function bulkDeleteAirwayDocuments(userId: string | undefined, docIds: string[]): SavedAirwayDocument[] {
-  const set = new Set(docIds)
+  const idSet = new Set(docIds)
   const current = getSavedAirwayDocuments(userId)
-  const filtered = current.filter(d => !set.has(d.id))
-  localStorage.setItem(getVaultStorageKey(userId), JSON.stringify(filtered))
+  const filtered = current.filter(d => !idSet.has(d.id))
+  const key = getVaultStorageKey(userId)
+
+  localStorage.setItem(key, JSON.stringify(filtered))
+  try {
+    const rawActive = localStorage.getItem('u_active_tenant_document_vault_v2')
+    if (rawActive) {
+      const parsed = JSON.parse(rawActive)
+      if (Array.isArray(parsed)) {
+        localStorage.setItem('u_active_tenant_document_vault_v2', JSON.stringify(parsed.filter((d: any) => !idSet.has(d.id))))
+      }
+    }
+  } catch {}
+
   notifyVaultChange()
   return filtered
 }
 
 /** Clear all stored documents for this user */
 export function clearAllAirwayDocuments(userId: string | undefined): void {
-  localStorage.removeItem(getVaultStorageKey(userId))
+  const key = getVaultStorageKey(userId)
+  const tenantKey = resolveVaultTenantKey(userId)
+  
+  // Set empty array so future gets return [] and do NOT trigger fallback migration
+  try {
+    localStorage.setItem(key, '[]')
+    localStorage.setItem('u_active_tenant_document_vault_v2', '[]')
+    localStorage.setItem('u_guest_document_vault_v2', '[]')
+  } catch {}
+
+  // Remove all legacy keys
+  const legacyKeys = [
+    `u_${userId || 'guest'}_airway_vault_v1`,
+    `u_${tenantKey}_airway_vault_v1`,
+    'u_active_tenant_airway_vault_v1',
+    'u_guest_airway_vault_v1'
+  ]
+  legacyKeys.forEach(k => {
+    try { localStorage.removeItem(k) } catch {}
+  })
+
   notifyVaultChange()
 }
 
@@ -262,7 +381,7 @@ export function syncVaultFromBookedParcels(
     
     newDocs.push({
       id: `cn_sync_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      userId: normalizeUserKey(userId),
+      userId: resolveVaultTenantKey(userId),
       type: 'airway_bill',
       batchName: `CN Batch — ${dateKey} (${list.length} Parcels)`,
       trackingNumbers,

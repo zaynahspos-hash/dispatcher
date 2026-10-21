@@ -20,6 +20,7 @@ interface UseBookedHistoryOperationsProps {
   filteredParcels: BookedParcel[]
   fromDate?: string
   toDate?: string
+  userId?: string
 }
 
 export function useBookedHistoryOperations({
@@ -28,7 +29,8 @@ export function useBookedHistoryOperations({
   onUpdateHistory,
   filteredParcels: _filteredParcels,
   fromDate,
-  toDate
+  toDate,
+  userId
 }: UseBookedHistoryOperationsProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -56,7 +58,7 @@ export function useBookedHistoryOperations({
     try {
       const success = await printLabels(settings.postex_token, selectedIds)
       if (success) {
-        saveAirwayDocument(settings.postex_token, {
+        saveAirwayDocument(userId, {
           batchName: `PostEx Airway Bill (${selectedIds.length} Parcels)`,
           trackingNumbers: selectedIds,
           totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.total || 0), 0)
@@ -104,7 +106,7 @@ export function useBookedHistoryOperations({
         selectedIds
       )
       if (success) {
-        saveLoadSheetDocument(settings.postex_token, {
+        saveLoadSheetDocument(userId, {
           pickupCode: settings.postex_pickup || '',
           batchName: `Load Sheet (${selectedIds.length} Parcels)`,
           trackingNumbers: selectedIds,

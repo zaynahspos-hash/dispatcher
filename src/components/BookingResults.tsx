@@ -167,7 +167,7 @@ export default function BookingResults({
 
   const handlePrintSelected = () => {
     if (selectedBooked.length === 0) return
-    saveAirwayDocument(settings.postex_token || 'merchant', {
+    saveAirwayDocument(userId, {
       batchName: `PostEx Airway Bill (${selectedBooked.length} Selected)`,
       trackingNumbers: selectedBooked.map(b => b.tracking!).filter(Boolean),
       totalCOD: selectedBooked.reduce((s, r) => s + (parseFloat(String(r.total)) || 0), 0)
@@ -177,7 +177,7 @@ export default function BookingResults({
 
   const handlePrintAll = () => {
     if (booked.length === 0) return
-    saveAirwayDocument(settings.postex_token || 'merchant', {
+    saveAirwayDocument(userId, {
       batchName: `PostEx Airway Bill (${booked.length} Parcels)`,
       trackingNumbers: booked.map(b => b.tracking!).filter(Boolean),
       totalCOD: totalCOD

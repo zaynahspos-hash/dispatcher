@@ -209,12 +209,21 @@ export function useSettings() {
   // ── Track auth state ──────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+      const u = session?.user ?? null
+      setUser(u)
+      if (u?.id) {
+        try { localStorage.setItem('zaynah_active_user_id', u.id) } catch {}
+      }
       setInitialAuthChecked(true)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null
+      if (newUser?.id) {
+        try { localStorage.setItem('zaynah_active_user_id', newUser.id) } catch {}
+      } else {
+        try { localStorage.removeItem('zaynah_active_user_id') } catch {}
+      }
       setUser((prev: any) => {
         // If user switched accounts, reset settings to DEFAULTS so the old
         // user's values are never visible to the new user even for a moment.
@@ -233,7 +242,7 @@ export function useSettings() {
   // ── Load settings from DB whenever user changes ──────────────────────────
   // RULE D13: snake_case table = user_settings, column = user_id
   const loadDbSettings = useCallback(async (currentUser: any) => {
-    if (!currentUser) return
+    if (!currentUser?.id) return
     setLoading(true)
     try {
       const localSettings = readAllLocal(currentUser.id)
@@ -352,6 +361,17 @@ export function useSettings() {
 
         const merged = { ...DEFAULTS, ...localSettings, ...dbSettings }
         
+        // Hydrate avatar_url from Auth metadata if missing in DB / local
+        if (!merged.avatar_url && currentUser.user_metadata?.avatar_url) {
+          const metaAvatar = currentUser.user_metadata.avatar_url
+          const match = metaAvatar.match(/\/avatars\/([a-f0-9-]+)\//i)
+          if (!match || (match[1] && match[1].toLowerCase() === currentUser.id.toLowerCase())) {
+            merged.avatar_url = metaAvatar
+            writeLocal(currentUser.id, 'avatar_url', metaAvatar)
+            needsDbRepair = true
+          }
+        }
+
         // RULE D15: Enforce strict multi-tenant ownership on avatar_url
         if (merged.avatar_url && merged.avatar_url.includes('/avatars/')) {
           const match = merged.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
@@ -506,6 +526,7 @@ export function useSettings() {
   // ── Logout helper: wipe local cache so nothing bleeds to next user ───────
   // RULE C10: After logout, zero stale data remains in localStorage
   async function logout() {
+    try { localStorage.removeItem('zaynah_active_user_id') } catch {}
     if (user) {
       clearLocalForUser(user.id)
       localStorage.removeItem(`booked_history_${user.id}`)
