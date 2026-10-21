@@ -95,9 +95,10 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
                       updateSetting('postex_token', '')
+                      if (onSave) await onSave()
                       setIsEditingToken(false)
                       setTempToken('')
                     }
@@ -120,14 +121,19 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    updateSetting('postex_token', tempToken.trim())
+                  onClick={async () => {
+                    const val = tempToken.trim()
+                    if (!val) return
+                    updateSetting('postex_token', val)
+                    if (onSave) {
+                      await onSave()
+                    }
                     setIsEditingToken(false)
                   }}
-                  disabled={!tempToken.trim()}
-                  className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs"
+                  disabled={!tempToken.trim() || saving}
+                  className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
-                  Save Token
+                  <span>{saving ? 'Saving...' : 'Save Token'}</span>
                 </button>
                 {settings.postex_token && (
                   <button

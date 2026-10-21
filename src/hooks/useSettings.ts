@@ -88,12 +88,26 @@ function userSettingsKey(userId: string, field: keyof Settings) {
   return `u_${userId}_${field}`
 }
 
+function userVaultKey(userId: string, field: keyof Settings) {
+  return `zaynah_vault_${userId}_${field}`
+}
+
 function userVersionKey(userId: string) {
   return `u_${userId}_settings_version`
 }
 
 function readLocal(userId: string, field: keyof Settings): any {
   let val = localStorage.getItem(userSettingsKey(userId, field))
+  
+  // Anti-Wipe: If critical secret is missing from primary slot, check persistent resilient vault
+  if ((!val || val === '') && CRITICAL_SECRET_KEYS.includes(field)) {
+    const vaultVal = localStorage.getItem(userVaultKey(userId, field)) || localStorage.getItem(`zaynah_vault_${field}`)
+    if (vaultVal) {
+      val = vaultVal
+      localStorage.setItem(userSettingsKey(userId, field), vaultVal)
+    }
+  }
+
   if (field === 'whatsapp_note') {
     if (!val || val === 'Thank you for shopping with us!' || isCorruptText(val) || !val.includes('📱')) {
       writeLocal(userId, 'whatsapp_note', DEFAULTS.whatsapp_note)
@@ -140,8 +154,18 @@ function readLocal(userId: string, field: keyof Settings): any {
 function writeLocal(userId: string, field: keyof Settings, value: any) {
   const strVal = value === undefined || value === null ? '' : String(value)
   localStorage.setItem(userSettingsKey(userId, field), strVal)
-}
 
+  // Maintain persistent resilient vault for secrets so they survive browser cache clear
+  if (CRITICAL_SECRET_KEYS.includes(field)) {
+    if (strVal) {
+      localStorage.setItem(userVaultKey(userId, field), strVal)
+      localStorage.setItem(`zaynah_vault_${field}`, strVal)
+    } else {
+      localStorage.removeItem(userVaultKey(userId, field))
+      localStorage.removeItem(`zaynah_vault_${field}`)
+    }
+  }
+}
 
 /** Write all settings to localStorage for this user */
 function writeAllLocal(userId: string, data: Settings) {
@@ -167,6 +191,7 @@ function readAllLocal(userId: string): Settings {
 function clearLocalForUser(userId: string) {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     localStorage.removeItem(userSettingsKey(userId, k))
+    localStorage.removeItem(userVaultKey(userId, k))
   })
   localStorage.removeItem(userVersionKey(userId))
 }
@@ -211,6 +236,8 @@ export function useSettings() {
     if (!currentUser) return
     setLoading(true)
     try {
+      const localSettings = readAllLocal(currentUser.id)
+
       const { data, error } = await supabase
         .from('user_settings')      // [OK] snake_case table
         .select('settings, updated_at')
@@ -220,8 +247,7 @@ export function useSettings() {
       if (error) {
         console.error('[useSettings] DB fetch error:', error)
         // Fall back to user-specific localStorage cache
-        const cached = readAllLocal(currentUser.id)
-        setSettings(cached)
+        setSettings(localSettings)
         return
       }
 
@@ -239,12 +265,24 @@ export function useSettings() {
 
       if (data && data.settings) {
         // DB has settings — load them and refresh local cache
-        const dbSettings = data.settings as unknown as Settings
-        const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        const dbSettings = { ...(data.settings as unknown as Settings) }
+
+        // ANTI-WIPE PROTECTION (RULE C12 & RULE AI-INTEG):
+        // If local storage has a valid secret key, but the database row had an empty/missing string,
+        // NEVER overwrite local token with blank! Instead, preserve local token and auto-repair DB!
         let needsDbRepair = false
+        CRITICAL_SECRET_KEYS.forEach(secKey => {
+          if (localSettings[secKey] && !dbSettings[secKey]) {
+            console.log(`[useSettings] Preserved local ${secKey} against empty DB row; syncing back to cloud`)
+            dbSettings[secKey] = localSettings[secKey]
+            needsDbRepair = true
+          }
+        })
+
+        const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
         if (!dbSettings.gemini_model || !VALID_GEMINI_MODELS.includes(dbSettings.gemini_model)) {
           dbSettings.gemini_model = 'gemini-1.5-flash'
-          writeLocal(user.id, 'gemini_model', 'gemini-1.5-flash')
+          writeLocal(currentUser.id, 'gemini_model', 'gemini-1.5-flash')
           needsDbRepair = true
         }
         if (
@@ -311,68 +349,55 @@ export function useSettings() {
             console.warn('[useSettings] Auto-fetch pickup address on load error:', e)
           }
         }
-        const dbUpdatedAt = data.updated_at || ''
-        const localVersion = localStorage.getItem(userVersionKey(currentUser.id))
 
-        if (needsDbRepair || (dbUpdatedAt && localVersion !== dbUpdatedAt)) {
-          const merged = { ...DEFAULTS, ...dbSettings }
-          // RULE D15: Enforce strict multi-tenant ownership on avatar_url
-          if (merged.avatar_url && merged.avatar_url.includes('/avatars/')) {
-            const match = merged.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
-            if (match && match[1] && match[1].toLowerCase() !== currentUser.id.toLowerCase()) {
-              console.warn(`[useSettings] Stripped cross-tenant avatar leak for ${currentUser.email}`)
-              merged.avatar_url = ''
-              writeLocal(currentUser.id, 'avatar_url', '')
-              supabase.auth.updateUser({ data: { avatar_url: '' } }).catch(() => {})
-            }
+        const merged = { ...DEFAULTS, ...localSettings, ...dbSettings }
+        
+        // RULE D15: Enforce strict multi-tenant ownership on avatar_url
+        if (merged.avatar_url && merged.avatar_url.includes('/avatars/')) {
+          const match = merged.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
+          if (match && match[1] && match[1].toLowerCase() !== currentUser.id.toLowerCase()) {
+            console.warn(`[useSettings] Stripped cross-tenant avatar leak for ${currentUser.email}`)
+            merged.avatar_url = ''
+            writeLocal(currentUser.id, 'avatar_url', '')
+            supabase.auth.updateUser({ data: { avatar_url: '' } }).catch(() => {})
           }
-          setSettings(merged)
-          writeAllLocal(currentUser.id, merged)
-          if (dbUpdatedAt) localStorage.setItem(userVersionKey(currentUser.id), dbUpdatedAt)
+        }
 
-          if (needsDbRepair) {
-            supabase
-            Promise.resolve(
-              supabase
-                .from('user_settings')
-                .upsert({
-                  user_id: currentUser.id,
-                  settings: dbSettings,
-                  updated_at: new Date().toISOString()
-                })
-            )
-              .then(() => console.log('[useSettings] Auto-healed corrupted WhatsApp emoji templates in Supabase DB'))
-              .catch((err: any) => console.error('[useSettings] Failed to save repaired templates to DB:', err))
+        setSettings(merged)
+        writeAllLocal(currentUser.id, merged)
+
+        const now = new Date().toISOString()
+        if (needsDbRepair) {
+          try {
+            await supabase
+              .from('user_settings')
+              .upsert({
+                user_id: currentUser.id,
+                settings: merged,
+                updated_at: now
+              }, { onConflict: 'user_id' })
+            localStorage.setItem(userVersionKey(currentUser.id), now)
+            console.log('[useSettings] Auto-healed settings and synced to Supabase DB')
+          } catch (err) {
+            console.error('[useSettings] Failed to save repaired settings to DB:', err)
           }
-        } else {
-          const localSettings = readAllLocal(currentUser.id)
-          // RULE D15: Clean any foreign avatar from local settings
-          if (localSettings.avatar_url && localSettings.avatar_url.includes('/avatars/')) {
-            const match = localSettings.avatar_url.match(/\/avatars\/([a-f0-9-]+)\//i)
-            if (match && match[1] && match[1].toLowerCase() !== currentUser.id.toLowerCase()) {
-              localSettings.avatar_url = ''
-              writeLocal(currentUser.id, 'avatar_url', '')
-            }
-          }
-          if (!localSettings.avatar_url && currentUser.user_metadata?.avatar_url) {
-            const metaAvatar = currentUser.user_metadata.avatar_url
-            const match = metaAvatar.match(/\/avatars\/([a-f0-9-]+)\//i)
-            if (!match || (match[1] && match[1].toLowerCase() === currentUser.id.toLowerCase())) {
-              localSettings.avatar_url = metaAvatar
-              writeLocal(currentUser.id, 'avatar_url', localSettings.avatar_url)
-            }
-          }
-          setSettings(localSettings)
+        } else if (data.updated_at) {
+          localStorage.setItem(userVersionKey(currentUser.id), data.updated_at)
         }
       } else {
-        // No DB record yet — pull existing local/vault settings
-        const currentLocal = readAllLocal(currentUser.id)
-        setSettings(currentLocal)
-        await supabase.from('user_settings').upsert({
-          user_id: currentUser.id,
-          settings: currentLocal,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' })
+        // No DB record yet — pull existing local/vault settings and sync to DB
+        setSettings(localSettings)
+        const now = new Date().toISOString()
+        try {
+          await supabase.from('user_settings').upsert({
+            user_id: currentUser.id,
+            settings: localSettings,
+            updated_at: now
+          }, { onConflict: 'user_id' })
+          localStorage.setItem(userVersionKey(currentUser.id), now)
+        } catch (err) {
+          console.error('[useSettings] Failed to create initial user_settings row in DB:', err)
+        }
       }
     } catch (err) {
       console.error('[useSettings] Failed to sync from database:', err)
@@ -399,63 +424,83 @@ export function useSettings() {
     return () => clearInterval(interval)
   }, [user, loadDbSettings])
 
-  // ── Update a single field (or multiple fields) ───────────────────────────
-  async function updateSetting(key: keyof Settings | Partial<Settings>, value?: string) {
-    setSettings(prev => {
-      let updated: Settings
-      const uId = user?.id || 'guest'
-      if (typeof key === 'object') {
-        updated = { ...prev, ...key }
-        Object.entries(key).forEach(([k, val]) => {
-          writeLocal(uId, k as keyof Settings, (val as string) || '')
+  // ── Update a single field (or multiple fields) with direct awaited DB persistence ──
+  const updateSetting = useCallback(async (key: keyof Settings | Partial<Settings>, value?: string): Promise<boolean> => {
+    const uId = user?.id || 'guest'
+    let updated: Settings
+
+    if (typeof key === 'object') {
+      updated = { ...settings, ...key }
+      writeAllLocal(uId, updated)
+    } else {
+      const val = value ?? ''
+      updated = { ...settings, [key]: val }
+      writeLocal(uId, key, val)
+    }
+
+    setSettings(updated)
+
+    if (user?.id) {
+      // If avatar_url was modified, sync with Supabase Auth metadata for multi-device persistence
+      const avatarTouch = typeof key === 'object' ? key.avatar_url : (key === 'avatar_url' ? value : undefined)
+      if (avatarTouch !== undefined) {
+        supabase.auth.updateUser({ data: { avatar_url: avatarTouch || '' } }).catch(e => {
+          console.warn('[useSettings] Auth metadata avatar sync error:', e)
         })
-      } else {
-        const val = value || ''
-        updated = { ...prev, [key]: val }
-        writeLocal(uId, key, val)
       }
 
-      if (user) {
-        // If avatar_url was modified, sync with Supabase Auth metadata for multi-device persistence
-        const avatarTouch = typeof key === 'object' ? key.avatar_url : (key === 'avatar_url' ? value : undefined)
-        if (avatarTouch !== undefined) {
-          supabase.auth.updateUser({ data: { avatar_url: avatarTouch || '' } }).catch(e => {
-            console.warn('[useSettings] Auth metadata avatar sync error:', e)
-          })
-        }
-
+      try {
         const now = new Date().toISOString()
         // RULE D13: snake_case table + column
-        supabase.from('user_settings').upsert({
+        const { error } = await supabase.from('user_settings').upsert({
           user_id: user.id,           // [OK] snake_case
           settings: updated,
           updated_at: now
         }, { onConflict: 'user_id' }) // [OK] snake_case
-          .then(({ error }) => {
-            if (error) {
-              console.error('[updateSetting] Failed to persist to DB:', error)
-            } else {
-              localStorage.setItem(userVersionKey(user.id), now)
-            }
-          })
+
+        if (error) {
+          console.error('[updateSetting] Failed to persist to DB:', error)
+          return false
+        } else {
+          localStorage.setItem(userVersionKey(user.id), now)
+          return true
+        }
+      } catch (err) {
+        console.error('[updateSetting] Network exception during DB upsert:', err)
+        return false
       }
-      return updated
-    })
-  }
+    }
+
+    return true
+  }, [user, settings])
 
   // ── Force-sync (e.g. bulk import from Settings page) ────────────────────
-  async function forceSyncSettings(newSettings: Settings) {
+  async function forceSyncSettings(newSettings: Settings): Promise<boolean> {
     setSettings(newSettings)
-    if (user) {
-      writeAllLocal(user.id, newSettings)
+    const uId = user?.id || 'guest'
+    writeAllLocal(uId, newSettings)
+
+    if (user?.id) {
       const now = new Date().toISOString()
-      await supabase.from('user_settings').upsert({
-        user_id: user.id,             // [OK] snake_case
-        settings: newSettings,
-        updated_at: now
-      }, { onConflict: 'user_id' })   // [OK] snake_case
-      localStorage.setItem(userVersionKey(user.id), now)
+      try {
+        const { error } = await supabase.from('user_settings').upsert({
+          user_id: user.id,             // [OK] snake_case
+          settings: newSettings,
+          updated_at: now
+        }, { onConflict: 'user_id' })   // [OK] snake_case
+
+        if (error) {
+          console.error('[forceSyncSettings] DB error:', error)
+          return false
+        }
+        localStorage.setItem(userVersionKey(user.id), now)
+        return true
+      } catch (err) {
+        console.error('[forceSyncSettings] Exception:', err)
+        return false
+      }
     }
+    return true
   }
 
   // ── Logout helper: wipe local cache so nothing bleeds to next user ───────

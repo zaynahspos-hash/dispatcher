@@ -203,9 +203,10 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm(`Are you sure you want to remove your ${activeMeta.name} API Key?`)) {
                       updateSetting(`${activeProvider}_api_key` as keyof Settings, '')
+                      if (onSave) await onSave()
                       setIsEditingKey(false)
                       setTempKey('')
                     }
@@ -228,14 +229,19 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    updateSetting(`${activeProvider}_api_key` as keyof Settings, tempKey.trim())
+                  onClick={async () => {
+                    const val = tempKey.trim()
+                    if (!val) return
+                    updateSetting(`${activeProvider}_api_key` as keyof Settings, val)
+                    if (onSave) {
+                      await onSave()
+                    }
                     setIsEditingKey(false)
                   }}
-                  disabled={!tempKey.trim()}
-                  className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs"
+                  disabled={!tempKey.trim() || saving}
+                  className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
-                  Save Key
+                  <span>{saving ? 'Saving...' : 'Save Key'}</span>
                 </button>
                 {currentKey && (
                   <button

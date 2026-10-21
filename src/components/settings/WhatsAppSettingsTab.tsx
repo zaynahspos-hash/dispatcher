@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Settings } from '../../utils/groqParser'
 import { WhatsAppMilestone, DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../history/types'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
+import { SaveIcon } from '../Icons'
 
 interface WhatsAppSettingsTabProps {
   settings: Settings
@@ -15,7 +16,10 @@ const DEFAULT_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain
 
 export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
   settings,
-  updateSetting
+  updateSetting,
+  onSave,
+  saving = false,
+  hasChanges = false
 }) => {
   const [activeMilestoneTab, setActiveMilestoneTab] = useState<WhatsAppMilestone>('out_for_delivery')
 
@@ -299,6 +303,26 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               />
               <span className="text-slate-400 text-xs">sec</span>
             </div>
+          </div>
+
+          {/* Save WhatsApp Settings Button */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] text-slate-400">
+              {hasChanges ? 'Unsaved changes in WhatsApp alerts' : 'WhatsApp templates are in sync'}
+            </span>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className={`h-9 px-4 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 ${
+                hasChanges 
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25 ring-2 ring-emerald-500/30'
+                  : 'bg-emerald-600/90 hover:bg-emerald-600 text-white'
+              }`}
+            >
+              <SaveIcon size={14} />
+              <span>{saving ? 'Saving...' : 'Save WhatsApp Settings'}</span>
+            </button>
           </div>
         </div>
       </div>

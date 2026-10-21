@@ -37,11 +37,12 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const toast = useToast()
 
-  // Sync draft when initial settings load or change externally
+  // Sync draft when initial settings load, but DO NOT overwrite if user has unsaved draft changes
   useEffect(() => {
-    setDraftSettings(settings)
-    setHasChanges(false)
-  }, [settings])
+    if (!hasChanges) {
+      setDraftSettings(settings)
+    }
+  }, [settings, hasChanges])
 
   const handleDraftChange = (keyOrObj: keyof Settings | Partial<Settings>, value?: string) => {
     setDraftSettings(prev => {
@@ -62,21 +63,28 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
     toast.info('Changes Discarded', 'Restored previous saved settings.')
   }
 
-  const handleManualSave = async () => {
+  const handleManualSave = async (override?: Partial<Settings>): Promise<boolean> => {
     setSaving(true)
     try {
-      const toSave = { ...draftSettings }
+      const toSave = { ...draftSettings, ...(override || {}) }
       if (settings.avatar_url && !toSave.avatar_url) {
         toSave.avatar_url = settings.avatar_url
       }
-      updateSetting(toSave)
+      setDraftSettings(toSave)
+      const ok = await updateSetting(toSave)
+      if (ok === false) {
+        toast.warning('Offline Cache', 'Settings saved to browser storage. Will sync to cloud once connection is verified.')
+      } else {
+        toast.success('Settings Saved', 'All credentials and preferences saved to cloud and device.')
+      }
       if (onSave) {
         onSave()
       }
       setHasChanges(false)
-      toast.success('Settings Saved', 'All preferences saved successfully.')
+      return true
     } catch (err: any) {
       toast.error('Save Failed', err.message || 'Could not save settings.')
+      return false
     } finally {
       setSaving(false)
     }
