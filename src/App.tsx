@@ -40,7 +40,7 @@ const ADMIN_EMAILS = [
 
 
 export default function App() {
-  const { settings, updateSetting, user, isBlocked, initialAuthChecked, logout } = useSettings()
+  const { settings, updateSetting, user, isBlocked, initialAuthChecked, logout, loadingSettings } = useSettings()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
   // PWA install lifecycle
@@ -214,11 +214,13 @@ export default function App() {
     settings.deepseek_api_key
   )
 
-  const isSettingsConfigured = !!(
-    hasAiKey &&
-    settings.postex_token &&
-    (settings.postex_pickup || (settings.postex_token && settings.postex_token.trim().length > 10))
-  )
+  const hasPostexToken = !!(settings.postex_token && settings.postex_token.trim().length > 8)
+
+  // Settings is considered configured if PostEx token is active OR an AI key is active.
+  // While settings are still initial-loading from DB, do not flash setup warning.
+  const isSettingsConfigured = loadingSettings
+    ? true
+    : (hasPostexToken || hasAiKey)
 
   if (!initialAuthChecked) {
     return null

@@ -196,15 +196,53 @@ function clearLocalForUser(userId: string) {
   localStorage.removeItem(userVersionKey(userId))
 }
 
+/** Synchronous 0ms settings hydrator from localStorage cache (eliminates blank settings flash on refresh) */
+function getInitialSettings(): Settings {
+  if (typeof window === 'undefined') return DEFAULTS
+  try {
+    let activeId = localStorage.getItem('zaynah_active_user_id')
+    if (!activeId) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+          const item = localStorage.getItem(k)
+          if (item) {
+            const parsed = JSON.parse(item)
+            if (parsed?.user?.id) {
+              activeId = parsed.user.id
+              localStorage.setItem('zaynah_active_user_id', activeId)
+              break
+            }
+          }
+        }
+      }
+    }
+    if (activeId) {
+      return readAllLocal(activeId)
+    }
+    const guestSettings = { ...DEFAULTS }
+    let hasAny = false
+    CRITICAL_SECRET_KEYS.forEach(k => {
+      const v = localStorage.getItem(`zaynah_vault_${k}`) || localStorage.getItem(`zaynah_vault_active_tenant_${k}`)
+      if (v) {
+        (guestSettings as any)[k] = v
+        hasAny = true
+      }
+    })
+    if (hasAny) return guestSettings
+  } catch {}
+  return DEFAULTS
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useSettings() {
-  // Start with DEFAULTS — we'll hydrate from DB once we know who the user is
-  const [settings, setSettings] = useState<Settings>(DEFAULTS)
+  // Synchronous 0ms hydration from local cache prevents blank settings and setup warning flash on refresh
+  const [settings, setSettings] = useState<Settings>(getInitialSettings)
   const [user, setUser] = useState<any>(null)
   const [isBlocked, setIsBlocked] = useState(false)
   const [initialAuthChecked, setInitialAuthChecked] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // ── Track auth state ──────────────────────────────────────────────────────
   useEffect(() => {
