@@ -129,7 +129,8 @@ export function resolveAllSerialConflicts(
       resolvedCount++
       return {
         ...p,
-        id: next.nextId
+        id: next.nextId,
+        isDefaultId: true
       }
     }
 

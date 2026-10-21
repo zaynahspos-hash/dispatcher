@@ -44,15 +44,27 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
         </div>
 
         <div>
-          <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
-            Default Item Count
-          </label>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              Default Item Count
+            </label>
+            <span
+              className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded cursor-help"
+              title="Jab order details mein item pieces count missing hoga tab ye apply hoga. Agar text mein pieces/suit count likha ho to wahi use hoga."
+            >
+              Fallback
+            </span>
+          </div>
           <input
             type="number"
+            min="1"
             value={settings.default_items || '1'}
             onChange={e => updateSetting('default_items', e.target.value)}
             className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
           />
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+            Jab chat text mein item pieces count add nahi hoga tab ye default count auto-apply hoga. Agar text mein quantity mojood ho to wahi use hogi.
+          </p>
         </div>
 
         <div>
@@ -131,6 +143,9 @@ export const DefaultsSettingsTab: React.FC<DefaultsSettingsTabProps> = ({
               onChange={e => updateSetting('order_id_next_num', e.target.value)}
               className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono transition"
             />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              Jab chat text mein order ID missing hogi tab ye serial auto-assign aur increment hoga. Agar text mein order ID mojood ho to wahi use hogi.
+            </p>
           </div>
         </div>
 

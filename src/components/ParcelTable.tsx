@@ -104,7 +104,13 @@ export default function ParcelTable({
   }, [parcels.length])
 
   function updateField(index: number, field: keyof Parcel, value: string | number) {
-    setParcels(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p))
+    setParcels(prev => prev.map((p, i) => {
+      if (i !== index) return p
+      const updated: Parcel = { ...p, [field]: value }
+      if (field === 'id') updated.isDefaultId = false
+      if (field === 'items') updated.isDefaultItems = false
+      return updated
+    }))
   }
 
   function toggleSelect(index: number) {
@@ -186,6 +192,8 @@ export default function ParcelTable({
       airwayBillCopy: 1,
       detail: settings.default_product || 'Kids Clothes',
       note: settings.default_note || 'Call before delivery',
+      isDefaultId: true,
+      isDefaultItems: true,
     }
     setParcels(prev => [...prev, newParcel])
     setSelected(prev => new Set([...prev, parcels.length]))
@@ -205,7 +213,7 @@ export default function ParcelTable({
     })
 
     const next = getNextAvailableSerial(prefix, nextNum, used)
-    updateField(index, 'id', next.nextId)
+    setParcels(prev => prev.map((p, i) => i === index ? { ...p, id: next.nextId, isDefaultId: true } : p))
     if (updateSetting) {
       updateSetting('order_id_next_num', String(next.nextNum))
     }

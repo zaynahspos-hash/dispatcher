@@ -236,20 +236,32 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Ref ID (Flush Excel Cell) */}
-                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-[180px] ${conflictedIndices?.has(i) ? 'bg-amber-500/10' : ''}`}>
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-[180px] ${
+                    conflictedIndices?.has(i)
+                      ? 'bg-amber-500/10'
+                      : parcel.isDefaultId
+                      ? 'bg-amber-500/5 dark:bg-amber-950/15'
+                      : ''
+                  }`}>
                     <div className="flex items-center min-h-[40px] px-2 gap-1.5 min-w-0">
                       <input
                         value={parcel.id || ''}
                         onChange={e => updateField(i, 'id', e.target.value)}
                         placeholder="Ref ID"
                         className={`flex-1 min-w-[70px] h-full py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset rounded ${
-                          conflictedIndices?.has(i) ? 'text-amber-800 dark:text-amber-300 font-bold' : 'text-slate-800 dark:text-slate-100'
+                          conflictedIndices?.has(i)
+                            ? 'text-amber-800 dark:text-amber-300 font-bold'
+                            : parcel.isDefaultId
+                            ? 'text-amber-500 dark:text-amber-400 placeholder:text-amber-500 dark:placeholder:text-amber-400 font-bold'
+                            : 'text-slate-800 dark:text-slate-100'
                         }`}
                         title={
-                          conflictReasons?.get(i) === 'already_in_db'
-                            ? 'Serial already booked in database! Click button to assign next available serial.'
-                            : conflictReasons?.get(i) === 'duplicate_in_table'
-                            ? 'Duplicate serial in current table! Click button to assign next available serial.'
+                          conflictedIndices?.has(i)
+                            ? (conflictReasons?.get(i) === 'already_in_db'
+                                ? 'Serial already booked in database! Click button to assign next available serial.'
+                                : 'Duplicate serial in current table! Click button to assign next available serial.')
+                            : parcel.isDefaultId
+                            ? 'Auto-generated serial (default fallback)'
                             : ''
                         }
                       />
@@ -355,7 +367,9 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Items Count (Centered) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono ${
+                    parcel.isDefaultItems ? 'bg-amber-500/5 dark:bg-amber-950/15' : ''
+                  }`}>
                     <input
                       type="number"
                       min="1"
@@ -363,7 +377,12 @@ export function ParcelDesktopGrid({
                       onChange={e => updateField(i, 'items', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                       onFocus={e => e.target.select()}
                       placeholder="1"
-                      className="w-full h-10 px-2 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset"
+                      title={parcel.isDefaultItems ? 'Default item count (fallback)' : ''}
+                      className={`w-full h-10 px-2 py-2 bg-transparent text-xs font-mono text-center focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset ${
+                        parcel.isDefaultItems
+                          ? 'text-amber-500 dark:text-amber-400 placeholder:text-amber-500 dark:placeholder:text-amber-400 font-bold'
+                          : 'text-slate-800 dark:text-slate-200'
+                      }`}
                     />
                   </td>
 

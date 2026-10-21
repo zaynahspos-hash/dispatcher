@@ -222,6 +222,222 @@ export const URDU_CITY_MAP: Record<string, string> = {
   'پنجاب': 'LAHORE'
 }
 
+// Common Pakistani City Abbreviations
+export const CITY_ABBREVIATIONS: Record<string, string> = {
+  'LHR': 'LAHORE',
+  'KHI': 'KARACHI',
+  'ISB': 'ISLAMABAD',
+  'RWP': 'RAWALPINDI',
+  'FSD': 'FAISALABAD',
+  'MUL': 'MULTAN',
+  'PSH': 'PESHAWAR',
+  'PEW': 'PESHAWAR',
+  'QTA': 'QUETTA',
+  'SKT': 'SIALKOT',
+  'GRW': 'GUJRANWALA',
+  'GUJ': 'GUJRANWALA',
+  'GWD': 'GWADAR',
+  'HYD': 'HYDERABAD',
+  'BWP': 'BAHAWALPUR',
+  'SKR': 'SUKKUR',
+  'JHG': 'JHANG',
+  'SWL': 'SAHIWAL',
+  'OKA': 'OKARA',
+  'RYK': 'RAHIM YAR KHAN',
+  'DGK': 'DERA GHAZI KHAN',
+  'DIK': 'DERA ISMAIL KHAN',
+  'ABT': 'ABBOTTABAD',
+  'ATK': 'ATTOCK',
+  'CKL': 'CHAKWAL',
+  'JHL': 'JHELUM',
+  'MBD': 'MANDI BAHAUDDIN',
+  'WZD': 'WAZIRABAD',
+  'KSR': 'KASUR',
+  'SKP': 'SHEIKHUPURA',
+  'NNS': 'NANKANA SAHIB',
+  'MTN': 'MULTAN',
+  'KRN': 'KARACHI'
+}
+
+// Deep Pakistani Area, Locality, Colony, and Landmark to Operational Hub City Map
+export const PAKISTAN_AREA_TO_CITY_MAP: Record<string, string> = {
+  // Lahore Localities & Landmarks
+  'CHUNGI AMAR SIDHU': 'LAHORE',
+  'AMAR SIDHU': 'LAHORE',
+  'CHUNGI': 'LAHORE',
+  'KAHNA NAU': 'LAHORE',
+  'KAHNA': 'LAHORE',
+  'KOT LAKHPAT': 'LAHORE',
+  'TOWNSHIP': 'LAHORE',
+  'GREEN TOWN': 'LAHORE',
+  'WAPDA TOWN': 'LAHORE',
+  'VALENCIA': 'LAHORE',
+  'JOHAR TOWN': 'LAHORE',
+  'MODEL TOWN': 'LAHORE',
+  'GULBERG': 'LAHORE',
+  'FAISAL TOWN': 'LAHORE',
+  'GARDEN TOWN': 'LAHORE',
+  'ALLAMA IQBAL TOWN': 'LAHORE',
+  'IQBAL TOWN': 'LAHORE',
+  'SAMANABAD': 'LAHORE',
+  'ICHHRA': 'LAHORE',
+  'ANARKALI': 'LAHORE',
+  'SHADMAN': 'LAHORE',
+  'SHAH DARA': 'LAHORE',
+  'SHAHDARA': 'LAHORE',
+  'BAGHBANPURA': 'LAHORE',
+  'MUGHALPURA': 'LAHORE',
+  'DHARAMPURA': 'LAHORE',
+  'HARBANSPURA': 'LAHORE',
+  'DAROGHAWALA': 'LAHORE',
+  'SALAMATPURA': 'LAHORE',
+  'TAJPURA': 'LAHORE',
+  'BEDIAN ROAD': 'LAHORE',
+  'BEDIAN': 'LAHORE',
+  'BARKI ROAD': 'LAHORE',
+  'BARKI': 'LAHORE',
+  'WALTON ROAD': 'LAHORE',
+  'WALTON': 'LAHORE',
+  'CAVALRY GROUND': 'LAHORE',
+  'CAVALRY': 'LAHORE',
+  'CHUNG': 'LAHORE',
+  'THOKAR NIAZ BAIG': 'LAHORE',
+  'THOKAR': 'LAHORE',
+  'LAKE CITY': 'LAHORE',
+  'PARAGON CITY': 'LAHORE',
+  'BAHRIA ORCHARD': 'LAHORE',
+  'BAHRIA TOWN LAHORE': 'LAHORE',
+  'DHA LAHORE': 'LAHORE',
+  'DEFENCE LAHORE': 'LAHORE',
+  'ASKARI LAHORE': 'LAHORE',
+  'RAIWIND ROAD': 'LAHORE',
+  'FEROZEPUR ROAD': 'LAHORE',
+  'MULTAN ROAD LAHORE': 'LAHORE',
+  'MANGA MANDI': 'LAHORE',
+  'SUNDER': 'LAHORE',
+  'ISLAMPURA': 'LAHORE',
+  'SANDA': 'LAHORE',
+  'MOZANG': 'LAHORE',
+  'LAKSHMI CHOWK': 'LAHORE',
+  'SHAH ALAM': 'LAHORE',
+  'BADAMI BAGH': 'LAHORE',
+  'RIVAZ GARDEN': 'LAHORE',
+  'RACE COURSE': 'LAHORE',
+  'CANTT LAHORE': 'LAHORE',
+  'SADDAR LAHORE': 'LAHORE',
+
+  // Karachi Localities & Landmarks
+  'CLIFTON': 'KARACHI',
+  'DEFENCE KARACHI': 'KARACHI',
+  'DHA KARACHI': 'KARACHI',
+  'KORANGI': 'KARACHI',
+  'LANDHI': 'KARACHI',
+  'MALIR': 'KARACHI',
+  'MALIR CANTT': 'KARACHI',
+  'GULSHAN-E-IQBAL': 'KARACHI',
+  'GULSHAN': 'KARACHI',
+  'GULISTAN-E-JOHAR': 'KARACHI',
+  'GULSHAN-E-JOHAR': 'KARACHI',
+  'NORTH NAZIMABAD': 'KARACHI',
+  'NAZIMABAD': 'KARACHI',
+  'FEDERAL B AREA': 'KARACHI',
+  'FB AREA': 'KARACHI',
+  'LIAQUATABAD': 'KARACHI',
+  'PECHS': 'KARACHI',
+  'SADDAR KARACHI': 'KARACHI',
+  'TARIQ ROAD': 'KARACHI',
+  'BAHADURABAD': 'KARACHI',
+  'MEHMOODABAD': 'KARACHI',
+  'MANZOOR COLONY': 'KARACHI',
+  'SHAH FAISAL COLONY': 'KARACHI',
+  'SHAH FAISAL': 'KARACHI',
+  'ORANGI TOWN': 'KARACHI',
+  'ORANGI': 'KARACHI',
+  'BALDIA TOWN': 'KARACHI',
+  'BALDIA': 'KARACHI',
+  'SITE AREA': 'KARACHI',
+  'SITE KARACHI': 'KARACHI',
+  'LYARI': 'KARACHI',
+  'KEMARI': 'KARACHI',
+  'SURJANI TOWN': 'KARACHI',
+  'SURJANI': 'KARACHI',
+  'NORTH KARACHI': 'KARACHI',
+  'NEW KARACHI': 'KARACHI',
+  'SCHEME 33': 'KARACHI',
+  'GULSHAN-E-MAYMAR': 'KARACHI',
+  'ANCHOLI': 'KARACHI',
+  'GULBERG KARACHI': 'KARACHI',
+  'SOHRAB GOTH': 'KARACHI',
+  'BAHRIA TOWN KARACHI': 'KARACHI',
+  'I.I CHUNDRIGAR': 'KARACHI',
+  'BURNS ROAD': 'KARACHI',
+  'BOAT BASIN': 'KARACHI',
+
+  // Islamabad Sectors & Zones
+  'BLUE AREA': 'ISLAMABAD',
+  'F-6': 'ISLAMABAD', 'F-7': 'ISLAMABAD', 'F-8': 'ISLAMABAD', 'F-10': 'ISLAMABAD', 'F-11': 'ISLAMABAD',
+  'G-6': 'ISLAMABAD', 'G-7': 'ISLAMABAD', 'G-8': 'ISLAMABAD', 'G-9': 'ISLAMABAD', 'G-10': 'ISLAMABAD', 'G-11': 'ISLAMABAD', 'G-13': 'ISLAMABAD', 'G-15': 'ISLAMABAD',
+  'H-8': 'ISLAMABAD', 'H-9': 'ISLAMABAD', 'H-12': 'ISLAMABAD', 'I-8': 'ISLAMABAD', 'I-9': 'ISLAMABAD', 'I-10': 'ISLAMABAD',
+  'E-11': 'ISLAMABAD', 'D-12': 'ISLAMABAD', 'B-17': 'ISLAMABAD',
+  'BANI GALA': 'ISLAMABAD',
+  'TARLAI': 'ISLAMABAD',
+  'CHAK SHAHZAD': 'ISLAMABAD',
+  'PWD': 'ISLAMABAD',
+  'SOAN GARDENS': 'ISLAMABAD',
+  'CBR TOWN': 'ISLAMABAD',
+  'DHA ISLAMABAD': 'ISLAMABAD',
+  'BAHRIA TOWN ISLAMABAD': 'ISLAMABAD',
+
+  // Rawalpindi Localities
+  'SADDAR RAWALPINDI': 'RAWALPINDI',
+  'RAJA BAZAR': 'RAWALPINDI',
+  'COMMERCIAL MARKET': 'RAWALPINDI',
+  'SATELLITE TOWN': 'RAWALPINDI',
+  'CHAKLALA': 'RAWALPINDI',
+  'CHAKLALA SCHEME 3': 'RAWALPINDI',
+  'WESTRIDGE': 'RAWALPINDI',
+  'ADYALA ROAD': 'RAWALPINDI',
+  'PESHAWAR ROAD': 'RAWALPINDI',
+  'TENCH BHATTA': 'RAWALPINDI',
+  'GULZAR-E-QUAID': 'RAWALPINDI',
+  'BAHRIA TOWN RAWALPINDI': 'RAWALPINDI',
+  'DHA PHASE 1': 'RAWALPINDI',
+  'DHA PHASE 2': 'RAWALPINDI',
+
+  // Faisalabad Localities
+  'D-GROUND': 'FAISALABAD',
+  'MADINA TOWN': 'FAISALABAD',
+  'PEOPLES COLONY': 'FAISALABAD',
+  'GHULAM MUHAMMAD ABAD': 'FAISALABAD',
+  'JINNAH COLONY': 'FAISALABAD',
+  'MILLAT TOWN': 'FAISALABAD',
+  'KOHINOOR CITY': 'FAISALABAD',
+  'CANAL ROAD FAISALABAD': 'FAISALABAD',
+  'SAMUNDRI ROAD': 'FAISALABAD',
+  'JARANWALA ROAD': 'FAISALABAD',
+  'SATIANA ROAD': 'FAISALABAD',
+
+  // Multan Localities
+  'BOSAN ROAD': 'MULTAN',
+  'GULGASHT COLONY': 'MULTAN',
+  'GULGASHT': 'MULTAN',
+  'SHAH RUKN-E-ALAM': 'MULTAN',
+  'CHUNGI NO 9': 'MULTAN',
+  'MUMTAZABAD': 'MULTAN',
+  'SHAMSABAD MULTAN': 'MULTAN',
+  'MDA CHOWK': 'MULTAN',
+  'SURAJ MIANI': 'MULTAN',
+  'CANTT MULTAN': 'MULTAN',
+
+  // Peshawar Localities
+  'HAYATABAD': 'PESHAWAR',
+  'UNIVERSITY TOWN': 'PESHAWAR',
+  'KARKHANO': 'PESHAWAR',
+  'GULBAHAR': 'PESHAWAR',
+  'WARSAK ROAD': 'PESHAWAR',
+  'SADDAR PESHAWAR': 'PESHAWAR'
+}
+
 // Pre-computed lowercase map for O(1) instant resolution
 const CITY_MAP = new Map<string, string>()
 for (const city of CITY_LIST) {
@@ -229,14 +445,115 @@ for (const city of CITY_LIST) {
 }
 
 /**
- * Normalizes any extracted city name (English, Roman Urdu, or Urdu script) into PostEx-approved canonical spelling in 0ms.
+ * Deep Geographic Address Scanner:
+ * Scans an entire address string for known major cities, tehsils, and famous landmarks.
+ * Returns the confirmed canonical city, or null if no definitive match found.
  */
-export function normalizeCityName(rawCity?: string | null): string {
-  if (!rawCity) return ''
+export function detectCityFromAddress(address?: string | null): string | null {
+  if (!address || typeof address !== 'string') return null
+  const cleanAddr = address.trim()
+  if (!cleanAddr) return null
+
+  const upper = cleanAddr.toUpperCase()
+
+  // 1. High-priority major metropolitan cities (word-boundary matched)
+  const majorCities = [
+    'LAHORE', 'KARACHI', 'ISLAMABAD', 'RAWALPINDI', 'FAISALABAD', 'MULTAN',
+    'PESHAWAR', 'QUETTA', 'SIALKOT', 'GUJRANWALA', 'HYDERABAD', 'SUKKUR',
+    'BAHAWALPUR', 'SARGODHA', 'GUJRAT', 'SHEIKHUPURA', 'JHANG', 'SAHIWAL',
+    'LARKANA', 'KASUR', 'RAHIM YAR KHAN', 'DERA GHAZI KHAN', 'ABBOTTABAD',
+    'NAWABSHAH', 'MIRPUR', 'OKARA', 'MARDAN', 'CHAKWAL', 'ATTOCK'
+  ]
+
+  // Scan address from end to start (cities are almost always placed at the end of addresses in Pakistan)
+  for (const city of majorCities) {
+    const regex = new RegExp(`\\b${city}\\b`, 'i')
+    if (regex.test(upper)) {
+      return city
+    }
+  }
+
+  // 2. Check Area/Locality Dictionary (e.g. "Chungi Amar Sidhu" -> "LAHORE")
+  for (const [area, hubCity] of Object.entries(PAKISTAN_AREA_TO_CITY_MAP)) {
+    if (upper.includes(area)) {
+      return hubCity
+    }
+  }
+
+  // 3. Check Urdu script cities in address
+  for (const [urduKey, engCity] of Object.entries(URDU_CITY_MAP)) {
+    if (cleanAddr.includes(urduKey)) {
+      return engCity
+    }
+  }
+
+  // 4. Scan all canonical cities in CITY_LIST at word boundaries
+  for (const city of CITY_LIST) {
+    if (city.length >= 4) {
+      const regex = new RegExp(`\\b${city.replace(/[()]/g, '')}\\b`, 'i')
+      if (regex.test(upper)) {
+        return city
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Ultra-Reliable City Normalization Engine:
+ * Converts any extracted city name, abbreviation, Roman Urdu spelling, or landmark into
+ * a canonical PostEx operational hub city.
+ * NEVER makes naive 2-3 letter substring mistakes (e.g. "ALI" -> "ALIPUR").
+ */
+export function normalizeCityName(rawCity?: string | null, contextAddress?: string | null): string {
+  if (!rawCity || typeof rawCity !== 'string') {
+    if (contextAddress) {
+      const detected = detectCityFromAddress(contextAddress)
+      if (detected) return detected
+    }
+    return ''
+  }
+
   const trimmed = rawCity.trim().toUpperCase()
+  if (!trimmed) return ''
+
+  // 1. If contextAddress contains an explicit major city and rawCity looks suspicious or matches customer name:
+  if (contextAddress) {
+    const detectedFromAddr = detectCityFromAddress(contextAddress)
+    if (detectedFromAddr) {
+      // If rawCity is equal to detected city, great
+      if (trimmed === detectedFromAddr) return detectedFromAddr
+      // If rawCity is very short or in our area map pointing to the detected city:
+      if (PAKISTAN_AREA_TO_CITY_MAP[trimmed] === detectedFromAddr) {
+        return detectedFromAddr
+      }
+      // If rawCity is an area of the detected city, or rawCity was confused with a person name (e.g. "ALI"):
+      if (trimmed.length <= 4 || trimmed === 'ALIPUR' || trimmed === 'RECIPIENT') {
+        return detectedFromAddr
+      }
+    }
+  }
+
+  // 2. Direct exact match in canonical list
   if (CITY_LIST.includes(trimmed)) return trimmed
 
-  // Check Urdu script city dictionary
+  // 3. Known city abbreviations (LHR -> LAHORE, KHI -> KARACHI, etc.)
+  if (CITY_ABBREVIATIONS[trimmed]) {
+    return CITY_ABBREVIATIONS[trimmed]
+  }
+
+  // 4. Check Area/Locality Dictionary (e.g. "CHUNGI AMAR SIDHU" -> "LAHORE")
+  if (PAKISTAN_AREA_TO_CITY_MAP[trimmed]) {
+    return PAKISTAN_AREA_TO_CITY_MAP[trimmed]
+  }
+  for (const [area, hubCity] of Object.entries(PAKISTAN_AREA_TO_CITY_MAP)) {
+    if (trimmed.includes(area)) {
+      return hubCity
+    }
+  }
+
+  // 5. Check Urdu script city dictionary
   const rawClean = rawCity.trim()
   if (URDU_CITY_MAP[rawClean]) {
     return URDU_CITY_MAP[rawClean]
@@ -247,17 +564,33 @@ export function normalizeCityName(rawCity?: string | null): string {
     }
   }
 
+  // 6. Alphanumeric normalized exact match (e.g. "lahore-cantt" -> "LAHORE CANTT")
   const simplified = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '')
   if (CITY_MAP.has(simplified)) {
     return CITY_MAP.get(simplified)!
   }
 
-  // Substring search for composite names (e.g. "Lahore Cantt" -> "LAHORE")
-  for (const city of CITY_LIST) {
-    const cSimple = city.toLowerCase().replace(/[^a-z0-9]/g, '')
-    if (simplified.includes(cSimple) || (cSimple.length >= 4 && cSimple.includes(simplified))) {
-      return city
+  // 7. Safe composite name matching (e.g. "Lahore Cantt" -> "LAHORE")
+  // CRITICAL RULE: simplified must contain cSimple (NOT the other way around unless lengths are very close)
+  // Prevents short strings like "ali" (len 3) from matching "alipur"!
+  if (simplified.length >= 4) {
+    for (const city of CITY_LIST) {
+      const cSimple = city.toLowerCase().replace(/[^a-z0-9]/g, '')
+      // composite match: "lahorecantt" contains "lahore"
+      if (cSimple.length >= 4 && simplified.includes(cSimple)) {
+        return city
+      }
+      // reverse match: only if lengths are almost identical (e.g. typos, "lahor" -> "lahore")
+      if (simplified.length >= 5 && cSimple.includes(simplified) && (simplified.length / cSimple.length) >= 0.8) {
+        return city
+      }
     }
+  }
+
+  // 8. If nothing matched, but contextAddress has a city, fallback to contextAddress
+  if (contextAddress) {
+    const detected = detectCityFromAddress(contextAddress)
+    if (detected) return detected
   }
 
   return trimmed

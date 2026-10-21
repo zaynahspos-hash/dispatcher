@@ -127,6 +127,8 @@ export function ParcelMobileCards({
                     className={`w-full min-w-[65px] px-2 py-1 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 ${
                       conflictedIndices?.has(i)
                         ? 'bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-300 focus:ring-amber-500'
+                        : parcel.isDefaultId
+                        ? 'bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/30 text-amber-500 dark:text-amber-400 placeholder:text-amber-500 dark:placeholder:text-amber-400 focus:ring-amber-500'
                         : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
                     }`}
                   />
@@ -354,7 +356,11 @@ export function ParcelMobileCards({
                     onChange={e => updateField(i, 'items', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                     onFocus={e => e.target.select()}
                     placeholder="1"
-                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border border-slate-200 dark:border-slate-800 text-xs text-center font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    className={`w-full px-2.5 py-2 rounded-xl border text-xs text-center font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                      parcel.isDefaultItems
+                        ? 'text-amber-500 dark:text-amber-400 border-amber-300 dark:border-amber-700/80 bg-amber-500/5 placeholder:text-amber-500 dark:placeholder:text-amber-400'
+                        : 'text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-[#070b12] border-slate-200 dark:border-slate-800'
+                    }`}
                   />
                 </div>
               </div>

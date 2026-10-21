@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { normalizeCityName } from './cityList'
+import { normalizeCityName, detectCityFromAddress, CITY_LIST } from './cityList'
 
 export interface Parcel {
   id: string
@@ -16,6 +16,8 @@ export interface Parcel {
   note: string
   whatsapp_sent?: boolean
   whatsappSent?: boolean
+  isDefaultId?: boolean
+  isDefaultItems?: boolean
 }
 
 export interface Settings {
@@ -101,7 +103,7 @@ export async function parseParcelText(
     const providerMap: Record<string, { key?: string; model?: string; defaultModel: string }> = {
       groq: { key: settings.groq_api_key, model: settings.groq_model, defaultModel: 'llama-3.1-8b-instant' },
       openrouter: { key: settings.openrouter_api_key, model: settings.openrouter_model, defaultModel: 'meta-llama/llama-3.1-8b-instruct:free' },
-      gemini: { key: settings.gemini_api_key, model: settings.gemini_model, defaultModel: 'gemini-1.5-flash' },
+      gemini: { key: settings.gemini_api_key, model: settings.gemini_model, defaultModel: 'gemini-3.5-flash' },
       openai: { key: settings.openai_api_key, model: settings.openai_model, defaultModel: 'gpt-4o-mini' },
       anthropic: { key: settings.anthropic_api_key, model: settings.anthropic_model, defaultModel: 'claude-3-haiku-20240307' },
       deepseek: { key: settings.deepseek_api_key, model: settings.deepseek_model, defaultModel: 'deepseek-chat' },
@@ -114,9 +116,9 @@ export async function parseParcelText(
     const apiKeyString = cfg.key
     let model = cfg.model || cfg.defaultModel
     if (provider === 'gemini') {
-      const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+      const VALID_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
       if (!model || !VALID_GEMINI_MODELS.includes(model)) {
-        model = 'gemini-1.5-flash'
+        model = 'gemini-3.5-flash'
       }
     }
 
@@ -137,60 +139,91 @@ export async function parseParcelText(
       startIndex = 0
     }
 
+    const citiesListText = CITY_LIST.join(', ')
     const systemPrompt = `
-You are an expert Pakistani courier logistics parcel data extractor.
-Extract ALL parcels from the text below and return a valid JSON array.
+You are the world's most advanced autonomous Pakistani courier logistics data formatting & geographic intelligence engine for PostEx, Trax, Leopards, and TCS operations.
+Extract and clean ALL parcels from the text below and return a valid JSON array matching the exact system schema.
+NO CONVERSATIONAL SUMMARY AT THE END. Output ONLY a pure valid JSON array.
 
-CRITICAL MANDATORY RULES:
-1. ABSOLUTE BAN ON ARABIC / URDU SCRIPT IN ALL OUTPUT FIELDS:
-   - Courier booking APIs (PostEx, Trax, Leopards, TCS) and thermal airway bill label printers in Pakistan strictly CANNOT print Urdu script characters.
-   - You MUST dynamically transliterate and translate ALL Arabic/Urdu script into clean, readable Latin / Roman Urdu or English alphabet.
-   - NEVER output Arabic/Urdu script in ANY field (Name, Address, City, Product Details, Note).
-   - Recipient Names: Transliterate dynamically into natural English/Roman Urdu spelling (e.g., 'فاطمہ بی بی' -> 'Fatima Bibi', 'محمد احمد' -> 'Muhammad Ahmad', 'علی رضا' -> 'Ali Raza', 'عائشہ خان' -> 'Ayesha Khan', 'حمزہ شیخ' -> 'Hamza Sheikh', 'کاشف محمود' -> 'Kashif Mehmood', 'سعدیہ بانو' -> 'Sadia Bano').
-   - Addresses: Transliterate Urdu text into clean, structured Roman Urdu/English. Format incomplete or conversational addresses intelligently (e.g. 'Ghar no 12, Gali 4, Mohalla Qazi Abad, Near Jamia Masjid'). Preserve all landmarks, chowks, sectors, blocks, and directions.
-   - Cities (CRITICAL - ANY PAKISTANI CITY/TOWN/TEHSIL):
-     * The input may contain ANY city, tehsil, district, town, or village in Pakistan (not limited to major cities; e.g. Daska, Chunian, Kamoke, Kot Addu, Pattoki, Swabi, Vehari, Shakargarh, Haripur, Chiniot, Lodhran, Toba Tek Singh, Larkana, Nawabshah, Kohat, Bannu, Turbat, Hub, Muzaffarabad, Mirpur AJK, etc.).
-     * You must accurately extract the geographic destination and output its standard, recognized English courier hub/city name (e.g., Karachi, Lahore, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, Quetta, Sialkot, Gujranwala, Sargodha, Bahawalpur, Sukkur, Jhang, Kasur, Dera Ghazi Khan, Rahim Yar Khan, Abbottabad, Mardan, Gujrat, Sheikhupura, Sahiwal, Okara, etc.).
-     * If a small village, tehsil, or rural union council is given (e.g., 'Chak 45 Tehsil Pattoki'), map to the primary operational courier delivery city.
-   - Product Details: ALWAYS use the merchant's saved preset "${settings.default_product || 'Kids Clothes'}". NEVER guess or extract different items from chat text.
+APPROVED COURIER CITIES (REFERENCE LIST):
+${citiesListText}
 
-2. PHONE NUMBER EXTRACTION:
-   - Always 03XXXXXXXXX (11 digits, starting with 03).
-   - Normalize: '+92 300 4455667', '0300-4455667', '923004455667', '0300 44 55 667' -> '03004455667'.
-   - If multiple phones exist in an order: put the primary in 'phone', and append '(Alternate: 03XXXXXXXXX)' at the end of 'address'.
+CRITICAL FORMATTING & GEOGRAPHIC RULES:
 
-3. CASH ON DELIVERY (COD) / TOTAL:
-   - Extract cash amount as integer number only.
-   - Recognize cues in English, Roman Urdu, and Urdu: '2200 cod', '1800 روپے', '3400 rs', 'rs 1500', '4500', '3300 وصول کرنا', '7800 rs lena', 'kitchen set rs 5500 wasool krna', 'cod 1950', 'amount 7600'.
-   - Discard labels ('روپے', 'rs', 'cod', 'وصول کرنا', 'lena', 'amount') and output integer (e.g. 2200, 1800, 3400, 3300, 7800).
-   - If non-COD, advance paid, or already paid ('advance paid', 'already paid', 'easypaisa', 'jazzcash'): total is 0.
+1. RECIPIENT NAME:
+   - Properly capitalized: 'usman malik' -> 'Usman Malik', 'ali' -> 'Ali', 'fatima bibi' -> 'Fatima Bibi'.
+   - NEVER confuse a recipient's name with a city (e.g. 'Ali' is NOT 'Alipur', 'Umar' is NOT 'Umerkot', 'Hassan' is NOT 'Hasan Abdal', 'Zahid' is NOT 'Zahir Pir'). The person's name belongs strictly in 'name'!
 
-4. ORDER ID / REFERENCE:
-   - If the text explicitly mentions an order reference (e.g. #1024, ORD-99, Ref 55), extract as 'id'. If NO order ID is explicitly given, return "" (empty string). NEVER make up or invent fake IDs like ord1, ord2.
+2. PHONE NUMBER:
+   - Always format as: 03XXXXXXXXX (11 digits, starting with 03).
+   - Normalize: '+92 300 4455667', '0300-4455667', '923004455667' -> '03004455667'.
+   - If multiple phone numbers are provided in an order:
+     * Put the primary number in 'phone'.
+     * Move additional numbers to the end of 'address': '(Alternate: 03XXXXXXXXX)'.
 
-5. CUSTOMER NOTE & INSTRUCTIONS:
-   - Extract delivery remarks into 'note' ('dukan wala ghar ke samne' -> 'Shop in front of house', 'fragile hai' -> 'Fragile item', 'dukan pe dena' -> 'Deliver at shop', 'call before delivery' -> 'Call before delivery'). If none specified, use default_note.
+3. CITY DETECTION, GEO-RESEARCH & VALIDATION:
+   - Cross-reference and match against the APPROVED COURIER CITIES list above.
+   - Auto-correct misspellings and abbreviations (e.g. 'Lahor' -> 'LAHORE', 'Karach' -> 'KARACHI', 'Fsd' -> 'FAISALABAD', 'Isb' -> 'ISLAMABAD', 'Rwp' -> 'RAWALPINDI', 'Mul' -> 'MULTAN', 'Skt' -> 'SIALKOT', 'Grw' -> 'GUJRANWALA', 'Psh' -> 'PESHAWAR', 'Qta' -> 'QUETTA').
+   - If city is missing or if the customer wrote only a local area, landmark, commercial market, or sector:
+     * Research and deduce the true parent courier city in Pakistan:
+       - 'Chungi Amar Sidhu', 'Makki Complex Chungi', 'Kahna', 'Kot Lakhpat', 'Township', 'Green Town', 'Wapda Town', 'Valencia', 'Johar Town', 'Model Town', 'Gulberg', 'Faisal Town', 'Garden Town', 'Allama Iqbal Town', 'Samanabad', 'Ichhra', 'Anarkali', 'Shadman', 'Shahdara', 'Baghbanpura', 'Mughalpura', 'Dharampura', 'Harbanspura', 'Walton', 'Cavalry Ground', 'Chung', 'Thokar Niaz Baig', 'Lake City', 'Paragon City', 'Bahria Town Lahore', 'DHA Lahore' -> 'LAHORE'.
+       - 'Clifton', 'DHA Karachi', 'Korangi', 'Landhi', 'Malir', 'Malir Cantt', 'Gulshan-e-Iqbal', 'Gulistan-e-Johar', 'North Nazimabad', 'Nazimabad', 'Federal B Area', 'FB Area', 'Liaquatabad', 'PECHS', 'Saddar Karachi', 'Tariq Road', 'Bahadurabad', 'Orangi', 'Baldia', 'SITE', 'Lyari', 'Surjani', 'Scheme 33', 'Bahria Town Karachi' -> 'KARACHI'.
+       - Sectors 'F-6', 'F-7', 'F-8', 'F-10', 'F-11', 'G-6', 'G-7', 'G-8', 'G-9', 'G-10', 'G-11', 'G-13', 'G-15', 'H-8', 'H-9', 'H-12', 'I-8', 'I-9', 'I-10', 'E-11', 'Blue Area', 'PWD', 'Soan Gardens', 'Bani Gala', 'DHA Islamabad' -> 'ISLAMABAD'.
+       - 'Satellite Town', 'Raja Bazar', 'Commercial Market', 'Chaklala', 'Westridge', 'Tench Bhatta', 'Adyala Road', 'Peshawar Road', 'Bahria Town Rawalpindi' -> 'RAWALPINDI'.
+       - 'D-Ground', 'Madina Town', 'Peoples Colony', 'Ghulam Muhammad Abad', 'Jinnah Colony', 'Millat Town' -> 'FAISALABAD'.
+       - 'Bosan Road', 'Gulgasht', 'Shah Rukn-e-Alam', 'Chungi No 9', 'Mumtazabad', 'Cantt Multan' -> 'MULTAN'.
+       - 'Hayatabad', 'University Town', 'Karkhano', 'Gulbahar', 'Warsak Road' -> 'PESHAWAR'.
+   - RURAL AREAS & SMALL TOWNS:
+     * If an order is from a village, Chak (e.g. 'Chak 45/12L', 'Chak 14 Tehsil Chunian', 'Chak 229 GB'), Basti, Mouza, or Tehsil:
+     * Research its parent administrative district/tehsil and output the valid approved courier city name from the approved list above (e.g. 'Pattoki', 'Daska', 'Chunian', 'Kot Radha Kishan', 'Kamoke', 'Samundri', 'Tandlianwala', 'Taxila', 'Wah Cantt', 'Muridke', 'Lalamusa', 'Shakargarh', 'Haroonabad', 'Chishtian', 'Mian Channu', 'Burewala', 'Vehari', 'Hasilpur', 'Sadiqabad', 'Liaquatpur', 'Khanpur', 'Uch Sharif', 'Jalalpur Pirwala', 'Alipur Chatha', 'Wazirabad', 'Sambrial', 'Pasrur', 'Zafarwal', 'Narowal', 'Bhakkar', 'Layyah', 'Taunsa', 'Kot Addu', 'Muzaffargarh', 'Rajanpur', 'Chiniot', 'Lalian', 'Sangla Hill', 'Nankana Sahib', 'Pindi Bhattian', 'Bhalwal', 'Talagang', 'Chakwal', 'Pind Dadan Khan', 'Sohawa', 'Dina', 'Kharian', 'Mandi Bahauddin', 'Phalia', 'Ghotki', 'Mirpur Mathelo', 'Daharki', 'Pano Akil', 'Rohri', 'Khairpur', 'Gambat', 'Ranipur', 'Moro', 'Naushahro Feroze', 'Kandiaro', 'Daur', 'Sakrand', 'Qazi Ahmed', 'Sanghar', 'Shahdadpur', 'Sinjhoro', 'Tando Adam', 'Mirpur Khas', 'Digri', 'Umerkot', 'Kunri', 'Mithi', 'Badin', 'Matli', 'Talhar', 'Thatta', 'Sujawal', 'Tando Jam', 'Tando Allahyar', 'Tando Muhammad Khan', 'Matiari', 'Hala', 'Jamshoro', 'Kotri', 'Sehwan', 'Dadu', 'Mehar', 'Larkana', 'Ratodero', 'Qambar', 'Shahdadkot', 'Shikarpur', 'Jacobabad', 'Thul', 'Kashmore', 'Kandhkot', 'Swat', 'Mingora', 'Mardan', 'Swabi', 'Topi', 'Charsadda', 'Nowshera', 'Abbottabad', 'Havelian', 'Haripur', 'Mansehra', 'Bannu', 'Kohat', 'Dera Ismail Khan', 'Tank', 'Batkhela', 'Timergara', 'Dir', 'Chitral', 'Hub', 'Gwadar', 'Turbat', 'Khuzdar', 'Chaman', 'Sibi', 'Loralai', 'Pishin', 'Usta Muhammad', 'Muzaffarabad', 'Mirpur AJK', 'Kotli', 'Bhimber', 'Rawalakot').
+   - Output 'city' in standard uppercase English (e.g. 'LAHORE').
 
-6. ORDER TYPE:
-   - 'Normal' or 'Replacement' (if keywords: Return/Exchange/Replacement/Changing/Wrong Item).
+4. ADDRESS FORMATTING:
+   - If address is in Urdu or mixed script, convert to Roman Urdu.
+   - For location words, ALWAYS use English:
+     * 'near' (not 'qareeb' or 'nazd')
+     * 'opposite' (not 'samne' or 'mukhalif')
+     * 'beside' (not 'saath' or 'baghal')
+     * 'behind' (not 'peechay' or 'aqab')
+     * 'in front of' (not 'samne')
+   - City name must always be at the end of the address (e.g. 'G77 Makki Complex, Chungi Amar Sidhu, Lahore').
+   - If multiple phone numbers exist, append alternate number at the end: '(Alternate: 03XXXXXXXXX)'.
+   - Avoid redundant repeated city names and junk conversational phrases.
 
-DEFAULT SETTINGS:
-- default_items: ${settings.default_items || 1}
-- default_product: ${settings.default_product || 'Kids Clothes'}
-- default_note: ${settings.default_note || 'Call before delivery'}
-- default_weight: ${settings.default_weight || 0.5}
+5. TOTAL / COD AMOUNT:
+   - Extract cash amount as integer number only (no 'Rs.' prefix).
+   - If value is missing -> set 0.
+   - If payment is Advance / Already Paid / Bank Transfer / Non-COD / Easypaisa / Jazzcash -> set 0.
 
-Return ONLY a valid JSON array. No markdown fences, no conversational text.
+6. ORDER TYPE (RETURN / REPLACEMENT / CHANGING):
+   - If any of these keywords appear: Return, Replacement, Replacing, Exchange, Changing, Change, Reverse, Wrong Item, Wrong Product, Sending Back
+   - Set 'orderType': 'Replacement'.
+   - Otherwise set 'orderType': 'Normal'.
+
+7. ORDER ID / REFERENCE:
+   - If explicitly given (e.g. #1024, ORD-99, Ref 55), extract as 'id'. If not given, return "" (empty string).
+
+8. ITEMS / PIECES COUNT:
+   - If explicitly given (e.g. 2 pcs, 3 items, 4 suit, qty 2), extract as integer number.
+   - If missing in text, return null.
+
+9. PRODUCT DETAILS & NOTE:
+   - Detail: ALWAYS use merchant's preset "${settings.default_product || 'Kids Clothes'}".
+   - Note: Customer delivery remark (e.g. 'Call before delivery'). If none, use "${settings.default_note || 'Call before delivery'}".
+   - Weight: ${settings.default_weight || 0.5}.
+   - AirwayBillCopy: 1.
+
+Return ONLY a valid JSON array. Zero markdown fences outside, NO conversational summary at the end.
 Format:
 [
   {
     "id": "",
-    "name": "Fatima Bibi",
-    "phone": "03339876543",
-    "city": "Karachi",
-    "address": "Gulshan-e-Iqbal Block 7, Karachi",
-    "total": 1800,
-    "items": 3,
+    "name": "Ali",
+    "phone": "03030303003",
+    "city": "LAHORE",
+    "address": "G77 Makki Complex, Chungi Amar Sidhu, Lahore",
+    "total": 500,
+    "items": null,
     "weight": 0.5,
     "orderType": "Normal",
     "airwayBillCopy": 1,
@@ -218,17 +251,14 @@ Format:
 
         if (provider === 'gemini') {
           let currentModel = model
-          const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+          const VALID_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
           if (!currentModel || !VALID_GEMINI_MODELS.includes(currentModel)) {
-            currentModel = 'gemini-1.5-flash'
-          }
-
-          const generationConfig: any = {
-            responseMimeType: "application/json"
+            currentModel = 'gemini-3.5-flash'
           }
 
           let res: any
           try {
+            // Attempt with Google Search Grounding for live research of rural villages & small places
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
             res = await axios.post(url, {
               contents: [{
@@ -238,25 +268,42 @@ Format:
               systemInstruction: {
                 parts: [{ text: systemPrompt }]
               },
-              generationConfig
+              tools: [{
+                googleSearch: {}
+              }]
             })
-          } catch (modelErr: any) {
-            // Auto fallback if model is unavailable, hits 503 capacity limit, or has error
-            const errMsg = modelErr.response?.data?.error?.message || modelErr.message || ''
-            const status = modelErr.response?.status
-            console.warn(`[Gemini] Model ${currentModel} error (${status}): ${errMsg}. Auto-switching to working alternative...`)
-            currentModel = (currentModel === 'gemini-1.5-flash') ? 'gemini-2.0-flash' : 'gemini-1.5-flash'
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
-            res = await axios.post(fallbackUrl, {
-              contents: [{
-                role: 'user',
-                parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
-              }],
-              systemInstruction: {
-                parts: [{ text: systemPrompt }]
-              },
-              generationConfig
-            })
+          } catch (groundingErr: any) {
+            console.warn(`[Gemini Grounding] Fallback to direct model:`, groundingErr?.message)
+            try {
+              const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
+              res = await axios.post(fallbackUrl, {
+                contents: [{
+                  role: 'user',
+                  parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
+                }],
+                systemInstruction: {
+                  parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                  responseMimeType: "application/json"
+                }
+              })
+            } catch (modelErr: any) {
+              currentModel = (currentModel === 'gemini-3.5-flash') ? 'gemini-3.5-flash-lite' : 'gemini-3.8-flash'
+              const fallbackUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`
+              res = await axios.post(fallbackUrl2, {
+                contents: [{
+                  role: 'user',
+                  parts: [{ text: `WhatsApp Raw Messages to Parse into Parcels:\n\n${rawText}` }]
+                }],
+                systemInstruction: {
+                  parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                  responseMimeType: "application/json"
+                }
+              })
+            }
           }
 
           // Strip internal thoughts (Section 1.6 in guide)
@@ -367,6 +414,7 @@ Format:
 
         const normalizedList: Parcel[] = rawList.map((p: any) => {
           let orderId = p.id ? String(p.id).trim() : ''
+          let isDefaultId = false
           // If no order ID was given in text, or old fallback hallucinated "ord1", "ord2":
           if (!orderId || (prefix.toLowerCase() !== 'ord' && /^ord\d+$/i.test(orderId))) {
             let candidate = `${prefix}${currentNum}`
@@ -377,27 +425,49 @@ Format:
             orderId = candidate
             usedSerials.add(orderId.toLowerCase())
             currentNum++
+            isDefaultId = true
           } else {
             usedSerials.add(orderId.toLowerCase())
+            isDefaultId = false
           }
 
           let cleanPhone = String(p.phone || '').trim().replace(/[\s-+]/g, '')
           if (cleanPhone.startsWith('923')) cleanPhone = '0' + cleanPhone.substring(2)
           if (cleanPhone.startsWith('00923')) cleanPhone = '0' + cleanPhone.substring(4)
 
+          const hasExplicitItems = p.items !== undefined && p.items !== null && p.items !== '' && Number(p.items) > 0
+          const itemsVal = hasExplicitItems ? Number(p.items) : Number(settings.default_items || 1)
+          const isDefaultItems = !hasExplicitItems
+
+          const cleanName = String(p.name || '').trim()
+          const cleanAddress = String(p.address || '').trim()
+
+          // Deep City Normalization & Geographic Safeguard
+          let resolvedCity = normalizeCityName(p.city, cleanAddress)
+          const nameUp = cleanName.toUpperCase()
+          // Anti-name-collision safeguard (e.g. name "Ali" confused as "Alipur")
+          if (resolvedCity === 'ALIPUR' && (nameUp === 'ALI' || nameUp.startsWith('ALI '))) {
+            resolvedCity = detectCityFromAddress(cleanAddress) || 'LAHORE'
+          }
+          if (!resolvedCity || resolvedCity === 'RECIPIENT') {
+            resolvedCity = detectCityFromAddress(cleanAddress) || 'LAHORE'
+          }
+
           return {
             id: orderId,
-            name: String(p.name || '').trim(),
+            name: cleanName,
             phone: cleanPhone,
-            city: normalizeCityName(p.city),
-            address: String(p.address || '').trim(),
+            city: resolvedCity,
+            address: cleanAddress,
             total: Number(p.total || 0),
-            items: Number(p.items || settings.default_items || 1),
+            items: itemsVal,
             weight: Number(p.weight || settings.default_weight || 0.5),
             orderType: p.orderType || 'Normal',
             airwayBillCopy: Number(p.airwayBillCopy || 1),
             detail: String(settings.default_product || 'Kids Clothes').trim(),
-            note: String(p.note || settings.default_note || 'Call before delivery')
+            note: String(p.note || settings.default_note || 'Call before delivery'),
+            isDefaultId,
+            isDefaultItems
           }
         })
 
@@ -605,18 +675,7 @@ export function parseTextFallback(
       }
     }
 
-    // 3. City extraction
-    let detectedCity = 'LAHORE'
-    const words = block.toUpperCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
-    for (const w of words) {
-      const normalized = normalizeCityName(w)
-      if (normalized && normalized !== 'LAHORE') {
-        detectedCity = normalized
-        break
-      }
-    }
-
-    // 4. Name extraction
+    // 3. Name extraction (first line or labeled line)
     let name = ''
     const nameLine = lines.find(l => /^name\s*[:\-]/i.test(l))
     if (nameLine) {
@@ -625,12 +684,14 @@ export function parseTextFallback(
       const firstCandidate = lines[0].replace(/^\d+[\.\)]\s*/, '').trim()
       if (!firstCandidate.match(/\d{5,}/) && !/^(phone|contact|mobile|address|amount|rs|cod)/i.test(firstCandidate)) {
         name = firstCandidate
+      } else if (lines.length > 1 && !lines[1].match(/\d{5,}/) && !/^(phone|contact|mobile|address|amount|rs|cod)/i.test(lines[1])) {
+        name = lines[1].trim()
       } else {
         name = 'Recipient'
       }
     }
 
-    // 5. Address extraction
+    // 4. Address extraction
     let address = ''
     const addressLine = lines.find(l => /^(address|pata|ghar|street|house)\s*[:\-]/i.test(l))
     if (addressLine) {
@@ -644,15 +705,79 @@ export function parseTextFallback(
       address = remainingLines.join(', ') || block
     }
 
-    // 6. Unique serial assignment
-    let candidate = `${prefix}${currentNum}`
-    while (usedSerials.has(candidate.toLowerCase())) {
-      currentNum++
-      candidate = `${prefix}${currentNum}`
+    // 5. Intelligent City extraction
+    // Priority A: Scan address for known major cities or area landmarks (e.g. "Chungi Amar Sidhu" -> "LAHORE")
+    let detectedCity = detectCityFromAddress(address) || detectCityFromAddress(block)
+    
+    // Priority B: Labeled city/destination line
+    if (!detectedCity) {
+      const cityLine = lines.find(l => /^(city|shehar|destination)\s*[:\-]/i.test(l))
+      if (cityLine) {
+        const raw = cityLine.replace(/^(city|shehar|destination)\s*[:\-]\s*/i, '').trim()
+        detectedCity = normalizeCityName(raw, address)
+      }
     }
-    const orderId = candidate
-    usedSerials.add(orderId.toLowerCase())
-    currentNum++
+
+    // Priority C: Scan words in address from right to left (cities are written at the end of addresses in Pakistan)
+    if (!detectedCity) {
+      const addrWords = address.toUpperCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length >= 4)
+      for (let wIdx = addrWords.length - 1; wIdx >= 0; wIdx--) {
+        const w = addrWords[wIdx]
+        const norm = normalizeCityName(w, address)
+        if (norm && norm.length >= 4 && norm !== 'RECIPIENT') {
+          detectedCity = norm
+          break
+        }
+      }
+    }
+
+    if (!detectedCity) {
+      detectedCity = 'LAHORE'
+    }
+
+    // Anti-name-collision safeguard (e.g. name "Ali" confused as "Alipur")
+    if (detectedCity === 'ALIPUR' && (name.toUpperCase() === 'ALI' || name.toUpperCase().startsWith('ALI '))) {
+      detectedCity = detectCityFromAddress(address) || 'LAHORE'
+    }
+
+    // 6. Order ID check: explicit or fallback
+    let explicitId = ''
+    const idMatch = block.match(/(?:order\s*(?:id|no|#|num)?|ref\s*(?:id|no|#|num)?|inv\s*(?:id|no|#|num)?)\s*[:#\-]?\s*([A-Za-z0-9\-]+)/i)
+    if (idMatch && idMatch[1] && !/^(name|phone|city|address|amount|cod|total|rs)$/i.test(idMatch[1])) {
+      explicitId = idMatch[1].trim()
+    }
+
+    let orderId = ''
+    let isDefaultId = false
+    if (explicitId) {
+      orderId = explicitId
+      usedSerials.add(orderId.toLowerCase())
+      isDefaultId = false
+    } else {
+      let candidate = `${prefix}${currentNum}`
+      while (usedSerials.has(candidate.toLowerCase())) {
+        currentNum++
+        candidate = `${prefix}${currentNum}`
+      }
+      orderId = candidate
+      usedSerials.add(orderId.toLowerCase())
+      currentNum++
+      isDefaultId = true
+    }
+
+    // 7. Explicit items check
+    let explicitItems: number | null = null
+    const itemsMatch = block.match(/(?:qty|quantity|pieces?|pcs?|items?|suits?|jore?|jori?)\s*[:#\-]?\s*(\d+)/i) ||
+                       block.match(/(\d+)\s*(?:pieces?|pcs?|items?|suits?|jore?|jori?)\b/i)
+    if (itemsMatch && itemsMatch[1]) {
+      const parsedItems = parseInt(itemsMatch[1], 10)
+      if (parsedItems > 0 && parsedItems <= 100) {
+        explicitItems = parsedItems
+      }
+    }
+
+    const itemsVal = explicitItems !== null ? explicitItems : Number(settings.default_items || 1)
+    const isDefaultItems = explicitItems === null
 
     parcels.push({
       id: orderId,
@@ -661,12 +786,14 @@ export function parseTextFallback(
       city: detectedCity,
       address,
       total,
-      items: Number(settings.default_items || 1),
+      items: itemsVal,
       weight: Number(settings.default_weight || 0.5),
       orderType: settings.default_order_type || 'Normal',
       airwayBillCopy: 1,
       detail: settings.default_product || 'Kids Clothes',
-      note: settings.default_note || 'Call before delivery'
+      note: settings.default_note || 'Call before delivery',
+      isDefaultId,
+      isDefaultItems
     })
   }
 

@@ -47,7 +47,7 @@ const DEFAULTS: Settings = {
   openrouter_api_key: '',
   openrouter_model: 'meta-llama/llama-3.1-8b-instruct:free',
   gemini_api_key: '',
-  gemini_model: 'gemini-1.5-flash',
+  gemini_model: 'gemini-3.5-flash',
   anthropic_api_key: '',
   anthropic_model: 'claude-haiku-4-5',
   deepseek_api_key: '',
@@ -180,9 +180,9 @@ function readAllLocal(userId: string): Settings {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     result[k] = readLocal(userId, k)
   })
-  const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+  const VALID_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
   if (!result.gemini_model || !VALID_GEMINI_MODELS.includes(result.gemini_model)) {
-    result.gemini_model = 'gemini-1.5-flash'
+    result.gemini_model = 'gemini-3.5-flash'
   }
   return result as Settings
 }
@@ -209,8 +209,9 @@ function getInitialSettings(): Settings {
           if (item) {
             const parsed = JSON.parse(item)
             if (parsed?.user?.id) {
-              activeId = parsed.user.id
-              localStorage.setItem('zaynah_active_user_id', activeId)
+              const parsedId = String(parsed.user.id)
+              activeId = parsedId
+              localStorage.setItem('zaynah_active_user_id', parsedId)
               break
             }
           }
@@ -321,15 +322,15 @@ export function useSettings() {
         CRITICAL_SECRET_KEYS.forEach(secKey => {
           if (localSettings[secKey] && !dbSettings[secKey]) {
             console.log(`[useSettings] Preserved local ${secKey} against empty DB row; syncing back to cloud`)
-            dbSettings[secKey] = localSettings[secKey]
+            ;(dbSettings as any)[secKey] = localSettings[secKey]
             needsDbRepair = true
           }
         })
 
-        const VALID_GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        const VALID_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
         if (!dbSettings.gemini_model || !VALID_GEMINI_MODELS.includes(dbSettings.gemini_model)) {
-          dbSettings.gemini_model = 'gemini-1.5-flash'
-          writeLocal(currentUser.id, 'gemini_model', 'gemini-1.5-flash')
+          dbSettings.gemini_model = 'gemini-3.5-flash'
+          writeLocal(currentUser.id, 'gemini_model', 'gemini-3.5-flash')
           needsDbRepair = true
         }
         if (

@@ -16,7 +16,7 @@ import { ScrollableChipsBar } from './common/ScrollableChipsBar'
 
 interface SettingsPageProps {
   settings: Settings
-  updateSetting: (key: keyof Settings | Partial<Settings>, value?: string) => void
+  updateSetting: (key: keyof Settings | Partial<Settings>, value?: string) => Promise<boolean | void> | boolean | void
   onSave?: () => void
   cities: string[]
   user?: any
@@ -196,7 +196,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
 
           <button
             type="button"
-            onClick={handleManualSave}
+            onClick={() => { void handleManualSave() }}
             disabled={saving}
             className={`h-8.5 px-4 rounded-full font-semibold text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer ${
               hasChanges

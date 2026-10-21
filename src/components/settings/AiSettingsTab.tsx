@@ -14,8 +14,8 @@ export const PROVIDER_METADATA: Record<string, {
     name: 'Google Gemini',
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyLabel: 'Get Free Gemini Key (1,500 req/day)',
-    defaultModel: 'gemini-1.5-flash',
-    models: ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'],
+    defaultModel: 'gemini-3.5-flash',
+    models: ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'],
     badge: '1,500 Free Req/Day'
   },
   groq: {
@@ -58,7 +58,7 @@ interface AiSettingsTabProps {
   testingAi: boolean
   aiPingResult: string | null
   onTestAi: () => void
-  onSave?: () => void
+  onSave?: () => Promise<any> | void
   saving?: boolean
   hasChanges?: boolean
 }
@@ -68,7 +68,9 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
   updateSetting,
   testingAi,
   aiPingResult,
-  onTestAi
+  onTestAi,
+  onSave,
+  saving = false
 }) => {
   const [isEditingKey, setIsEditingKey] = useState(false)
   const [tempKey, setTempKey] = useState('')

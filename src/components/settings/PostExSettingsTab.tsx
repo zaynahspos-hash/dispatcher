@@ -17,7 +17,7 @@ interface PostExSettingsTabProps {
   testingPostex: boolean
   postexPingResult: string | null
   onTestPostEx: () => void
-  onSave?: () => void
+  onSave?: () => Promise<any> | void
   saving?: boolean
   hasChanges?: boolean
 }
@@ -30,6 +30,8 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
   testingPostex,
   postexPingResult,
   onTestPostEx,
+  onSave,
+  saving = false
 }) => {
   const [isEditingToken, setIsEditingToken] = useState(false)
   const [tempToken, setTempToken] = useState('')
