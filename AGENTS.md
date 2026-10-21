@@ -105,6 +105,7 @@ Vite · React 19 · Tailwind CSS v4 · TypeScript · Supabase (Pure API & RLS) �
 - [docs/SUPABASE_AUTH_COMPLETE_GUIDE.md](docs/SUPABASE_AUTH_COMPLETE_GUIDE.md) — Comprehensive Supabase Auth & Custom SMTP manual: rate-limit bypass, Gmail app passwords, domain allowlisting, programmatic email template updates, and end-to-end password recovery lifecycle.
 - [docs/ULTRA_DEEP_REBUILD_SYSTEM.md](docs/ULTRA_DEEP_REBUILD_SYSTEM.md) — Master manual for the 6-layer ultra deep rebuild: architecture, RLS security, PostEx V3, modularity, and phase-by-phase execution.
 - [docs/WHATSAPP_STATUS_AUTOMATION_SYSTEM_GUIDE.md](docs/WHATSAPP_STATUS_AUTOMATION_SYSTEM_GUIDE.md) — Master architecture guide for 0-ban WhatsApp status automation, bi-daily tracking sync, deep multi-dimensional filtering, and shipper advice.
+- [docs/POSTEX_TRACKING_SYSTEM_ARCHITECTURE_GUIDE.md](docs/POSTEX_TRACKING_SYSTEM_ARCHITECTURE_GUIDE.md) — Complete PostEx real-time parcel tracking architecture, bulk merchant sync, serverless CORS proxy, status normalization state machine, and drop-in Next.js/Shopify-alternative implementation.
 - [supabase/schema/SUPER_MASTER_SCHEMA.sql](supabase/schema/SUPER_MASTER_SCHEMA.sql) — The authoritative SQL master schema for Supabase: pure snake_case tables, indexes, triggers, and strict multi-tenant RLS policies.
 
 ---
