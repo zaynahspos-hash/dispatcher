@@ -17,7 +17,7 @@ interface PostExSettingsTabProps {
   testingPostex: boolean
   postexPingResult: string | null
   onTestPostEx: () => void
-  onSave?: () => Promise<any> | void
+  onSave?: (override?: Partial<Settings>) => Promise<any> | void
   saving?: boolean
   hasChanges?: boolean
 }
@@ -34,7 +34,13 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
   saving = false
 }) => {
   const [isEditingToken, setIsEditingToken] = useState(false)
-  const [tempToken, setTempToken] = useState('')
+  const [tempToken, setTempToken] = useState(settings.postex_token || '')
+
+  React.useEffect(() => {
+    if (settings.postex_token && !isEditingToken) {
+      setTempToken(settings.postex_token)
+    }
+  }, [settings.postex_token, isEditingToken])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -100,7 +106,7 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                   onClick={async () => {
                     if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
                       updateSetting('postex_token', '')
-                      if (onSave) await onSave()
+                      if (onSave) await onSave({ postex_token: '' })
                       setIsEditingToken(false)
                       setTempToken('')
                     }
@@ -116,7 +122,11 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
               <input
                 type="password"
                 value={tempToken}
-                onChange={e => setTempToken(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value
+                  setTempToken(val)
+                  updateSetting('postex_token', val)
+                }}
                 placeholder="Paste your PostEx V3 merchant API token..."
                 className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
               />
@@ -128,7 +138,7 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                     if (!val) return
                     updateSetting('postex_token', val)
                     if (onSave) {
-                      await onSave()
+                      await onSave({ postex_token: val })
                     }
                     setIsEditingToken(false)
                   }}
@@ -140,7 +150,10 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                 {settings.postex_token && (
                   <button
                     type="button"
-                    onClick={() => setIsEditingToken(false)}
+                    onClick={() => {
+                      setTempToken(settings.postex_token || '')
+                      setIsEditingToken(false)
+                    }}
                     className="h-8.5 px-3.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95 cursor-pointer"
                   >
                     Cancel

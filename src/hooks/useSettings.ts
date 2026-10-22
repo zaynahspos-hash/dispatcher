@@ -151,7 +151,7 @@ function readLocal(userId: string, field: keyof Settings): any {
 }
 
 /** Write a single field to localStorage strictly for this user (RULE D15) */
-function writeLocal(userId: string, field: keyof Settings, value: any) {
+function writeLocal(userId: string, field: keyof Settings, value: any, explicitDelete = false) {
   const strVal = value === undefined || value === null ? '' : String(value)
   localStorage.setItem(userSettingsKey(userId, field), strVal)
 
@@ -160,17 +160,26 @@ function writeLocal(userId: string, field: keyof Settings, value: any) {
     if (strVal) {
       localStorage.setItem(userVaultKey(userId, field), strVal)
       localStorage.setItem(`zaynah_vault_${field}`, strVal)
-    } else {
+    } else if (explicitDelete) {
       localStorage.removeItem(userVaultKey(userId, field))
       localStorage.removeItem(`zaynah_vault_${field}`)
     }
   }
 }
 
-/** Write all settings to localStorage for this user */
+/** Write all settings to localStorage for this user with vault preservation */
 function writeAllLocal(userId: string, data: Settings) {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
-    writeLocal(userId, k, data[k] || '')
+    const val = data[k]
+    // Anti-Wipe: If secret key in data is empty, but vault has it, preserve vault and keep secret!
+    if (CRITICAL_SECRET_KEYS.includes(k) && (!val || val === '')) {
+      const existingVault = localStorage.getItem(userVaultKey(userId, k)) || localStorage.getItem(`zaynah_vault_${k}`)
+      if (existingVault) {
+        writeLocal(userId, k, existingVault)
+        return
+      }
+    }
+    writeLocal(userId, k, val || '')
   })
 }
 
@@ -264,10 +273,9 @@ export function useSettings() {
         try { localStorage.removeItem('zaynah_active_user_id') } catch {}
       }
       setUser((prev: any) => {
-        // If user switched accounts, reset settings to DEFAULTS so the old
-        // user's values are never visible to the new user even for a moment.
-        // RULE C10: Zero stale data showing
-        if (prev?.id !== newUser?.id) {
+        // ONLY reset settings if an actual previous user was logged in and switched to a DIFFERENT account
+        // (Prevents wiping settings on initial page load when prev was null)
+        if (prev && prev.id && newUser?.id && prev.id !== newUser.id) {
           setSettings(DEFAULTS)
         }
         return newUser
@@ -316,13 +324,14 @@ export function useSettings() {
         const dbSettings = { ...(data.settings as unknown as Settings) }
 
         // ANTI-WIPE PROTECTION (RULE C12 & RULE AI-INTEG):
-        // If local storage has a valid secret key, but the database row had an empty/missing string,
-        // NEVER overwrite local token with blank! Instead, preserve local token and auto-repair DB!
+        // If local storage or persistent vault has a valid secret key, but the database row had an empty/missing string,
+        // NEVER overwrite local token with blank! Instead, preserve token and auto-repair DB!
         let needsDbRepair = false
         CRITICAL_SECRET_KEYS.forEach(secKey => {
-          if (localSettings[secKey] && !dbSettings[secKey]) {
-            console.log(`[useSettings] Preserved local ${secKey} against empty DB row; syncing back to cloud`)
-            ;(dbSettings as any)[secKey] = localSettings[secKey]
+          const validSecret = localSettings[secKey] || localStorage.getItem(userVaultKey(currentUser.id, secKey)) || localStorage.getItem(`zaynah_vault_${secKey}`)
+          if (validSecret && !dbSettings[secKey]) {
+            console.log(`[useSettings] Preserved local/vault ${secKey} against empty DB row; syncing back to cloud`)
+            ;(dbSettings as any)[secKey] = validSecret
             needsDbRepair = true
           }
         })
@@ -485,7 +494,17 @@ export function useSettings() {
 
   // ── Update a single field (or multiple fields) with direct awaited DB persistence ──
   const updateSetting = useCallback(async (key: keyof Settings | Partial<Settings>, value?: string): Promise<boolean> => {
-    const uId = user?.id || 'guest'
+    let currentUserId = user?.id
+    if (!currentUserId) {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (authUser?.id) {
+          currentUserId = authUser.id
+          setUser(authUser)
+        }
+      } catch {}
+    }
+    const uId = currentUserId || localStorage.getItem('zaynah_active_user_id') || 'guest'
     let updated: Settings
 
     if (typeof key === 'object') {
@@ -493,13 +512,14 @@ export function useSettings() {
       writeAllLocal(uId, updated)
     } else {
       const val = value ?? ''
+      const isExplicitDelete = val === ''
       updated = { ...settings, [key]: val }
-      writeLocal(uId, key, val)
+      writeLocal(uId, key, val, isExplicitDelete)
     }
 
     setSettings(updated)
 
-    if (user?.id) {
+    if (currentUserId) {
       // If avatar_url was modified, sync with Supabase Auth metadata for multi-device persistence
       const avatarTouch = typeof key === 'object' ? key.avatar_url : (key === 'avatar_url' ? value : undefined)
       if (avatarTouch !== undefined) {
@@ -512,7 +532,7 @@ export function useSettings() {
         const now = new Date().toISOString()
         // RULE D13: snake_case table + column
         const { error } = await supabase.from('user_settings').upsert({
-          user_id: user.id,           // [OK] snake_case
+          user_id: currentUserId,           // [OK] snake_case
           settings: updated,
           updated_at: now
         }, { onConflict: 'user_id' }) // [OK] snake_case
@@ -521,7 +541,7 @@ export function useSettings() {
           console.error('[updateSetting] Failed to persist to DB:', error)
           return false
         } else {
-          localStorage.setItem(userVersionKey(user.id), now)
+          localStorage.setItem(userVersionKey(currentUserId), now)
           return true
         }
       } catch (err) {

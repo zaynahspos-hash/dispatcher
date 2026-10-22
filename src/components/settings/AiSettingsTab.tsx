@@ -58,7 +58,7 @@ interface AiSettingsTabProps {
   testingAi: boolean
   aiPingResult: string | null
   onTestAi: () => void
-  onSave?: () => Promise<any> | void
+  onSave?: (override?: Partial<Settings>) => Promise<any> | void
   saving?: boolean
   hasChanges?: boolean
 }
@@ -73,10 +73,16 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
   saving = false
 }) => {
   const [isEditingKey, setIsEditingKey] = useState(false)
-  const [tempKey, setTempKey] = useState('')
   const activeProvider = settings.ai_provider || 'gemini'
   const activeMeta = PROVIDER_METADATA[activeProvider] || PROVIDER_METADATA.gemini
   const currentKey = String(settings[`${activeProvider}_api_key` as keyof Settings] || '')
+  const [tempKey, setTempKey] = useState(currentKey)
+
+  React.useEffect(() => {
+    if (currentKey && !isEditingKey) {
+      setTempKey(currentKey)
+    }
+  }, [currentKey, isEditingKey])
 
   return (
     <div className="space-y-5">
@@ -207,8 +213,9 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   type="button"
                   onClick={async () => {
                     if (window.confirm(`Are you sure you want to remove your ${activeMeta.name} API Key?`)) {
-                      updateSetting(`${activeProvider}_api_key` as keyof Settings, '')
-                      if (onSave) await onSave()
+                      const keyField = `${activeProvider}_api_key` as keyof Settings
+                      updateSetting(keyField, '')
+                      if (onSave) await onSave({ [keyField]: '' })
                       setIsEditingKey(false)
                       setTempKey('')
                     }
@@ -224,7 +231,12 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
               <input
                 type="password"
                 value={tempKey}
-                onChange={e => setTempKey(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value
+                  setTempKey(val)
+                  const keyField = `${activeProvider}_api_key` as keyof Settings
+                  updateSetting(keyField, val)
+                }}
                 placeholder={`Paste your ${activeMeta.name} API Key...`}
                 className="w-full h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
               />
@@ -234,9 +246,10 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   onClick={async () => {
                     const val = tempKey.trim()
                     if (!val) return
-                    updateSetting(`${activeProvider}_api_key` as keyof Settings, val)
+                    const keyField = `${activeProvider}_api_key` as keyof Settings
+                    updateSetting(keyField, val)
                     if (onSave) {
-                      await onSave()
+                      await onSave({ [keyField]: val })
                     }
                     setIsEditingKey(false)
                   }}
@@ -248,7 +261,10 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                 {currentKey && (
                   <button
                     type="button"
-                    onClick={() => setIsEditingKey(false)}
+                    onClick={() => {
+                      setTempKey(currentKey)
+                      setIsEditingKey(false)
+                    }}
                     className="h-8.5 px-3.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95 cursor-pointer"
                   >
                     Cancel
