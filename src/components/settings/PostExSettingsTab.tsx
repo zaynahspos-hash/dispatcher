@@ -104,14 +104,12 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
-                      setIsEditingToken(false)
-                      setTempToken('')
-                      if (onSave) {
-                        await onSave({ postex_token: '' })
-                      } else {
-                        await updateSetting({ postex_token: '' })
-                      }
+                    setIsEditingToken(false)
+                    setTempToken('')
+                    if (onSave) {
+                      await onSave({ postex_token: '' })
+                    } else {
+                      await updateSetting({ postex_token: '' })
                     }
                   }}
                   className="h-8 px-3.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium border border-rose-500/20 active:scale-95 transition-all cursor-pointer"

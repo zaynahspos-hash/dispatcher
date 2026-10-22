@@ -93,7 +93,11 @@ export function ParcelMobileCards({
       )}
 
       {parcels.map((parcel, i) => {
-        const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
+        const cleanPhone = (parcel.phone || '').replace(/[-+\s]/g, '')
+        const isPhoneEmpty = !parcel.phone || parcel.phone.trim() === ''
+        const isPhoneDummy = parcel.phone?.trim() === '03001234567' || cleanPhone === '03001234567'
+        const isPhoneWarning = isPhoneEmpty || isPhoneDummy
+        const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(cleanPhone)
         const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
         const isExpanded = cardOverrides[i] !== undefined ? cardOverrides[i] : (!!autoExpandLines || !!expandDefaults)
         const isExtraOpen = extraDetailsOpen[i] !== undefined ? extraDetailsOpen[i] : !!expandDefaults
@@ -192,7 +196,13 @@ export function ParcelMobileCards({
                     {parcel.name || 'Unnamed Recipient'}
                   </span>
                   <span className="text-slate-400">•</span>
-                  <span className="font-mono text-[11px] text-slate-500">{parcel.phone || 'No phone'}</span>
+                  <span className={`font-mono text-[11px] ${
+                    isPhoneWarning 
+                      ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded' 
+                      : 'text-slate-500'
+                  }`}>
+                    {parcel.phone || 'No phone'}
+                  </span>
                   <span className="text-slate-400">•</span>
                   <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     {parcel.city || 'No City'}
@@ -235,11 +245,22 @@ export function ParcelMobileCards({
                     value={parcel.phone || ''}
                     onChange={e => updateField(i, 'phone', e.target.value)}
                     placeholder="03001234567"
-                    className={`w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border text-xs font-mono font-semibold focus:outline-none ${
-                      isPhoneValid
-                        ? 'border-slate-200 dark:border-slate-800 focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100'
-                        : 'border-rose-400 bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                    className={`w-full px-2.5 py-2 rounded-xl border text-xs font-mono font-semibold focus:outline-none ${
+                      !isPhoneValid
+                        ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/30 text-rose-600 focus:ring-1 focus:ring-rose-500'
+                        : isPhoneWarning
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 placeholder:text-amber-500/60 font-bold focus:ring-1 focus:ring-amber-500'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070b12] text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-emerald-500'
                     }`}
+                    title={
+                      !isPhoneValid
+                        ? 'Invalid phone number'
+                        : isPhoneDummy
+                        ? 'Placeholder phone'
+                        : isPhoneEmpty
+                        ? 'Phone missing'
+                        : 'Phone'
+                    }
                   />
                 </div>
               </div>

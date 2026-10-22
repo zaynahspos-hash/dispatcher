@@ -210,7 +210,11 @@ export function ParcelDesktopGrid({
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
             {parcels.map((parcel, i) => {
-              const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(parcel.phone.replace(/[-+\s]/g, ''))
+              const cleanPhone = (parcel.phone || '').replace(/[-+\s]/g, '')
+              const isPhoneEmpty = !parcel.phone || parcel.phone.trim() === ''
+              const isPhoneDummy = parcel.phone?.trim() === '03001234567' || cleanPhone === '03001234567'
+              const isPhoneWarning = isPhoneEmpty || isPhoneDummy
+              const isPhoneValid = !parcel.phone || /^03\d{9}$/.test(cleanPhone)
               const isCityValid = !parcel.city || activeCityList.includes(parcel.city.toUpperCase())
 
               return (
@@ -290,16 +294,29 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* Phone Number */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0">
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0 ${
+                    isPhoneWarning ? 'bg-amber-500/10' : ''
+                  }`}>
                     <input
                       value={parcel.phone || ''}
                       onChange={e => updateField(i, 'phone', e.target.value)}
                       placeholder="03001234567"
                       className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
-                        isPhoneValid
-                          ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
-                          : 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-600 focus:ring-rose-500'
+                        !isPhoneValid
+                          ? 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-600 focus:ring-rose-500'
+                          : isPhoneWarning
+                          ? 'text-amber-600 dark:text-amber-400 placeholder:text-amber-500/60 font-bold focus:ring-amber-500'
+                          : 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
                       }`}
+                      title={
+                        !isPhoneValid
+                          ? 'Invalid Pakistani phone number (must be 03XXXXXXXXX)'
+                          : isPhoneDummy
+                          ? 'Placeholder phone number! Please enter real customer phone.'
+                          : isPhoneEmpty
+                          ? 'Phone number missing! Please enter recipient mobile number.'
+                          : 'Recipient Phone Number'
+                      }
                     />
                   </td>
 

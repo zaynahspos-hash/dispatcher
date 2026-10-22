@@ -122,7 +122,7 @@ export default function BookingResults({
       .replace(/{(?:tracking|tracking_number)}/g, parcel.tracking || '')
       .replace(/{note}/g, noteContent)
 
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template)}`
+    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(template)}`
   }
 
   const booked = results.filter(r => r.status === 'success')

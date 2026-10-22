@@ -344,7 +344,7 @@ export const isCancellable = (status: string, hasLoadSheet?: boolean, tracking?:
 export const DEFAULT_MILESTONE_TEMPLATES: Record<WhatsAppMilestone, string> = {
   booking: '📦 postex.pk • Tracking Alert 🚚\n\nDear {customer_name}, aap ka order book ho gaya hai! 🎉\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
   in_transit: '🚚 postex.pk • Shipment In Transit 🛣️\n\nDear {customer_name}, aap ka parcel courier network mein on the way hai! 📦💨\nLive Status: {live_status}\nTracking CN: {tracking_number}\nLive Link: 🔗 {portal_link}\n\n{note}',
-  out_for_delivery: '🛵 postex.pk • Out For Delivery Alert 🚚\n\nDear {customer_name}, aap ka parcel Rider ke sath Out for Delivery nikal chuka hai! 📦💨\nOrder Total: Rs. {order_amount} 💵\nTracking: {portal_link} 🔗\n\nMeharbani farma kar apna phone ON rakhain 📱 aur cash tayyar rakhain 💵 taake rider asani se parcel deliver kar sakay. 🤝',
+  out_for_delivery: '🛵 postex.pk • Out For Delivery Alert 🚚\n\nDear {customer_name}, aap ka parcel Rider ke sath Out for Delivery nikal chuka hai! 📦💨\nOrder Total: Rs. {order_amount} 💵',
   action_required: '⚠️ postex.pk • Delivery Update Required 📞\n\nDear {customer_name}, rider ne aap ke order (Tracking: {tracking_number}) ki delivery koshish ki thi magar rabta nahi ho saka! 📵\nBarah-e-karam hume yahan WhatsApp par reply kar ke confirm karein ke delivery kis waqt karein 🕒 ya alternate number share karein taake order return na ho. 🙏',
   delivered: '✅ postex.pk • Order Delivered 🎉\n\nDear {customer_name}, aap ka parcel successfully deliver ho chuka hai! 🛍️✨\nThank you for shopping with us! ❤️\nAgar koi feedback ya review ho to zaroor share karein. ⭐⭐⭐⭐⭐'
 }
@@ -405,9 +405,10 @@ export const isCorruptText = (txt?: string): boolean => {
     txt.includes('\uFFFD') || 
     txt.includes('\uFFFE') || 
     txt.includes('\uFFFF') || 
-    txt.includes('') || 
     txt.includes('%EF%BF%BD') || 
-    txt.includes('%ef%bf%bd')
+    txt.includes('%ef%bf%bd') ||
+    txt.startsWith('?? postex.pk') ||
+    txt.startsWith('? postex.pk')
   ) {
     return true
   }
@@ -448,15 +449,14 @@ export const getWhatsAppLink = (
   const effectiveMilestone: WhatsAppMilestone = milestone === 'auto' ? detectParcelMilestone(parcel) : milestone
   const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
   
-  // For milestones other than booking, ALWAYS use rich milestone-specific template with authentic emojis
-  // For booking, verify template has real emojis and is NOT corrupt
-  const templateIsCorrupt = !whatsappTemplate || isCorruptText(whatsappTemplate) || !whatsappTemplate.includes('📦')
-  let template = (effectiveMilestone === 'booking' && !templateIsCorrupt && whatsappTemplate)
+  // Use passed template if clean; otherwise fallback to default milestone template
+  const templateIsCorrupt = !whatsappTemplate || isCorruptText(whatsappTemplate)
+  let template = (!templateIsCorrupt && whatsappTemplate)
     ? whatsappTemplate
     : (DEFAULT_MILESTONE_TEMPLATES[effectiveMilestone] || DEFAULT_MILESTONE_TEMPLATES.booking)
 
   template = sanitizeText(template)
-  if (!template || isCorruptText(template) || (effectiveMilestone === 'booking' && !template.includes('📦'))) {
+  if (!template || isCorruptText(template)) {
     template = DEFAULT_MILESTONE_TEMPLATES[effectiveMilestone] || DEFAULT_MILESTONE_TEMPLATES.booking
   }
 
@@ -470,7 +470,8 @@ export const getWhatsAppLink = (
     .replace(/{items}/g, String(parcel.items || 1))
     .replace(/{note}/g, noteContent)
 
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(template)}`
+  // Direct api.whatsapp.com/send endpoint prevents 302 redirect UTF-8 emoji corruption
+  return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(template)}`
 }
 
 export const isPlaceholder = (val: string) => {

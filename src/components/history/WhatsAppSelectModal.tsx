@@ -1,12 +1,15 @@
 import React from 'react'
 import { CloseIcon, WhatsAppIcon, PackageIcon, TruckIcon, AlertTriangleIcon, CheckCircleIcon } from '../Icons'
-import { BookedParcel, getWhatsAppLink, detectParcelMilestone, getMilestoneInfo, getDisplayStatus } from './types'
+import { BookedParcel, getWhatsAppLink, detectParcelMilestone, getMilestoneInfo, getDisplayStatus, DEFAULT_MILESTONE_TEMPLATES } from './types'
 
 interface WhatsAppSelectModalProps {
   parcel: BookedParcel | null
   onClose: () => void
   whatsappNote?: string
   whatsappTemplate?: string
+  whatsappTemplateOutForDelivery?: string
+  whatsappTemplateActionRequired?: string
+  whatsappTemplateDelivered?: string
   isBookingSent?: boolean
   isStatusSent?: boolean
   onMarkSent?: (tracking: string, id: string | undefined, type: 'booking' | 'status') => void
@@ -17,6 +20,9 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
   onClose,
   whatsappNote,
   whatsappTemplate,
+  whatsappTemplateOutForDelivery,
+  whatsappTemplateActionRequired,
+  whatsappTemplateDelivered,
   isBookingSent = false,
   isStatusSent = false,
   onMarkSent
@@ -26,8 +32,14 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
   const realMilestone = detectParcelMilestone(parcel)
   const milestoneInfo = getMilestoneInfo(realMilestone)
 
+  const milestoneTemplate = 
+    realMilestone === 'out_for_delivery' ? (whatsappTemplateOutForDelivery || DEFAULT_MILESTONE_TEMPLATES.out_for_delivery) :
+    realMilestone === 'action_required' ? (whatsappTemplateActionRequired || DEFAULT_MILESTONE_TEMPLATES.action_required) :
+    realMilestone === 'delivered' ? (whatsappTemplateDelivered || DEFAULT_MILESTONE_TEMPLATES.delivered) :
+    (whatsappTemplate || DEFAULT_MILESTONE_TEMPLATES.booking)
+
   const bookingUrl = getWhatsAppLink(parcel, whatsappNote, whatsappTemplate, 'booking')
-  const statusUrl = getWhatsAppLink(parcel, whatsappNote, whatsappTemplate, realMilestone)
+  const statusUrl = getWhatsAppLink(parcel, whatsappNote, milestoneTemplate, realMilestone)
 
   const handleSend = (url: string, type: 'booking' | 'status') => {
     onMarkSent?.(parcel.tracking, parcel.id, type)

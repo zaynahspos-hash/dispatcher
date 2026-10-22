@@ -363,7 +363,10 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         parcel={whatsAppModalParcel}
         onClose={() => setWhatsAppModalParcel(null)}
         whatsappNote={settings.whatsapp_note}
-        whatsappTemplate={settings.whatsapp_template}
+        whatsappTemplate={settings.whatsapp_template_booking || settings.whatsapp_template}
+        whatsappTemplateOutForDelivery={settings.whatsapp_template_out_for_delivery}
+        whatsappTemplateActionRequired={settings.whatsapp_template_action_required}
+        whatsappTemplateDelivered={settings.whatsapp_template_delivered}
         isBookingSent={waTracker.isBookingSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
         isStatusSent={waTracker.isStatusSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
         onMarkSent={(tracking, id, type) => waTracker.markSent(tracking, type, id)}

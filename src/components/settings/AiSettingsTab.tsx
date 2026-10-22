@@ -212,18 +212,16 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    if (window.confirm(`Are you sure you want to remove your ${activeMeta.name} API Key?`)) {
-                      const keyField = `${activeProvider}_api_key` as keyof Settings
-                      const updates: any = { [keyField]: '' }
-                      if (activeProvider === 'gemini') updates.gemini_api_keys = []
-                      if (activeProvider === 'groq') updates.groq_api_keys = []
-                      setIsEditingKey(false)
-                      setTempKey('')
-                      if (onSave) {
-                        await onSave(updates)
-                      } else {
-                        await updateSetting(updates)
-                      }
+                    const keyField = `${activeProvider}_api_key` as keyof Settings
+                    const updates: any = { [keyField]: '' }
+                    if (activeProvider === 'gemini') updates.gemini_api_keys = []
+                    if (activeProvider === 'groq') updates.groq_api_keys = []
+                    setIsEditingKey(false)
+                    setTempKey('')
+                    if (onSave) {
+                      await onSave(updates)
+                    } else {
+                      await updateSetting(updates)
                     }
                   }}
                   className="h-8 px-3.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium border border-rose-500/20 active:scale-95 transition-all cursor-pointer"
