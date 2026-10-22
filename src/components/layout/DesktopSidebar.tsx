@@ -315,10 +315,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         isCollapsed ? 'p-2.5 text-center text-[10px] font-mono' : 'p-3 flex items-center justify-between text-[11px]'
       }`}>
         {isCollapsed ? (
-          <span title="v2026.12 • Zaynahs POS">v26.12</span>
+          <span title="v2026.13 • Zaynahs POS">v26.13</span>
         ) : (
           <>
-            <span>v2026.12</span>
+            <span>v2026.13</span>
             <span>Zaynahs POS</span>
           </>
         )}

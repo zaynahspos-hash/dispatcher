@@ -205,22 +205,22 @@ export default function App() {
 
   // Intelligently check if AI is configured (either active provider key, or any entered AI key)
   const hasAiKey = !!(
-    (settings.ai_provider && settings[`${settings.ai_provider}_api_key` as keyof Settings]) ||
-    settings.gemini_api_key ||
-    settings.groq_api_key ||
-    settings.openai_api_key ||
-    settings.openrouter_api_key ||
-    settings.anthropic_api_key ||
-    settings.deepseek_api_key
+    (settings.ai_provider && settings[`${settings.ai_provider}_api_key` as keyof Settings] && String(settings[`${settings.ai_provider}_api_key` as keyof Settings]).trim().length > 5) ||
+    (settings.gemini_api_key && settings.gemini_api_key.trim().length > 5) ||
+    (settings.groq_api_key && settings.groq_api_key.trim().length > 5) ||
+    (settings.openai_api_key && settings.openai_api_key.trim().length > 5) ||
+    (settings.openrouter_api_key && settings.openrouter_api_key.trim().length > 5) ||
+    (settings.anthropic_api_key && settings.anthropic_api_key.trim().length > 5) ||
+    (settings.deepseek_api_key && settings.deepseek_api_key.trim().length > 5)
   )
 
   const hasPostexToken = !!(settings.postex_token && settings.postex_token.trim().length > 8)
 
-  // Settings is considered configured if PostEx token is active OR an AI key is active.
-  // While settings are still initial-loading from DB, do not flash setup warning.
+  // Settings is considered configured strictly when BOTH PostEx token AND an AI key are active.
+  // If either one is missing, Setup warning badge remains visible in the header.
   const isSettingsConfigured = loadingSettings
     ? true
-    : (hasPostexToken || hasAiKey)
+    : (hasPostexToken && hasAiKey)
 
   if (!initialAuthChecked) {
     return null
