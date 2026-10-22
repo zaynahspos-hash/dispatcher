@@ -74,6 +74,9 @@ export interface Settings {
   whatsapp_template_delivered?: string
   whatsapp_min_delay_sec?: number
   whatsapp_max_delay_sec?: number
+  postex_token_updated_at?: string
+  gemini_key_updated_at?: string
+  groq_key_updated_at?: string
   api_history?: ApiHistoryItem[]
 }
 
@@ -82,7 +85,7 @@ export interface ApiHistoryItem {
   provider: 'postex' | 'gemini' | 'groq' | 'openrouter' | 'openai' | 'deepseek' | 'anthropic' | 'mistral' | 'other'
   key_label: string
   api_key: string
-  action: 'replaced' | 'removed'
+  action: 'replaced' | 'removed' | 'in_use'
   old_model?: string
   replaced_at: string
 }

@@ -48,6 +48,12 @@ export default function AdminPanel() {
       }))
       setUsers(mappedUsers)
       setSelectedUser(prev => {
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024
+        if (!isDesktop) {
+          if (!prev) return null
+          const found = mappedUsers.find(mu => mu.id === prev.id)
+          return found || null
+        }
         if (!prev) return mappedUsers[0] || null
         const found = mappedUsers.find(mu => mu.id === prev.id)
         return found || mappedUsers[0] || null

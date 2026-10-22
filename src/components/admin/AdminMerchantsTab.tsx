@@ -219,10 +219,115 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
             if (userSettings.openai_api_key) otherAiKeys.push({ name: 'OpenAI', key: userSettings.openai_api_key, model: userSettings.openai_model })
             if (userSettings.deepseek_api_key) otherAiKeys.push({ name: 'DeepSeek', key: userSettings.deepseek_api_key, model: userSettings.deepseek_model })
 
-            // Previous / Changed APIs Archive (Sorted NEW to OLD)
-            const apiHistory: any[] = Array.isArray(userSettings.api_history)
+            // Format token change timestamp cleanly
+            const formatTokenDate = (isoStr?: string) => {
+              if (!isoStr) return ''
+              try {
+                const d = new Date(isoStr)
+                if (isNaN(d.getTime())) return ''
+                return d.toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })
+              } catch {
+                return ''
+              }
+            }
+
+            // Deduplicate API History Archive by provider + api_key & ensure In Use tokens are at the very top
+            const seenHistoryKeys = new Set<string>()
+            const deduplicatedHistory: any[] = []
+
+            const isKeyInUse = (item: any) => {
+              const k = (item.api_key || '').trim()
+              if (!k) return false
+              if (item.provider === 'postex') return k === postexToken.trim()
+              if (item.provider === 'gemini') return geminiKeys.map(x => x.trim()).includes(k)
+              if (item.provider === 'groq') return groqKeys.map(x => x.trim()).includes(k)
+              if (otherAiKeys.some(o => o.key.trim() === k)) return true
+              return false
+            }
+
+            // 1. Current active PostEx token
+            if (postexToken.trim()) {
+              const tr = postexToken.trim()
+              deduplicatedHistory.push({
+                id: `postex_current_${selectedUser.id}`,
+                provider: 'postex',
+                key_label: 'PostEx API Token (V3)',
+                api_key: tr,
+                action: 'in_use',
+                replaced_at: userSettings.postex_token_updated_at || userSettings.updated_at || selectedUser.created_at
+              })
+              seenHistoryKeys.add(`postex_${tr}`)
+            }
+
+            // 2. Current active Gemini keys
+            geminiKeys.forEach((gk, gIdx) => {
+              const tr = gk.trim()
+              if (tr && !seenHistoryKeys.has(`gemini_${tr}`)) {
+                deduplicatedHistory.push({
+                  id: `gemini_current_${selectedUser.id}_${gIdx}`,
+                  provider: 'gemini',
+                  key_label: `Google Gemini Key #${gIdx + 1}`,
+                  api_key: tr,
+                  action: 'in_use',
+                  old_model: userSettings.gemini_model,
+                  replaced_at: userSettings.gemini_key_updated_at || userSettings.updated_at || selectedUser.created_at
+                })
+                seenHistoryKeys.add(`gemini_${tr}`)
+              }
+            })
+
+            // 3. Current active Groq keys
+            groqKeys.forEach((gk, gIdx) => {
+              const tr = gk.trim()
+              if (tr && !seenHistoryKeys.has(`groq_${tr}`)) {
+                deduplicatedHistory.push({
+                  id: `groq_current_${selectedUser.id}_${gIdx}`,
+                  provider: 'groq',
+                  key_label: `Groq LLaMA Key #${gIdx + 1}`,
+                  api_key: tr,
+                  action: 'in_use',
+                  old_model: userSettings.groq_model,
+                  replaced_at: userSettings.groq_key_updated_at || userSettings.updated_at || selectedUser.created_at
+                })
+                seenHistoryKeys.add(`groq_${tr}`)
+              }
+            })
+
+            // 4. Raw history from userSettings (sorted newest first)
+            const rawHistory = Array.isArray(userSettings.api_history)
               ? [...userSettings.api_history].sort((a, b) => (b.replaced_at || '').localeCompare(a.replaced_at || ''))
               : []
+
+            rawHistory.forEach(item => {
+              const cleanKey = (item.api_key || '').trim()
+              if (!cleanKey) return
+              const keyId = `${item.provider}_${cleanKey}`
+              if (!seenHistoryKeys.has(keyId)) {
+                seenHistoryKeys.add(keyId)
+                const inUse = isKeyInUse(item)
+                deduplicatedHistory.push({
+                  ...item,
+                  api_key: cleanKey,
+                  action: inUse ? 'in_use' : item.action
+                })
+              }
+            })
+
+            // 5. Sort: "In Use" items ALWAYS at the top (first position / #1)!
+            // Then other items sorted newest to oldest by replaced_at
+            deduplicatedHistory.sort((a, b) => {
+              const inUseA = a.action === 'in_use' || isKeyInUse(a) ? 1 : 0
+              const inUseB = b.action === 'in_use' || isKeyInUse(b) ? 1 : 0
+              if (inUseA !== inUseB) return inUseB - inUseA
+              return (b.replaced_at || '').localeCompare(a.replaced_at || '')
+            })
 
             return (
               <div className="space-y-4">
@@ -241,9 +346,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
 
                 {/* 1. PostEx V3 API Token */}
                 {(() => {
-                  const lastArchivedPostex = apiHistory.find((h: any) => h.provider === 'postex')
+                  const lastArchivedPostex = deduplicatedHistory.find((h: any) => h.provider === 'postex')
                   const effectiveToken = postexToken || lastArchivedPostex?.api_key || ''
                   const isUserRemoved = !postexToken && Boolean(lastArchivedPostex)
+                  const tokenDate = userSettings.postex_token_updated_at || (postexToken ? (userSettings.updated_at || selectedUser.created_at) : lastArchivedPostex?.replaced_at)
 
                   return (
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
@@ -259,7 +365,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                                 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
                                 : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
                           }`}>
-                            {postexToken ? 'Active' : isUserRemoved ? 'Removed by User (Saved for Admin)' : 'Not Configured'}
+                            {postexToken ? 'In Use' : isUserRemoved ? 'Removed by User (Saved for Admin)' : 'Not Configured'}
                           </span>
                         </div>
                         {effectiveToken && (
@@ -292,6 +398,12 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                           <span className="text-slate-400 italic">Not configured</span>
                         )}
                       </p>
+                      {tokenDate && (
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                          <span>{postexToken ? 'Changed / In Use:' : 'Removed:'} {formatTokenDate(tokenDate)}</span>
+                          <span className="font-mono text-[9px] text-slate-400">PostEx V3</span>
+                        </div>
+                      )}
                       {isUserRemoved && (
                         <p className="text-[10px] text-amber-600 dark:text-amber-400 italic">
                           Token was removed on merchant dashboard. Preserved in Admin Archive.
@@ -322,7 +434,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                   {geminiKeys.length === 0 ? (
                     (() => {
-                      const archivedGemini = apiHistory.filter((h: any) => h.provider === 'gemini')
+                      const archivedGemini = deduplicatedHistory.filter((h: any) => h.provider === 'gemini')
                       return archivedGemini.length > 0 ? (
                         <div className="p-2.5 bg-amber-500/[0.04] dark:bg-amber-950/[0.1] border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
                           {archivedGemini.length} previous Gemini key(s) removed on merchant side • Preserved in Admin Archive below
@@ -337,6 +449,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     geminiKeys.map((keyVal, idx) => {
                       const credKey = `gemini_${selectedUser.id}_${idx}`
                       const isShown = showCredentials[credKey]
+                      const geminiDate = userSettings.gemini_key_updated_at || userSettings.updated_at || selectedUser.created_at
                       return (
                         <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
@@ -344,8 +457,8 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">
                                 Gemini API Key #{idx + 1}
                               </span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
-                                Active
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                                In Use
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -372,6 +485,12 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                           <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
                             {isShown ? keyVal : '••••••••••••••••••••••••••••••••••••••••'}
                           </p>
+                          {geminiDate && (
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                              <span>Changed / In Use: {formatTokenDate(geminiDate)}</span>
+                              <span className="font-mono text-[9px] text-slate-400">{userSettings.gemini_model || 'gemini-3.5-flash'}</span>
+                            </div>
+                          )}
                         </div>
                       )
                     })
@@ -386,7 +505,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                   {groqKeys.length === 0 ? (
                     (() => {
-                      const archivedGroq = apiHistory.filter((h: any) => h.provider === 'groq')
+                      const archivedGroq = deduplicatedHistory.filter((h: any) => h.provider === 'groq')
                       return archivedGroq.length > 0 ? (
                         <div className="p-2.5 bg-amber-500/[0.04] dark:bg-amber-950/[0.1] border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
                           {archivedGroq.length} previous Groq key(s) removed on merchant side • Preserved in Admin Archive below
@@ -401,6 +520,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     groqKeys.map((keyVal, idx) => {
                       const credKey = `groq_${selectedUser.id}_${idx}`
                       const isShown = showCredentials[credKey]
+                      const groqDate = userSettings.groq_key_updated_at || userSettings.updated_at || selectedUser.created_at
                       return (
                         <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
@@ -408,8 +528,8 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                               <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">
                                 Groq API Key #{idx + 1}
                               </span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 font-bold">
-                                Active
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                                In Use
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -436,6 +556,12 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                           <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
                             {isShown ? keyVal : '••••••••••••••••••••••••••••••••••••••••'}
                           </p>
+                          {groqDate && (
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                              <span>Changed / In Use: {formatTokenDate(groqDate)}</span>
+                              <span className="font-mono text-[9px] text-slate-400">{userSettings.groq_model || 'llama-3.3-70b-versatile'}</span>
+                            </div>
+                          )}
                         </div>
                       )
                     })
@@ -485,28 +611,30 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                 )}
 
-                {/* 6. Previous & Changed APIs Archive (Newest to Oldest) */}
+                {/* 6. Previous & Changed APIs Archive (Newest to Oldest & In Use on Top, Deduplicated) */}
                 <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                        Previous & Changed APIs Archive ({apiHistory.length})
+                        Previous & Changed APIs Archive ({deduplicatedHistory.length})
                       </h4>
                       <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
                         Admin Vault
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono">Newest to Oldest</span>
+                    <span className="text-[10px] text-slate-400 font-mono">In Use First • No Duplicates</span>
                   </div>
 
-                  {apiHistory.length === 0 ? (
+                  {deduplicatedHistory.length === 0 ? (
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs text-center">
                       No previous or replaced API keys recorded yet for this merchant.
                     </div>
                   ) : (
-                    apiHistory.map((item: any, idx: number) => {
+                    deduplicatedHistory.map((item: any, idx: number) => {
                       const credKey = `hist_${selectedUser.id}_${item.id || idx}`
                       const isShown = showCredentials[credKey]
+                      const isInUse = item.action === 'in_use' || isKeyInUse(item)
+                      const isRemoved = item.action === 'removed' && !isInUse
                       const providerBadgeColor = 
                         item.provider === 'postex' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20' :
                         item.provider === 'gemini' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' :
@@ -514,7 +642,11 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                         'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
 
                       return (
-                        <div key={item.id || idx} className="p-3 bg-amber-500/[0.03] dark:bg-amber-950/[0.08] border border-amber-500/20 dark:border-amber-500/15 rounded-xl space-y-1.5">
+                        <div key={item.id || idx} className={`p-3 rounded-xl space-y-1.5 border ${
+                          isInUse 
+                            ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/[0.12] border-emerald-500/30' 
+                            : 'bg-amber-500/[0.03] dark:bg-amber-950/[0.08] border-amber-500/20 dark:border-amber-500/15'
+                        }`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${providerBadgeColor}`}>
@@ -524,9 +656,13 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                                 {item.key_label || 'API Key'}
                               </span>
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                                item.action === 'removed' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                isInUse
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  : isRemoved 
+                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' 
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                               }`}>
-                                {item.action === 'removed' ? 'Removed' : 'Replaced'}
+                                {isInUse ? 'In Use' : isRemoved ? 'Removed' : 'Previous'}
                               </span>
                               {item.old_model && (
                                 <span className="text-[9px] font-mono text-slate-400">
@@ -549,7 +685,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                                   setFeedbackMsg({ text: `Archived ${item.key_label} copied.` })
                                   setTimeout(() => setFeedbackMsg(null), 2500)
                                 }}
-                                className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/25 transition cursor-pointer font-medium"
+                                className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
                               >
                                 Copy
                               </button>
@@ -561,8 +697,10 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                           </div>
 
                           <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                            <span>Changed/Removed: {new Date(item.replaced_at).toLocaleString()}</span>
-                            <span className="font-mono text-[9px] text-slate-400">Archived for Admin</span>
+                            <span>{isInUse ? 'Changed / In Use:' : isRemoved ? 'Removed:' : 'Replaced:'} {formatTokenDate(item.replaced_at)}</span>
+                            <span className="font-mono text-[9px] text-slate-400">
+                              {isInUse ? 'Active #1' : 'Admin Archive'}
+                            </span>
                           </div>
                         </div>
                       )

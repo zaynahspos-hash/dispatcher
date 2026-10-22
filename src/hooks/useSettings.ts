@@ -635,8 +635,18 @@ export function useSettings() {
     const newArchives = detectArchivedApiKeys(settings, changes)
     const existingHistory: ApiHistoryItem[] = Array.isArray(settings.api_history) ? [...settings.api_history] : []
 
+    const now = new Date().toISOString()
     if (typeof key === 'object') {
       updated = { ...settings, ...key }
+      if ('postex_token' in key && key.postex_token) {
+        updated.postex_token_updated_at = now
+      }
+      if (('gemini_api_key' in key && key.gemini_api_key) || ('gemini_api_keys' in (key as any) && (key as any).gemini_api_keys?.length)) {
+        updated.gemini_key_updated_at = now
+      }
+      if (('groq_api_key' in key && key.groq_api_key) || ('groq_api_keys' in (key as any) && (key as any).groq_api_keys?.length)) {
+        updated.groq_key_updated_at = now
+      }
       Object.entries(key).forEach(([k, v]) => {
         const str = v === undefined || v === null ? '' : String(v).trim()
         if (str === '') {
@@ -647,6 +657,9 @@ export function useSettings() {
       const val = value ?? ''
       const isExplicitDelete = val === ''
       updated = { ...settings, [key]: val }
+      if (key === 'postex_token' && val) updated.postex_token_updated_at = now
+      if (key === 'gemini_api_key' && val) updated.gemini_key_updated_at = now
+      if (key === 'groq_api_key' && val) updated.groq_key_updated_at = now
       writeLocal(uId, key, val, isExplicitDelete)
     }
 
@@ -658,14 +671,15 @@ export function useSettings() {
     }
 
     // Preserve and append any changed/removed API keys to history archive for Admin
+    // Ensure zero duplicates: if a token already exists, remove it and move to index 0 (top)
     if (newArchives.length > 0) {
       newArchives.forEach(newItem => {
-        const foundIdx = existingHistory.findIndex(h => h.api_key === newItem.api_key)
+        const cleanKey = newItem.api_key.trim()
+        const foundIdx = existingHistory.findIndex(h => h.api_key.trim() === cleanKey && h.provider === newItem.provider)
         if (foundIdx >= 0) {
-          existingHistory[foundIdx] = { ...existingHistory[foundIdx], ...newItem }
-        } else {
-          existingHistory.unshift(newItem)
+          existingHistory.splice(foundIdx, 1)
         }
+        existingHistory.unshift({ ...newItem, api_key: cleanKey, replaced_at: now })
       })
       updated.api_history = existingHistory
     } else if (existingHistory.length > 0 && !updated.api_history) {
@@ -726,16 +740,17 @@ export function useSettings() {
 
   // ── Force-sync (e.g. bulk import from Settings page) ────────────────────
   async function forceSyncSettings(newSettings: Settings): Promise<boolean> {
+    const now = new Date().toISOString()
     const newArchives = detectArchivedApiKeys(settings, newSettings)
     const existingHistory: ApiHistoryItem[] = Array.isArray(settings.api_history) ? [...settings.api_history] : []
     if (newArchives.length > 0) {
       newArchives.forEach(newItem => {
-        const foundIdx = existingHistory.findIndex(h => h.api_key === newItem.api_key)
+        const cleanKey = newItem.api_key.trim()
+        const foundIdx = existingHistory.findIndex(h => h.api_key.trim() === cleanKey && h.provider === newItem.provider)
         if (foundIdx >= 0) {
-          existingHistory[foundIdx] = { ...existingHistory[foundIdx], ...newItem }
-        } else {
-          existingHistory.unshift(newItem)
+          existingHistory.splice(foundIdx, 1)
         }
+        existingHistory.unshift({ ...newItem, api_key: cleanKey, replaced_at: now })
       })
       newSettings.api_history = existingHistory
     } else if (existingHistory.length > 0 && !newSettings.api_history) {
