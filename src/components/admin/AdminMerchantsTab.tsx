@@ -240,49 +240,66 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                 </div>
 
                 {/* 1. PostEx V3 API Token */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider truncate">
-                        PostEx API Token
-                      </span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${
-                        postexToken ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                      }`}>
-                        {postexToken ? 'Active' : 'Not Configured'}
-                      </span>
-                    </div>
-                    {postexToken && (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
-                          className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
-                        >
-                          {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(postexToken)
-                            setFeedbackMsg({ text: 'PostEx token copied to clipboard.' })
-                            setTimeout(() => setFeedbackMsg(null), 2500)
-                          }}
-                          className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
-                        >
-                          Copy
-                        </button>
+                {(() => {
+                  const lastArchivedPostex = apiHistory.find((h: any) => h.provider === 'postex')
+                  const effectiveToken = postexToken || lastArchivedPostex?.api_key || ''
+                  const isUserRemoved = !postexToken && Boolean(lastArchivedPostex)
+
+                  return (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider truncate">
+                            PostEx API Token
+                          </span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${
+                            postexToken 
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                              : isUserRemoved 
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                          }`}>
+                            {postexToken ? 'Active' : isUserRemoved ? 'Removed by User (Saved for Admin)' : 'Not Configured'}
+                          </span>
+                        </div>
+                        {effectiveToken && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
+                              className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                            >
+                              {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(effectiveToken)
+                                setFeedbackMsg({ text: 'PostEx token copied to clipboard.' })
+                                setTimeout(() => setFeedbackMsg(null), 2500)
+                              }}
+                              className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
-                    {postexToken ? (
-                      showCredentials[`postex_${selectedUser.id}`] ? postexToken : '••••••••••••••••••••••••••••••••••••••••'
-                    ) : (
-                      <span className="text-slate-400 italic">Not configured</span>
-                    )}
-                  </p>
-                </div>
+                      <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
+                        {effectiveToken ? (
+                          showCredentials[`postex_${selectedUser.id}`] ? effectiveToken : '••••••••••••••••••••••••••••••••••••••••'
+                        ) : (
+                          <span className="text-slate-400 italic">Not configured</span>
+                        )}
+                      </p>
+                      {isUserRemoved && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 italic">
+                          Token was removed on merchant dashboard. Preserved in Admin Archive.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* 2. AI Engine Summary */}
                 <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
@@ -304,9 +321,18 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     <span className="text-[9px] text-slate-400 font-mono">{userSettings.gemini_model || 'gemini-3.5-flash'}</span>
                   </div>
                   {geminiKeys.length === 0 ? (
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
-                      No active Gemini keys configured
-                    </div>
+                    (() => {
+                      const archivedGemini = apiHistory.filter((h: any) => h.provider === 'gemini')
+                      return archivedGemini.length > 0 ? (
+                        <div className="p-2.5 bg-amber-500/[0.04] dark:bg-amber-950/[0.1] border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
+                          {archivedGemini.length} previous Gemini key(s) removed on merchant side • Preserved in Admin Archive below
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
+                          No active Gemini keys configured
+                        </div>
+                      )
+                    })()
                   ) : (
                     geminiKeys.map((keyVal, idx) => {
                       const credKey = `gemini_${selectedUser.id}_${idx}`
@@ -359,9 +385,18 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     <span className="text-[9px] text-slate-400 font-mono">{userSettings.groq_model || 'llama-3.3-70b-versatile'}</span>
                   </div>
                   {groqKeys.length === 0 ? (
-                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
-                      No active Groq keys configured
-                    </div>
+                    (() => {
+                      const archivedGroq = apiHistory.filter((h: any) => h.provider === 'groq')
+                      return archivedGroq.length > 0 ? (
+                        <div className="p-2.5 bg-amber-500/[0.04] dark:bg-amber-950/[0.1] border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
+                          {archivedGroq.length} previous Groq key(s) removed on merchant side • Preserved in Admin Archive below
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
+                          No active Groq keys configured
+                        </div>
+                      )
+                    })()
                   ) : (
                     groqKeys.map((keyVal, idx) => {
                       const credKey = `groq_${selectedUser.id}_${idx}`

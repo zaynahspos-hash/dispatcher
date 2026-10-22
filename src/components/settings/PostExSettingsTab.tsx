@@ -105,10 +105,13 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                   type="button"
                   onClick={async () => {
                     if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
-                      await updateSetting({ postex_token: '' })
-                      if (onSave) await onSave({ postex_token: '' })
                       setIsEditingToken(false)
                       setTempToken('')
+                      if (onSave) {
+                        await onSave({ postex_token: '' })
+                      } else {
+                        await updateSetting({ postex_token: '' })
+                      }
                     }
                   }}
                   className="h-8 px-3.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium border border-rose-500/20 active:scale-95 transition-all cursor-pointer"
@@ -136,11 +139,12 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                   onClick={async () => {
                     const val = tempToken.trim()
                     if (!val) return
-                    updateSetting('postex_token', val)
+                    setIsEditingToken(false)
                     if (onSave) {
                       await onSave({ postex_token: val })
+                    } else {
+                      updateSetting('postex_token', val)
                     }
-                    setIsEditingToken(false)
                   }}
                   disabled={!tempToken.trim() || saving}
                   className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs flex items-center gap-1.5"

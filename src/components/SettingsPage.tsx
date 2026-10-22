@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getMerchantAddresses, getOrderTypes } from '../utils/postexApi'
 import { Settings } from '../utils/aiParser'
 import { 
@@ -36,13 +36,20 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   const [testingAi, setTestingAi] = useState(false)
   const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const toast = useToast()
+  
+  // Track the signature of the last saved/loaded settings to prevent race-condition overwrite
+  const lastSavedJsonRef = useRef<string>(JSON.stringify(settings))
 
-  // Sync draft when initial settings load, but DO NOT overwrite if user has unsaved draft changes
+  // Sync draft only when parent settings genuinely changes from external source
   useEffect(() => {
-    if (!hasChanges) {
-      setDraftSettings(settings)
+    const currentJson = JSON.stringify(settings)
+    if (currentJson !== lastSavedJsonRef.current) {
+      lastSavedJsonRef.current = currentJson
+      if (!hasChanges) {
+        setDraftSettings(settings)
+      }
     }
-  }, [settings, hasChanges])
+  }, [settings])
 
   const handleDraftChange = (keyOrObj: keyof Settings | Partial<Settings>, value?: string) => {
     setDraftSettings(prev => {
@@ -60,6 +67,7 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
   const handleDiscardChanges = () => {
     setDraftSettings(settings)
     setHasChanges(false)
+    lastSavedJsonRef.current = JSON.stringify(settings)
     toast.info('Changes Discarded', 'Restored previous saved settings.')
   }
 
@@ -81,7 +89,12 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       if (settings.avatar_url && !toSave.avatar_url) {
         toSave.avatar_url = settings.avatar_url
       }
+
+      // Mark this snapshot as saved immediately so incoming prop updates won't overwrite draftSettings
+      lastSavedJsonRef.current = JSON.stringify(toSave)
       setDraftSettings(toSave)
+      setHasChanges(false)
+
       const ok = await updateSetting(toSave)
       if (ok === false) {
         toast.warning('Offline Cache', 'Settings saved to browser storage. Will sync to cloud once connection is verified.')
@@ -91,7 +104,6 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
       if (onSave) {
         onSave()
       }
-      setHasChanges(false)
       return true
     } catch (err: any) {
       toast.error('Save Failed', err.message || 'Could not save settings.')

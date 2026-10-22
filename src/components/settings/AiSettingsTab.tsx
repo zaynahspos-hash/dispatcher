@@ -217,10 +217,13 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                       const updates: any = { [keyField]: '' }
                       if (activeProvider === 'gemini') updates.gemini_api_keys = []
                       if (activeProvider === 'groq') updates.groq_api_keys = []
-                      await updateSetting(updates)
-                      if (onSave) await onSave(updates)
                       setIsEditingKey(false)
                       setTempKey('')
+                      if (onSave) {
+                        await onSave(updates)
+                      } else {
+                        await updateSetting(updates)
+                      }
                     }
                   }}
                   className="h-8 px-3.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium border border-rose-500/20 active:scale-95 transition-all cursor-pointer"
@@ -250,11 +253,12 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                     const val = tempKey.trim()
                     if (!val) return
                     const keyField = `${activeProvider}_api_key` as keyof Settings
-                    updateSetting(keyField, val)
+                    setIsEditingKey(false)
                     if (onSave) {
                       await onSave({ [keyField]: val })
+                    } else {
+                      updateSetting(keyField, val)
                     }
-                    setIsEditingKey(false)
                   }}
                   disabled={!tempKey.trim() || saving}
                   className="h-8.5 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs flex items-center gap-1.5"
