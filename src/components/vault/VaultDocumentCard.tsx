@@ -65,8 +65,13 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
     try {
       if (isLoadSheet) {
         const code = doc.pickupCode || defaultPickupCode || ''
-        await generateLoadSheet(postexToken, code, doc.trackingNumbers)
-        toast.success('Load Sheet Generated', `PostEx load sheet for ${doc.count} parcels opened.`)
+        const res = await generateLoadSheet(postexToken, code, doc.trackingNumbers, {
+          batchName: doc.batchName,
+          totalCOD: doc.totalCOD
+        })
+        if (res.success) {
+          toast.success('Load Sheet Ready', `PostEx load sheet for ${doc.count} parcels opened.`)
+        }
       } else {
         const ok = await printLabels(postexToken, doc.trackingNumbers)
         if (ok) {

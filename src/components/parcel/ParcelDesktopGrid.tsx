@@ -218,7 +218,7 @@ export function ParcelDesktopGrid({
                   key={i}
                   className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
                     selected.has(i) ? 'bg-emerald-500/5 dark:bg-emerald-500/5' : ''
-                  }`}
+                  } ${editingCity?.row === i && !editingCity?.isMobile ? 'relative z-40' : ''}`}
                 >
                   {/* Checkbox */}
                   <td className="p-2 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
@@ -304,7 +304,9 @@ export function ParcelDesktopGrid({
                   </td>
 
                   {/* City (with live search dropdown) */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container overflow-hidden min-w-0">
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container min-w-0 ${
+                    editingCity?.row === i && !editingCity?.isMobile ? 'overflow-visible z-50' : 'overflow-hidden'
+                  }`}>
                     <input
                       ref={editingCity?.row === i && !editingCity?.isMobile ? cityInputRef : undefined}
                       value={parcel.city || ''}
@@ -318,6 +320,16 @@ export function ParcelDesktopGrid({
                         setEditingCity({ row: i, isMobile: false })
                       }}
                       placeholder="Type City..."
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={editingCity?.row === i && !editingCity?.isMobile}
+                      data-lpignore="true"
+                      data-form-type="other"
+                      name={`city_dropdown_${i}`}
                       className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-semibold focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset ${
                         isCityValid
                           ? 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
@@ -329,6 +341,7 @@ export function ParcelDesktopGrid({
                     {editingCity?.row === i && !editingCity?.isMobile && (
                       <CityDropdownMenu
                         filteredCities={filteredCities}
+                        isNearBottom={i >= parcels.length - 2 && parcels.length > 3}
                         selectedCity={parcel.city}
                         onSelectCity={city => {
                           updateField(i, 'city', city)

@@ -37,7 +37,7 @@ export default function AdminPanel() {
         .order('created_at', { ascending: false })
 
       if (usersErr) throw usersErr
-      setUsers((usersData || []).map((u: any) => ({
+      const mappedUsers = (usersData || []).map((u: any) => ({
         id: u.id,
         email: u.email,
         role: u.role,
@@ -45,7 +45,13 @@ export default function AdminPanel() {
         is_blocked: !!(u.is_blocked || (u.settings as any)?.settings?.is_blocked),
         created_at: u.created_at,
         settings: u.settings
-      })))
+      }))
+      setUsers(mappedUsers)
+      setSelectedUser(prev => {
+        if (!prev) return mappedUsers[0] || null
+        const found = mappedUsers.find(mu => mu.id === prev.id)
+        return found || mappedUsers[0] || null
+      })
 
       // 2. Fetch all usage logs
       const { data: logsData, error: logsErr } = await supabase

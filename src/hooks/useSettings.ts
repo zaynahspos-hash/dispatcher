@@ -153,33 +153,36 @@ function readLocal(userId: string, field: keyof Settings): any {
 /** Write a single field to localStorage strictly for this user (RULE D15) */
 function writeLocal(userId: string, field: keyof Settings, value: any, explicitDelete = false) {
   const strVal = value === undefined || value === null ? '' : String(value)
-  localStorage.setItem(userSettingsKey(userId, field), strVal)
+  const isDeleting = explicitDelete || strVal === ''
+  
+  if (isDeleting) {
+    localStorage.removeItem(userSettingsKey(userId, field))
+  } else {
+    localStorage.setItem(userSettingsKey(userId, field), strVal)
+  }
 
   // Maintain persistent resilient vault for secrets so they survive browser cache clear
   if (CRITICAL_SECRET_KEYS.includes(field)) {
-    if (strVal) {
+    if (strVal && !isDeleting) {
       localStorage.setItem(userVaultKey(userId, field), strVal)
       localStorage.setItem(`zaynah_vault_${field}`, strVal)
-    } else if (explicitDelete) {
+    } else {
       localStorage.removeItem(userVaultKey(userId, field))
       localStorage.removeItem(`zaynah_vault_${field}`)
     }
   }
 }
 
-/** Write all settings to localStorage for this user with vault preservation */
+/** Write all settings to localStorage for this user (removes keys when empty instead of reviving old keys) */
 function writeAllLocal(userId: string, data: Settings) {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     const val = data[k]
-    // Anti-Wipe: If secret key in data is empty, but vault has it, preserve vault and keep secret!
-    if (CRITICAL_SECRET_KEYS.includes(k) && (!val || val === '')) {
-      const existingVault = localStorage.getItem(userVaultKey(userId, k)) || localStorage.getItem(`zaynah_vault_${k}`)
-      if (existingVault) {
-        writeLocal(userId, k, existingVault)
-        return
-      }
+    const isEmpty = val === undefined || val === null || val === ''
+    if (CRITICAL_SECRET_KEYS.includes(k) && isEmpty) {
+      localStorage.removeItem(userVaultKey(userId, k))
+      localStorage.removeItem(`zaynah_vault_${k}`)
     }
-    writeLocal(userId, k, val || '')
+    writeLocal(userId, k, val || '', isEmpty)
   })
 }
 

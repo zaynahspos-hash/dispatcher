@@ -262,6 +262,16 @@ export function ParcelMobileCards({
                       setEditingCity({ row: i, isMobile: true })
                     }}
                     placeholder="Type City..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={editingCity?.row === i && editingCity?.isMobile}
+                    data-lpignore="true"
+                    data-form-type="other"
+                    name={`mobile_city_${i}`}
                     className={`w-full px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-[#070b12] border text-xs font-bold focus:outline-none ${
                       isCityValid
                         ? 'border-slate-200 dark:border-slate-800 focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100'

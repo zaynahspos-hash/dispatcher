@@ -100,17 +100,23 @@ export function useBookedHistoryOperations({
     setIsLoading(true)
     setActionStatus(null)
     try {
-      const success = await generateLoadSheet(
+      const totalCODVal = history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.total || 0), 0)
+      const res = await generateLoadSheet(
         settings.postex_token,
         settings.postex_pickup || '',
-        selectedIds
+        selectedIds,
+        {
+          batchName: `Load Sheet (${selectedIds.length} Parcels)`,
+          totalCOD: totalCODVal
+        }
       )
-      if (success) {
+      if (res.success) {
         saveLoadSheetDocument(userId, {
           pickupCode: settings.postex_pickup || '',
           batchName: `Load Sheet (${selectedIds.length} Parcels)`,
           trackingNumbers: selectedIds,
-          totalCOD: history.filter(p => selectedIds.includes(p.tracking)).reduce((s, p) => s + (p.total || 0), 0)
+          totalCOD: totalCODVal,
+          pdfBase64: res.base64
         })
         const updatedHistory = history.map(item => {
           if (selectedIds.includes(item.tracking)) {
