@@ -621,7 +621,7 @@ export const normalizePortalStatus = (raw?: string): string => {
  */
 export const parsePortalDate = (value?: string): string => {
   const raw = (value || '').trim()
-  if (!raw) return new Date().toISOString()
+  if (!raw) return ''
   const normalized = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
   const dateStr = getParcelDateStr(normalized)
   if (dateStr) {
@@ -630,7 +630,7 @@ export const parsePortalDate = (value?: string): string => {
     return `${dateStr}T12:00:00.000+05:00`
   }
   const parsed = new Date(normalized)
-  return isNaN(parsed.getTime()) ? new Date().toISOString() : normalized
+  return isNaN(parsed.getTime()) ? '' : parsed.toISOString()
 }
 
 /**
@@ -728,7 +728,7 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
         detail: order.orderDetail || 'Kids Clothes',
         note: order.transactionNotes || '',
         tracking: tracking,
-        bookingDate: parsePortalDate(order.transactionDate),
+        bookingDate: parsePortalDate(order.orderDate || order.bookingDate || order.transactionDate || order.createdDatetime || order.modifiedDatetime || order.orderDateString),
         status: rawOrderStatus,
         orderType: 'Normal',
         source: 'postex_portal',
@@ -783,7 +783,8 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
     const rawOrderStatus = normalizePortalStatus(order.transactionStatus || order.orderStatus)
     const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
     const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
-    const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
+    const rawDate = order.orderDate || order.bookingDate || order.transactionDate || order.createdDatetime || order.modifiedDatetime || order.orderDateString
+    const resolvedBookingDate = parsePortalDate(rawDate) || existing?.bookingDate || ''
 
     const parcel: BookedParcel = {
       id: ref || tracking,
@@ -797,7 +798,7 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
       detail: order.orderDetail || existing?.detail || 'Kids Clothes',
       note: order.transactionNotes || existing?.note || '',
       tracking: tracking || existing?.tracking || '',
-      bookingDate: parsePortalDate(order.transactionDate) || existing?.bookingDate || new Date().toISOString(),
+      bookingDate: resolvedBookingDate,
       status: isUnbooked ? 'UNBOOKED' : (existing ? determineNewStatus(existing.status, rawOrderStatus) : rawOrderStatus),
       orderType: 'Normal',
       source: 'postex_portal',

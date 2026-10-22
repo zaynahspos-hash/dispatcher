@@ -80,8 +80,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const todayStr = presetsInfo.todayStr
   const last7Str = presetsInfo.last7Str
 
-  // Default to Last 7 Days (exact same as Booked History presets)
-  const [startDate, setStartDate] = useState(last7Str)
+  // Default to Today (exact same as Booked History presets)
+  const [startDate, setStartDate] = useState(todayStr)
   const [endDate, setEndDate] = useState(todayStr)
   const [filterCustomer, setFilterCustomer] = useState('')
   const [filterMerchant, setFilterMerchant] = useState('all')
@@ -165,7 +165,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 
   // Load cached external parcels from portalParcelStore on mount or filter change
   useEffect(() => {
-    const rangeStart = startDate || last7Str
+    const rangeStart = startDate || todayStr
     const rangeEnd = endDate || todayStr
 
     const targetMerchants = filterMerchant === 'all'
@@ -224,7 +224,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       return
     }
 
-    const rangeStart = startDate || last7Str
+    const rangeStart = startDate || todayStr
     const rangeEnd = endDate || todayStr
 
     setIsSyncing(true)
@@ -416,7 +416,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     setFilterCity('all')
     setFilterSource('all')
     setFilterWhatsapp('all')
-    setStartDate(last7Str)
+    setStartDate(todayStr)
     setEndDate(todayStr)
     setFilterCustomer('')
     setSyncError(null)
@@ -461,7 +461,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     filterSource !== 'all' ||
     filterWhatsapp !== 'all' ||
     filterCustomer ||
-    (startDate && startDate !== last7Str) ||
+    (startDate && startDate !== todayStr) ||
     (endDate && endDate !== todayStr)
   )
 
