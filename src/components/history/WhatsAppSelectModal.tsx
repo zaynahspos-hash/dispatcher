@@ -1,6 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { CloseIcon, WhatsAppIcon, PackageIcon, TruckIcon, AlertTriangleIcon, CheckCircleIcon } from '../Icons'
-import { BookedParcel, getWhatsAppLink, detectParcelMilestone, getMilestoneInfo, getDisplayStatus, DEFAULT_MILESTONE_TEMPLATES } from './types'
+import { 
+  BookedParcel, 
+  getWhatsAppLink, 
+  detectParcelMilestone, 
+  getMilestoneInfo, 
+  getDisplayStatus, 
+  DEFAULT_MILESTONE_TEMPLATES,
+  WhatsAppClientTarget,
+  isMobileDevice
+} from './types'
 
 interface WhatsAppSelectModalProps {
   parcel: BookedParcel | null
@@ -29,6 +38,15 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
 }) => {
   if (!parcel) return null
 
+  const isMobile = isMobileDevice()
+  const [waTarget, setWaTarget] = useState<WhatsAppClientTarget>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferred_wa_client') as WhatsAppClientTarget
+      if (saved === 'app' || saved === 'web') return saved
+    }
+    return 'web'
+  })
+
   const realMilestone = detectParcelMilestone(parcel)
   const milestoneInfo = getMilestoneInfo(realMilestone)
 
@@ -38,12 +56,16 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
     realMilestone === 'delivered' ? (whatsappTemplateDelivered || DEFAULT_MILESTONE_TEMPLATES.delivered) :
     (whatsappTemplate || DEFAULT_MILESTONE_TEMPLATES.booking)
 
-  const bookingUrl = getWhatsAppLink(parcel, whatsappNote, whatsappTemplate, 'booking')
-  const statusUrl = getWhatsAppLink(parcel, whatsappNote, milestoneTemplate, realMilestone)
+  const bookingUrl = getWhatsAppLink(parcel, whatsappNote, whatsappTemplate, 'booking', waTarget)
+  const statusUrl = getWhatsAppLink(parcel, whatsappNote, milestoneTemplate, realMilestone, waTarget)
 
   const handleSend = (url: string, type: 'booking' | 'status') => {
     onMarkSent?.(parcel.tracking, parcel.id, type)
-    window.open(url, '_blank', 'noopener,noreferrer')
+    if (url.startsWith('whatsapp://')) {
+      window.location.href = url
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
     onClose()
   }
 
@@ -127,6 +149,40 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           </div>
         </div>
 
+        {/* Client Target Selector (Desktop only) */}
+        {!isMobile && (
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 rounded-xl text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setWaTarget('web')
+                localStorage.setItem('preferred_wa_client', 'web')
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                waTarget === 'web'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <span>WhatsApp Web (Direct)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setWaTarget('app')
+                localStorage.setItem('preferred_wa_client', 'app')
+              }}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                waTarget === 'app'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <span>Desktop App (Native)</span>
+            </button>
+          </div>
+        )}
+
         {/* Action Options - Apple iOS Action Cards */}
         <div className="space-y-2.5 pt-0.5">
           {/* Option 1: Booking Confirmation */}
@@ -202,7 +258,11 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
 
         {/* Footer */}
         <div className="pt-1 text-center text-[10px] text-slate-400">
-          Opens WhatsApp directly with prefilled message.
+          {isMobile
+            ? 'Opens WhatsApp directly on your mobile device.'
+            : waTarget === 'app'
+              ? 'Opens native WhatsApp desktop app directly with verified emojis.'
+              : 'Opens WhatsApp Web directly without redirect screen. Emojis 100% verified.'}
         </div>
       </div>
     </div>

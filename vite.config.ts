@@ -32,36 +32,50 @@ export default defineConfig(({ mode }) => {
               if (!fs.existsSync(filePath)) {
                 filePath = path.resolve(__dirname, `api/${routePath}/index.js`);
               }
+              if (!fs.existsSync(filePath) && routePath === 'tracking-order') {
+                filePath = path.resolve(__dirname, 'api/track.js');
+              }
               if (fs.existsSync(filePath)) {
+                const runHandler = async (parsedBody: any) => {
+                  (req as any).body = parsedBody || {};
+                  (req as any).query = query;
+                  (res as any).status = (code: number) => {
+                    res.statusCode = code;
+                    return res;
+                  };
+                  (res as any).json = (data: any) => {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify(data));
+                    return res;
+                  };
+                  try {
+                    const mod = await import(`file://${filePath}?t=${Date.now()}`);
+                    const handler = mod.default || mod;
+                    await handler(req, res);
+                  } catch (handlerErr: any) {
+                    console.error('[API Dev Handler Error]', handlerErr);
+                    res.statusCode = 500;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ error: handlerErr.message || 'Server error' }));
+                  }
+                };
+
+                if (req.method === 'GET' || req.readableEnded) {
+                  runHandler({});
+                  return;
+                }
+
                 try {
                   let body = '';
                   req.on('data', chunk => { body += chunk; });
-                  req.on('end', async () => {
+                  req.on('end', () => {
+                    let parsed = {};
                     try {
-                      if (body) (req as any).body = JSON.parse(body);
+                      if (body) parsed = JSON.parse(body);
                     } catch {
                       // ignore parse errors
                     }
-                    (req as any).query = query;
-                    (res as any).status = (code: number) => {
-                      res.statusCode = code;
-                      return res;
-                    };
-                    (res as any).json = (data: any) => {
-                      res.setHeader('Content-Type', 'application/json');
-                      res.end(JSON.stringify(data));
-                      return res;
-                    };
-                    try {
-                      const mod = await import(`file://${filePath}?t=${Date.now()}`);
-                      const handler = mod.default || mod;
-                      await handler(req, res);
-                    } catch (handlerErr: any) {
-                      console.error('[API Dev Handler Error]', handlerErr);
-                      res.statusCode = 500;
-                      res.setHeader('Content-Type', 'application/json');
-                      res.end(JSON.stringify({ error: handlerErr.message || 'Server error' }));
-                    }
+                    runHandler(parsed);
                   });
                   return;
                 } catch (err: any) {

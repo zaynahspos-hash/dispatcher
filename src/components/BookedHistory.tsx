@@ -10,19 +10,23 @@ import {
   getStatusCategory,
   getLocalTodayDate,
   getParcelDateStr,
-  mergePostExOrders,
+  parsePortalDate,
+  transformPostExOrders,
   mergeParcelLists
 } from './history/types'
+import { CustomerEntry } from './admin/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { usePostExRangeSync } from '../hooks/usePostExRangeSync'
-import { readExternalParcels, writeExternalParcels } from '../utils/portalParcelStore'
+import { readExternalParcels, writeExternalParcels, clearExternalParcels, loadExternalParcelsAsync } from '../utils/portalParcelStore'
+import { idbSaveCustomers, idbGetCustomers } from '../utils/indexedDbStore'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
 import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
 import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
 import { WhatsAppSelectModal } from './history/WhatsAppSelectModal'
+import { LoadSheetConfirmModal } from './history/LoadSheetConfirmModal'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
@@ -53,16 +57,48 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [pickupFilter, setPickupFilter] = useState('all')
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
   const [whatsAppModalParcel, setWhatsAppModalParcel] = useState<BookedParcel | null>(null)
+  const [isLoadSheetConfirmOpen, setIsLoadSheetConfirmOpen] = useState(false)
 
   // External / Portal parcels live in their own state so database sync,
-  // realtime echoes or auth refreshes can never wipe them. They stay visible
-  // until the merchant changes the date filter.
+  // realtime echoes or auth refreshes can never wipe them.
   const [externalParcels, setExternalParcels] = useState<BookedParcel[]>(() =>
     readExternalParcels(userId, fromDate, toDate)
   )
 
   useEffect(() => {
-    setExternalParcels(readExternalParcels(userId, fromDate, toDate))
+    let isSubscribed = true
+    const cached = readExternalParcels(userId, fromDate, toDate)
+    if (cached.length > 0) {
+      setExternalParcels(cached)
+    } else {
+      // Pull full dataset from IndexedDB asynchronously across page reloads
+      loadExternalParcelsAsync(userId, fromDate, toDate).then(parcels => {
+        if (isSubscribed && parcels && parcels.length > 0) {
+          setExternalParcels(parcels)
+        }
+      })
+    }
+    return () => { isSubscribed = false }
+  }, [userId, fromDate, toDate])
+
+  // Listen for background PostEx sync events from Admin tab or other windows
+  useEffect(() => {
+    const handleSyncEvent = (e: any) => {
+      const detail = e?.detail
+      if (!detail) return
+      if (!detail.userId || !userId || detail.userId === userId) {
+        const cached = readExternalParcels(userId, fromDate, toDate)
+        if (cached.length > 0) {
+          setExternalParcels(cached)
+        } else {
+          loadExternalParcelsAsync(userId, fromDate, toDate).then(parcels => {
+            if (parcels && parcels.length > 0) setExternalParcels(parcels)
+          })
+        }
+      }
+    }
+    window.addEventListener('portal_parcels_synced', handleSyncEvent)
+    return () => window.removeEventListener('portal_parcels_synced', handleSyncEvent)
   }, [userId, fromDate, toDate])
 
   const externalParcelsRef = useRef<BookedParcel[]>(externalParcels)
@@ -101,14 +137,45 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const applyPortalOrders = useCallback((orders: any[], range: string) => {
     // Ignore a response that belongs to a date range the merchant already left.
     if (range !== activeRangeRef.current) return
-    const merged = mergePostExOrders(externalParcelsRef.current, orders)
-    externalParcelsRef.current = merged
-    writeExternalParcels(userId, fromDate, toDate, merged)
-    setExternalParcels(merged)
-  }, [userId, fromDate, toDate])
+    const transformed = transformPostExOrders(orders, externalParcelsRef.current)
+    externalParcelsRef.current = transformed
+    writeExternalParcels(userId, fromDate, toDate, transformed)
+    setExternalParcels(transformed)
+
+    // Extract customer directory contacts and save to IndexedDB so Admin tab has them immediately
+    if (Array.isArray(orders) && orders.length > 0) {
+      idbGetCustomers().then(cachedList => {
+        const map = new Map<string, CustomerEntry>()
+        ;(cachedList || []).forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+        orders.forEach((o, idx) => {
+          const rawPhone = (o.customerPhone || '').trim()
+          if (!rawPhone) return
+          const cleanPhone = rawPhone.replace(/\D/g, '')
+          const rawDate = o.transactionDate || o.orderDate || o.bookingDate || o.createdDatetime || o.modifiedDatetime
+          const validIsoDate = parsePortalDate(rawDate)
+          const entry: CustomerEntry = {
+            id: `portal_${userId || 'merchant'}_${o.trackingNumber || o.orderRefNumber || idx}`,
+            user_id: userId || 'default',
+            name: o.customerName || 'Valued Customer',
+            phone: rawPhone,
+            city: o.cityName || '',
+            address: o.deliveryAddress || '',
+            source: 'postex_portal',
+            created_at: validIsoDate,
+            updated_at: validIsoDate,
+            user: { email: settings?.store_name || 'Merchant' }
+          }
+          map.set(`${userId || 'default'}_${cleanPhone}`, entry)
+        })
+        const merged = Array.from(map.values())
+        void idbSaveCustomers(merged)
+      })
+    }
+  }, [userId, fromDate, toDate, settings])
 
   const portalSync = usePostExRangeSync({
     token: settings.postex_token,
+    userId,
     fromDate,
     toDate,
     onOrders: applyPortalOrders
@@ -156,6 +223,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
       return
     }
+    // Invalidate local cache for active range to force an instant fresh load from PostEx
+    clearExternalParcels(userId, fromDate, toDate)
     const fetchedCount = await portalSync.sync(true)
     if (fetchedCount === null) return
     setActionStatus({
@@ -202,19 +271,27 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       {/* Header and Sync Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between w-full sm:w-auto">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Booked History</span>
-            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              {filteredParcels.length}
-            </span>
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Booked History</span>
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                {filteredParcels.length}
+              </span>
+            </h2>
+            {portalSync.isSyncing && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                Live PostEx Sync
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleToggleAutoExpandLines}
-            className={`flex-1 sm:flex-initial h-8 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
+            className={`flex-1 sm:flex-initial h-9 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
               autoExpandLines
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -227,7 +304,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             type="button"
             onClick={handleManualRefresh}
             disabled={portalSync.isSyncing || isLoading}
-            className="flex-1 sm:flex-initial h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
+            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+            title="Fetch latest booked parcels directly from PostEx for selected date range"
           >
             {portalSync.isSyncing ? (
               <>
@@ -235,7 +313,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-[11px]">Syncing...</span>
+                <span>Syncing...</span>
               </>
             ) : (
               <>
@@ -247,7 +325,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         </div>
       </div>
 
-      {/* Advanced Filter Component */}
+      {/* Advanced Filter Component (Banner renders at the top inside HistoryFilterBar, matching Admin tab exactly) */}
       <HistoryFilterBar
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
@@ -257,22 +335,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         statusFilter={statusFilter} setStatusFilter={setStatusFilter}
         sourceFilter={sourceFilter} setSourceFilter={setSourceFilter}
         whatsappFilter={whatsappFilter} setWhatsappFilter={setWhatsappFilter}
+        isSyncing={portalSync.isSyncing}
+        syncProgress={portalSync.progress}
+        syncElapsedSeconds={portalSync.elapsedSeconds}
         counts={counts}
         sourceCounts={sourceCounts}
       />
-
-      {/* Live PostEx range sync feedback */}
-      {portalSync.isSyncing && (
-        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/90 dark:bg-emerald-900/25 px-3 py-2">
-          <svg className="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex-1 min-w-0 truncate">
-            {portalSync.progress || 'Loading parcels directly from PostEx...'}
-          </p>
-        </div>
-      )}
 
       {portalSync.error && !portalSync.isSyncing && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/90 dark:bg-rose-900/25 px-3 py-2">
@@ -338,7 +406,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         loadsheetableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
-        onGenerateLoadSheet={handleGenerateLoadSheet}
+        onGenerateLoadSheet={() => setIsLoadSheetConfirmOpen(true)}
         onCancelSelected={handleCancelSelected}
         onSyncSelected={handleSyncSelected}
         isLoading={isLoading}
@@ -477,6 +545,31 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         isBookingSent={waTracker.isBookingSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
         isStatusSent={waTracker.isStatusSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
         onMarkSent={(tracking, id, type) => waTracker.markSent(tracking, type, id)}
+      />
+
+      {/* Load Sheet Alert Confirmation Modal */}
+      <LoadSheetConfirmModal
+        isOpen={isLoadSheetConfirmOpen}
+        onClose={() => setIsLoadSheetConfirmOpen(false)}
+        onConfirm={async () => {
+          await handleGenerateLoadSheet()
+          setIsLoadSheetConfirmOpen(false)
+        }}
+        selectedParcels={combinedHistory.filter(p => selectedIds.includes(p.tracking))}
+        pickupCode={settings.postex_pickup}
+        isGenerating={isLoading}
+        onRemoveInvalid={() => {
+          const invalidSet = new Set(
+            combinedHistory
+              .filter(p => selectedIds.includes(p.tracking))
+              .filter(p => {
+                const cat = getStatusCategory(p.status, p.tracking)
+                return cat === 'cancelled' || cat === 'intransit' || cat === 'delivered' || cat === 'returned'
+              })
+              .map(p => p.tracking)
+          )
+          setSelectedIds(prev => prev.filter(id => !invalidSet.has(id)))
+        }}
       />
     </div>
   )

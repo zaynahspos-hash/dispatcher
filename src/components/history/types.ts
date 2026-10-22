@@ -75,21 +75,96 @@ export const getLocalTodayDate = (): string => {
   return `${year}-${month}-${day}`
 }
 
+export type DatePresetType = 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last3Months'
+
+export interface DatePresetsInfo {
+  todayStr: string
+  yestStr: string
+  last7Str: string
+  thisMonthStr: string
+  last3MonthsStr: string
+  getRangeForPreset: (preset: DatePresetType) => { fromDate: string; toDate: string }
+  detectPreset: (fromDate: string, toDate: string) => DatePresetType | null
+}
+
+export const getDatePresetsInfo = (refDate: Date = new Date()): DatePresetsInfo => {
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const todayStr = formatDate(refDate)
+
+  const yest = new Date(refDate)
+  yest.setDate(refDate.getDate() - 1)
+  const yestStr = formatDate(yest)
+
+  const d7 = new Date(refDate)
+  d7.setDate(refDate.getDate() - 7)
+  const last7Str = formatDate(d7)
+
+  const firstMonth = new Date(refDate.getFullYear(), refDate.getMonth(), 1)
+  const thisMonthStr = formatDate(firstMonth)
+
+  const d90 = new Date(refDate)
+  d90.setDate(refDate.getDate() - 90)
+  const last3MonthsStr = formatDate(d90)
+
+  const getRangeForPreset = (preset: DatePresetType): { fromDate: string; toDate: string } => {
+    switch (preset) {
+      case 'today':
+        return { fromDate: todayStr, toDate: todayStr }
+      case 'yesterday':
+        return { fromDate: yestStr, toDate: yestStr }
+      case 'last7':
+        return { fromDate: last7Str, toDate: todayStr }
+      case 'thisMonth':
+        return { fromDate: thisMonthStr, toDate: todayStr }
+      case 'last3Months':
+        return { fromDate: last3MonthsStr, toDate: todayStr }
+    }
+  }
+
+  const detectPreset = (fromDate: string, toDate: string): DatePresetType | null => {
+    if (fromDate === todayStr && toDate === todayStr) return 'today'
+    if (fromDate === yestStr && toDate === yestStr) return 'yesterday'
+    if (fromDate === last7Str && toDate === todayStr) return 'last7'
+    if (fromDate === thisMonthStr && toDate === todayStr) return 'thisMonth'
+    if (fromDate === last3MonthsStr && toDate === todayStr) return 'last3Months'
+    return null
+  }
+
+  return {
+    todayStr,
+    yestStr,
+    last7Str,
+    thisMonthStr,
+    last3MonthsStr,
+    getRangeForPreset,
+    detectPreset
+  }
+}
+
+/**
+ * Extracts normalized YYYY-MM-DD date string with absolute zero timezone distortion.
+ * Prioritizes direct YYYY-MM-DD substring matching to preserve official courier timestamps.
+ */
 export const getParcelDateStr = (dateVal?: string): string => {
   if (!dateVal) return ''
   const str = String(dateVal).trim()
   if (!str) return ''
-  if (str.includes('T') || str.includes('Z')) {
-    const d = new Date(str)
-    if (!isNaN(d.getTime())) {
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-  }
+
+  // 1. Direct YYYY-MM-DD prefix (prevents local/UTC timezone distortion on PKT dates)
   const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (match) return `${match[1]}-${match[2]}-${match[3]}`
+
+  // 2. Direct DD/MM/YYYY or DD-MM-YYYY format
+  const matchSlash = str.match(/^(\d{2})[/-](\d{2})[/-](\d{4})/)
+  if (matchSlash) return `${matchSlash[3]}-${matchSlash[2]}-${matchSlash[1]}`
+
+  // 3. Fallback for timestamps or arbitrary date formats
   const d = new Date(str)
   if (!isNaN(d.getTime())) {
     const year = d.getFullYear()
@@ -162,9 +237,12 @@ export const isDetailedMilestone = (status: string): boolean => {
   return (
     s.includes('depart') ||
     s.includes('arrive') ||
-    s.includes('received at') ||
+    s.includes('received') ||
     s.includes('at transit') ||
-    s.includes('postex warehouse')
+    s.includes('postex warehouse') ||
+    s.includes('warehouse') ||
+    s.includes('hub') ||
+    s.includes('station')
   )
 }
 
@@ -233,10 +311,10 @@ export const determineNewStatus = (currentStatus: string, fetchedStatus: string)
     return 'Booked'
   }
 
-  // If current status is a detailed milestone (e.g. "Departed to SKARDU") and fetchedStatus is generic "In Transit", preserve detailed milestone!
+  // If current status is a detailed milestone (e.g. "Received at LHE Warehouse") and fetchedStatus is generic "In Transit", preserve detailed milestone!
   if (
     isDetailedMilestone(currentStatus) &&
-    (f === 'in transit' || f === 'in-transit' || f === 'intransit' || f === 'en route' || f === 'en-route')
+    (f === 'in transit' || f === 'in-transit' || f === 'intransit' || f === 'en route' || f === 'en-route' || f === 'dispatched')
   ) {
     return currentStatus
   }
@@ -265,7 +343,9 @@ export const getStatusCategory = (status: string, _tracking?: string, hasLoadShe
     s.includes('en-route') ||
     s.includes('en route') ||
     s.includes('hub') ||
-    s.includes('station')
+    s.includes('station') ||
+    s.includes('received at') ||
+    s.includes('received')
   ) {
     return 'intransit'
   }
@@ -415,11 +495,19 @@ export const isCorruptText = (txt?: string): boolean => {
   return false
 }
 
+export const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
+
+export type WhatsAppClientTarget = 'auto' | 'web' | 'app'
+
 export const getWhatsAppLink = (
   parcel: BookedParcel, 
   whatsappNote?: string, 
   whatsappTemplate?: string,
-  milestone: WhatsAppMilestone | 'auto' = 'booking'
+  milestone: WhatsAppMilestone | 'auto' = 'booking',
+  clientTarget: WhatsAppClientTarget = 'auto'
 ) => {
   let cleanPhone = parcel.phone.replace(/\D/g, '')
   if (cleanPhone.startsWith('0')) {
@@ -470,8 +558,31 @@ export const getWhatsAppLink = (
     .replace(/{items}/g, String(parcel.items || 1))
     .replace(/{note}/g, noteContent)
 
-  // Direct api.whatsapp.com/send endpoint prevents 302 redirect UTF-8 emoji corruption
-  return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(template)}`
+  const encodedText = encodeURIComponent(template)
+
+  // Resolve client preference: explicit argument -> stored localStorage -> auto
+  const storedPreference = (typeof window !== 'undefined' ? localStorage.getItem('preferred_wa_client') : null) as WhatsAppClientTarget | null
+  const effectiveTarget = clientTarget !== 'auto' ? clientTarget : (storedPreference || 'auto')
+
+  if (effectiveTarget === 'app') {
+    return `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`
+  }
+
+  if (effectiveTarget === 'web') {
+    return `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encodedText}`
+  }
+
+  // Auto Mode:
+  // On mobile: use api.whatsapp.com which mobile OS intercepts via Universal/App Links to open WhatsApp natively
+  if (isMobileDevice()) {
+    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+  }
+
+  // On Desktop: use web.whatsapp.com directly.
+  // CRITICAL FIX: api.whatsapp.com has a known Meta server bug where 4-byte UTF-8 emojis are rendered
+  // as diamond question marks (\uFFFD) on the intermediate preview screen.
+  // Pointing directly to web.whatsapp.com completely bypasses the preview page and preserves 100% of emojis.
+  return `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encodedText}`
 }
 
 export const isPlaceholder = (val: string) => {
@@ -508,12 +619,18 @@ export const normalizePortalStatus = (raw?: string): string => {
  * The "+0500" offset is not valid ISO-8601 and Safari rejects it, so we
  * normalise it to "+05:00" before parsing.
  */
-const parsePortalDate = (value?: string): string => {
+export const parsePortalDate = (value?: string): string => {
   const raw = (value || '').trim()
   if (!raw) return new Date().toISOString()
   const normalized = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+  const dateStr = getParcelDateStr(normalized)
+  if (dateStr) {
+    // If it contains time and offset, preserve it
+    if (normalized.includes('T')) return normalized
+    return `${dateStr}T12:00:00.000+05:00`
+  }
   const parsed = new Date(normalized)
-  return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
+  return isNaN(parsed.getTime()) ? new Date().toISOString() : normalized
 }
 
 /**
@@ -636,5 +753,67 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
 
   return Array.from(uniqueParcels.values())
     .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
+}
+
+/**
+ * Transforms raw PostEx API orders into BookedParcel objects for a specific date range.
+ * Retains existing local metadata (like whatsapp_sent) from previous parcels of that tracking,
+ * but only includes parcels present in postExOrders so old dates never leak into the active view.
+ */
+export function transformPostExOrders(postExOrders: any[], existingParcels: BookedParcel[] = []): BookedParcel[] {
+  if (!postExOrders || !Array.isArray(postExOrders) || postExOrders.length === 0) return []
+  const existingMap = new Map<string, BookedParcel>()
+  existingParcels.forEach(p => {
+    const trackKey = (p.tracking || '').trim().toLowerCase()
+    const idKey = (p.id || '').trim().toLowerCase()
+    if (trackKey) existingMap.set(trackKey, p)
+    if (idKey && !existingMap.has(idKey)) existingMap.set(idKey, p)
+  })
+
+  const resultMap = new Map<string, BookedParcel>()
+
+  postExOrders.forEach(order => {
+    const tracking = (order.trackingNumber || '').trim()
+    const ref = (order.orderRefNumber || '').trim()
+    const trackKey = tracking.toLowerCase()
+    const refKey = ref.toLowerCase()
+    if (!tracking && !ref) return
+
+    const existing = (trackKey && existingMap.get(trackKey)) || (refKey && existingMap.get(refKey))
+    const rawOrderStatus = normalizePortalStatus(order.transactionStatus || order.orderStatus)
+    const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
+    const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
+    const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
+
+    const parcel: BookedParcel = {
+      id: ref || tracking,
+      name: order.customerName || (existing?.name && !isPlaceholder(existing.name) ? existing.name : 'Customer'),
+      phone: order.customerPhone || existing?.phone || '',
+      city: order.cityName || existing?.city || '',
+      address: order.deliveryAddress || existing?.address || '',
+      total: Number(order.invoicePayment || existing?.total || 0),
+      items: Number(order.items || existing?.items || 1) || 1,
+      weight: declaredWeight > 0 ? declaredWeight : (existing?.weight || 0.5),
+      detail: order.orderDetail || existing?.detail || 'Kids Clothes',
+      note: order.transactionNotes || existing?.note || '',
+      tracking: tracking || existing?.tracking || '',
+      bookingDate: parsePortalDate(order.transactionDate) || existing?.bookingDate || new Date().toISOString(),
+      status: isUnbooked ? 'UNBOOKED' : (existing ? determineNewStatus(existing.status, rawOrderStatus) : rawOrderStatus),
+      orderType: 'Normal',
+      source: 'postex_portal',
+      hasLoadSheet: isUnbooked ? false : (Boolean(existing?.hasLoadSheet) || hasLoadSheet),
+      loadsheet_generated: isUnbooked ? false : (Boolean(existing?.loadsheet_generated) || hasLoadSheet),
+      whatsapp_sent: Boolean(existing?.whatsapp_sent || existing?.whatsappSent),
+      whatsappSent: Boolean(existing?.whatsapp_sent || existing?.whatsappSent),
+      whatsapp_booking_sent: Boolean(existing?.whatsapp_booking_sent),
+      whatsapp_status_sent: Boolean(existing?.whatsapp_status_sent),
+      whatsapp_sent_at: existing?.whatsapp_sent_at
+    }
+
+    const key = (tracking || ref).toLowerCase()
+    resultMap.set(key, parcel)
+  })
+
+  return Array.from(resultMap.values()).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
 }
 

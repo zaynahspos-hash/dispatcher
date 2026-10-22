@@ -566,28 +566,54 @@ export async function trackOrder(token: string, trackingNumber: string) {
     return { statusCode: 400, statusMessage: 'Tracking number is missing' }
   }
 
-  // 1. High-fidelity Serverless Tracking Proxy (/api/track)
-  // Queries https://postex.pk/api/tracking-order directly on the server without browser CORS blocks.
-  // This guarantees 100% exact match with postex.pk/tracking portal in real time.
+  // 1. High-fidelity Serverless Tracking Proxy via GET (/api/track?cn=...)
+  // GET avoids stream pause/buffer bugs in dev and edge runtimes
   try {
-    const proxyRes = await axios.post(
-      '/api/track',
-      { trackingNumber: cleanCN },
-      { headers: { 'Content-Type': 'application/json' }, timeout: 8000 }
+    const proxyRes = await axios.get(
+      `/api/track?cn=${encodeURIComponent(cleanCN)}`,
+      { timeout: 7000 }
     )
     if (proxyRes?.data && (proxyRes.data.statusCode === 200 || proxyRes.data.statusCode === '200' || proxyRes.data.dist)) {
       return proxyRes.data
     }
   } catch (proxyErr: any) {
-    console.warn('Real-time tracking proxy failed, falling back to direct merchant API:', proxyErr?.message)
+    console.warn('Real-time tracking proxy GET failed:', proxyErr?.message)
   }
 
-  // 2. Fallback: Authenticated Merchant API
+  // 1b. Fallback: High-fidelity Serverless Tracking Proxy via POST
+  try {
+    const postProxyRes = await axios.post(
+      '/api/track',
+      { trackingNumber: cleanCN },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 7000 }
+    )
+    if (postProxyRes?.data && (postProxyRes.data.statusCode === 200 || postProxyRes.data.statusCode === '200' || postProxyRes.data.dist)) {
+      return postProxyRes.data
+    }
+  } catch (postErr: any) {
+    console.warn('Real-time tracking proxy POST failed:', postErr?.message)
+  }
+
+  // 2. Fallback: Direct public tracking endpoint (proxied in dev, direct in prod)
+  try {
+    const pubRes = await axios.post(
+      `${POSTEX_PUBLIC_HOST}/api/tracking-order`,
+      { trackingNumber: cleanCN },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 7000 }
+    )
+    if (pubRes?.data && (pubRes.data.statusCode === 200 || pubRes.data.statusCode === '200' || pubRes.data.dist)) {
+      return pubRes.data
+    }
+  } catch (pubErr: any) {
+    console.warn('Public tracking-order fallback failed:', pubErr?.message)
+  }
+
+  // 3. Fallback: Authenticated Merchant API
   if (token && token.trim()) {
     try {
       const res = await axios.get(
         `${BASE}/order/v1/track-order/${cleanCN}`,
-        { headers: headers(token) }
+        { headers: headers(token), timeout: 7000 }
       )
       if (res?.data && (res.data.statusCode === 200 || res.data.statusCode === '200' || res.data.dist)) {
         return res.data
@@ -595,20 +621,6 @@ export async function trackOrder(token: string, trackingNumber: string) {
     } catch (err: any) {
       console.warn('Merchant track-order failed:', err?.message)
     }
-  }
-
-  // 3. Fallback: Direct public tracking endpoint (in case proxy is bypassed)
-  try {
-    const pubRes = await axios.post(
-      `${POSTEX_PUBLIC_HOST}/api/tracking-order`,
-      { trackingNumber: cleanCN },
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-    if (pubRes?.data && (pubRes.data.statusCode === 200 || pubRes.data.statusCode === '200' || pubRes.data.dist)) {
-      return pubRes.data
-    }
-  } catch (pubErr: any) {
-    console.warn('Public tracking-order fallback failed:', pubErr?.message)
   }
 
   return { statusCode: 400, statusMessage: 'Tracking status not found' }
@@ -620,8 +632,8 @@ export async function trackOrder(token: string, trackingNumber: string) {
  * left external/portal parcels empty. We therefore fetch exactly the range the
  * merchant is looking at and split long ranges into small windows.
  */
-const ORDER_FETCH_WINDOW_DAYS = 14
-const ORDER_FETCH_TIMEOUT_MS = 110000
+const ORDER_FETCH_WINDOW_DAYS = 7
+const ORDER_FETCH_TIMEOUT_MS = 60000
 
 export interface PostExOrderFetchOptions {
   timeout_ms?: number
@@ -713,22 +725,32 @@ export async function fetchAllMerchantOrders(
       windows.length
     )
 
-    try {
-      const res = await axios.get(
-        `${BASE}/order/v1/get-all-order?startDate=${from}&endDate=${to}&orderStatusId=0`,
-        { headers: headers(token), timeout: timeoutMs, signal: options.signal }
-      )
-      for (const order of extractOrderList(res.data)) {
-        const identity = orderIdentity(order)
-        if (identity === '|' || seen.has(identity)) continue
-        seen.add(identity)
-        collected.push(order)
+    let success = false
+    let attempts = 0
+    while (!success && attempts < 2) {
+      attempts++
+      try {
+        const res = await axios.get(
+          `${BASE}/order/v1/get-all-order?startDate=${from}&endDate=${to}&orderStatusId=0`,
+          { headers: headers(token), timeout: timeoutMs, signal: options.signal }
+        )
+        for (const order of extractOrderList(res.data)) {
+          const identity = orderIdentity(order)
+          if (identity === '|' || seen.has(identity)) continue
+          seen.add(identity)
+          collected.push(order)
+        }
+        success = true
+      } catch (err: any) {
+        if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') throw err
+        if (attempts >= 2) {
+          const message = describeOrderFetchError(err)
+          failures.push(message)
+          console.warn(`PostEx orders ${from} → ${to} failed:`, message)
+        } else {
+          await new Promise(r => setTimeout(r, 600))
+        }
       }
-    } catch (err: any) {
-      if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') throw err
-      const message = describeOrderFetchError(err)
-      failures.push(message)
-      console.warn(`PostEx orders ${from} → ${to} failed:`, message)
     }
   }
 

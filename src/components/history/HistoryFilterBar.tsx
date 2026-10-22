@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { SearchIcon, RefreshIcon, FilterIcon, AutoFitIcon, CloseIcon, CalendarIcon, WhatsAppIcon } from '../Icons'
+import React from 'react'
+import { SearchIcon, RefreshIcon, AutoFitIcon, CloseIcon, CalendarIcon, WhatsAppIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
-import { StatusFilterType, SourceFilterType, getLocalTodayDate } from './types'
+import { StatusFilterType, SourceFilterType, getLocalTodayDate, getDatePresetsInfo, DatePresetType } from './types'
 
 interface HistoryFilterBarProps {
   searchQuery: string
@@ -24,6 +24,9 @@ interface HistoryFilterBarProps {
   whatsappFilter?: 'all' | 'pending' | 'sent'
   setWhatsappFilter?: (filter: 'all' | 'pending' | 'sent') => void
   onAutoFitColumns?: (e?: React.MouseEvent) => void
+  isSyncing?: boolean
+  syncProgress?: string
+  syncElapsedSeconds?: number
   counts: {
     all: number
     pendingLoadsheet: number
@@ -43,7 +46,6 @@ interface HistoryFilterBarProps {
     portal: number
   }
 }
-
 
 export function HistoryFilterBar({
   searchQuery,
@@ -65,63 +67,31 @@ export function HistoryFilterBar({
   whatsappFilter = 'all',
   setWhatsappFilter,
   onAutoFitColumns,
+  isSyncing = false,
+  syncProgress = '',
+  syncElapsedSeconds = 0,
   counts,
   sourceCounts
 }: HistoryFilterBarProps) {
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-
   const today = getLocalTodayDate()
-  const isCustomDate = Boolean((fromDate && fromDate !== today) || (toDate && toDate !== today))
+  const isCustomFilterActive = Boolean(
+    (fromDate && fromDate !== today) || 
+    (toDate && toDate !== today) ||
+    (statusSelect && statusSelect !== 'all') ||
+    (pickupFilter && pickupFilter !== 'all') ||
+    (whatsappFilter && whatsappFilter !== 'all') ||
+    (sourceFilter && sourceFilter !== 'all') ||
+    searchQuery
+  )
 
-  const activeFiltersCount = 
-    (isCustomDate ? 1 : 0) + 
-    (statusSelect !== 'all' ? 1 : 0) + 
-    (pickupFilter !== 'all' ? 1 : 0) +
-    (whatsappFilter !== 'all' ? 1 : 0) +
-    (sourceFilter !== 'all' ? 1 : 0)
+  // Apple iOS Segmented Date Presets Boundaries (Shared Single Source of Truth)
+  const presetsInfo = getDatePresetsInfo()
+  const activePreset = presetsInfo.detectPreset(fromDate, toDate)
 
-  // Apple iOS Segmented Date Presets Boundaries
-  const now = new Date()
-  const formatDate = (d: Date) => {
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  const todayStr = formatDate(now)
-  const yestDate = new Date()
-  yestDate.setDate(now.getDate() - 1)
-  const yestStr = formatDate(yestDate)
-
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(now.getDate() - 7)
-  const last7Str = formatDate(sevenDaysAgo)
-
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const thisMonthStr = formatDate(firstDayOfMonth)
-
-  const activePreset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | null =
-    fromDate === todayStr && toDate === todayStr ? 'today' :
-    fromDate === yestStr && toDate === yestStr ? 'yesterday' :
-    fromDate === last7Str && toDate === todayStr ? 'last7' :
-    fromDate === thisMonthStr && toDate === todayStr ? 'thisMonth' :
-    null
-
-  const handleQuickDate = (type: 'today' | 'yesterday' | 'last7' | 'thisMonth') => {
-    if (type === 'today') {
-      setFromDate(todayStr)
-      setToDate(todayStr)
-    } else if (type === 'yesterday') {
-      setFromDate(yestStr)
-      setToDate(yestStr)
-    } else if (type === 'last7') {
-      setFromDate(last7Str)
-      setToDate(todayStr)
-    } else if (type === 'thisMonth') {
-      setFromDate(thisMonthStr)
-      setToDate(todayStr)
-    }
+  const handleQuickDate = (type: DatePresetType) => {
+    const range = presetsInfo.getRangeForPreset(type)
+    setFromDate(range.fromDate)
+    setToDate(range.toDate)
   }
 
   const tabs = [
@@ -136,219 +106,229 @@ export function HistoryFilterBar({
     { id: 'cancelled', label: 'Cancelled', count: counts.cancelled }
   ] as const
 
-
   return (
     <div className="space-y-3.5 mb-5 w-full max-w-full min-w-0">
       {/* Search & Filter Trigger Bar */}
-      <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-2.5 sm:p-4 shadow-xs">
-        <div className="flex items-center gap-2">
-          {/* Main Search Input */}
-          <div className="relative flex-1 min-w-0 flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
-            <span className="pl-3 text-slate-400 dark:text-slate-500 shrink-0">
-              <SearchIcon size={16} />
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search order #, tracking, customer, phone..."
-              className="w-full pl-2 pr-3 py-2 text-xs sm:text-sm bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-100"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
-              >
-                <CloseIcon size={12} />
-              </button>
-            )}
-          </div>
-
-          {/* Toggle Filter Panel (Mobile & Tablet) */}
-          <button
-            type="button"
-            onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-            className={`h-10 flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 whitespace-nowrap ${
-              mobileFiltersOpen || activeFiltersCount > 0
-                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            <FilterIcon size={14} className={activeFiltersCount > 0 ? 'text-emerald-500' : 'text-slate-500'} />
-            <span className="hidden sm:inline">Filters</span>
-            {activeFiltersCount > 0 && (
-              <span className="w-4.5 h-4.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center leading-none">
-                {activeFiltersCount}
+      <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-3 sm:p-4 shadow-xs space-y-3.5">
+        
+        {/* Live PostEx range sync feedback banner (100% identical to Admin tab) */}
+        {isSyncing && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/90 dark:bg-emerald-900/25 px-3.5 py-2.5 animate-in fade-in duration-150">
+            <svg className="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex-1 min-w-0 truncate">
+              {syncProgress || 'Loading parcels directly from PostEx...'}
+            </p>
+            {typeof syncElapsedSeconds === 'number' && syncElapsedSeconds >= 0 && (
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-600/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 shrink-0">
+                {Math.floor(syncElapsedSeconds / 60)}:{(syncElapsedSeconds % 60).toString().padStart(2, '0')}s
               </span>
             )}
-          </button>
+          </div>
+        )}
 
-          {/* Quick Clear Filter Button */}
-          {(searchQuery || activeFiltersCount > 0) && (
+        {/* Main Search Input (Full Width clean layout matching Admin) */}
+        <div className="relative flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
+          <span className="pl-3 text-slate-400 dark:text-slate-500 shrink-0">
+            <SearchIcon size={16} />
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search order #, tracking, customer, phone..."
+            className="w-full pl-2 pr-3 py-2 text-xs sm:text-sm bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-100"
+          />
+          {searchQuery && (
             <button
               type="button"
-              onClick={handleClearFilters}
-              className="h-10 flex items-center justify-center gap-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap"
-              title="Clear all filters"
+              onClick={() => setSearchQuery('')}
+              className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
             >
-              <RefreshIcon size={14} />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-          )}
-
-          {/* Excel Auto-Fit Columns */}
-          {onAutoFitColumns && (
-            <button
-              type="button"
-              onClick={onAutoFitColumns}
-              className="h-10 hidden sm:flex items-center justify-center gap-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 whitespace-nowrap active:scale-98"
-              title="Auto-fit all column widths to maximum text length • Alt+Click to reset defaults"
-            >
-              <AutoFitIcon size={14} className="text-emerald-500" />
-              <span>Auto-Fit</span>
+              <CloseIcon size={12} />
             </button>
           )}
         </div>
 
-        {/* Collapsible Filter Details */}
-        <div className={`mt-3.5 pt-3.5 border-t border-slate-200/80 dark:border-slate-800/80 ${mobileFiltersOpen ? 'block' : 'hidden md:block'}`}>
-          {/* Native Apple iOS Segmented Date Presets */}
-          <div className="mb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 sm:p-2.5 bg-slate-50/80 dark:bg-slate-900/40 rounded-2xl border border-slate-200/70 dark:border-slate-800/70">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
-                <span>Date Presets</span>
+        {/* Native Apple iOS Segmented Date Presets (Matching Admin exactly) */}
+        <div className="p-3 bg-slate-50/70 dark:bg-slate-900/40 rounded-xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Date Presets</span>
+            </span>
+            {activePreset ? (
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                {activePreset === 'today' && 'Today'}
+                {activePreset === 'yesterday' && 'Yesterday'}
+                {activePreset === 'last7' && 'Last 7 Days'}
+                {activePreset === 'thisMonth' && 'This Month'}
+                {activePreset === 'last3Months' && 'Last 3 Months'}
               </span>
-              {activePreset ? (
-                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  {activePreset === 'today' && 'Today'}
-                  {activePreset === 'yesterday' && 'Yesterday'}
-                  {activePreset === 'last7' && 'Last 7 Days'}
-                  {activePreset === 'thisMonth' && 'This Month'}
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2 py-0.5 rounded-full">
-                  Custom Range
-                </span>
-              )}
-            </div>
-
-            {/* Apple iOS Segmented Control */}
-            <ScrollableChipsBar
-              className="w-full sm:w-auto inline-flex"
-              containerClassName="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-inner w-full sm:w-auto overflow-x-auto no-scrollbar gap-1"
-              fadeColorClass={{
-                left: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90',
-                right: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90'
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleQuickDate('today')}
-                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
-                  activePreset === 'today'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
-                }`}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDate('yesterday')}
-                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
-                  activePreset === 'yesterday'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
-                }`}
-              >
-                Yesterday
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDate('last7')}
-                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
-                  activePreset === 'last7'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
-                }`}
-              >
-                Last 7 Days
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDate('thisMonth')}
-                className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
-                  activePreset === 'thisMonth'
-                    ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
-                }`}
-              >
-                This Month
-              </button>
-            </ScrollableChipsBar>
+            ) : (
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2 py-0.5 rounded-full">
+                Custom Range
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-            {/* From Date */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                From Date
-              </label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={e => setFromDate(e.target.value)}
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100 h-9 font-medium"
-              />
-            </div>
+          {/* Apple iOS Segmented Control */}
+          <ScrollableChipsBar
+            className="w-full sm:w-auto inline-flex"
+            containerClassName="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-inner w-full sm:w-auto overflow-x-auto no-scrollbar gap-1"
+            fadeColorClass={{
+              left: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90',
+              right: 'from-slate-200 via-slate-200/90 to-transparent dark:from-slate-800 dark:via-slate-800/90'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleQuickDate('today')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'today'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDate('yesterday')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'yesterday'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              Yesterday
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDate('last7')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'last7'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              Last 7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDate('thisMonth')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'thisMonth'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDate('last3Months')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'last3Months'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              Last 3 Months
+            </button>
+          </ScrollableChipsBar>
+        </div>
 
-            {/* To Date */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                To Date
-              </label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={e => setToDate(e.target.value)}
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100 h-9 font-medium"
-              />
-            </div>
+        {/* 5-Column Filter Controls Row (Matching Admin's exact 5-column responsive layout with Reset Filters) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          {/* From Date */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200"
+            />
+          </div>
 
-            {/* Status Select */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status Filter</label>
-              <select
-                value={statusSelect}
-                onChange={e => setStatusSelect(e.target.value)}
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-100 h-9"
+          {/* To Date */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200"
+            />
+          </div>
+
+          {/* Status Select */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Status Filter
+            </label>
+            <select
+              value={statusSelect}
+              onChange={e => setStatusSelect(e.target.value)}
+              className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="booked">Booked</option>
+              <option value="transit">In Transit / Warehouse</option>
+              <option value="under_review">Under Review / Attempted</option>
+              <option value="delivered">Delivered</option>
+              <option value="returned">Returned</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          {/* City / Destination Select */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              City / Destination
+            </label>
+            <SearchableDropdown
+              value={pickupFilter}
+              onChange={setPickupFilter}
+              options={uniqueCities}
+              placeholder="All Cities"
+              allOptionLabel={`All Cities (${uniqueCities.length})`}
+              allOptionValue="all"
+              className="w-full"
+            />
+          </div>
+
+          {/* Reset Filters & Auto-Fit Action Button (Exact same placement as Admin) */}
+          <div className="flex items-center gap-2">
+            {isCustomFilterActive && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="h-9 flex-1 px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold rounded-xl text-xs transition active:scale-95 cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
+                title="Reset all filters to defaults"
               >
-                <option value="all">All Statuses</option>
-                <option value="booked">Booked</option>
-                <option value="transit">In Transit / Warehouse</option>
-                <option value="under_review">Under Review / Attempted</option>
-                <option value="delivered">Delivered</option>
-                <option value="returned">Returned</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-
-            {/* Pickup Address Select */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Pickup Address / City
-              </label>
-              <SearchableDropdown
-                value={pickupFilter}
-                onChange={setPickupFilter}
-                options={uniqueCities}
-                placeholder="All Cities"
-                allOptionLabel="All Cities"
-                allOptionValue="all"
-              />
-            </div>
+                <CloseIcon size={12} />
+                <span>Reset Filters</span>
+              </button>
+            )}
+            {onAutoFitColumns && (
+              <button
+                type="button"
+                onClick={onAutoFitColumns}
+                className="h-9 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs transition cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center gap-1.5"
+                title="Auto-fit column widths"
+              >
+                <AutoFitIcon size={13} className="text-emerald-500" />
+                <span className="hidden sm:inline">Auto-Fit</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -391,130 +371,97 @@ export function HistoryFilterBar({
         })}
       </ScrollableChipsBar>
 
-      {/* 2. Secondary Filter Pills: Source & WhatsApp (Uniform h-8, perfectly aligned) */}
-      <div className="flex flex-wrap items-center gap-2">
-        {setSourceFilter && (
-          <ScrollableChipsBar
-            className="flex-1 min-w-0"
-            containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
-          >
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0">
+      {/* 2. Secondary Filter Chips Bar: Origin Source and WhatsApp Status (Matching Admin) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pt-0.5">
+        {/* Source Origin Filter Chips */}
+        {sourceCounts && setSourceFilter && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">
               Source:
             </span>
             <button
               type="button"
               onClick={() => setSourceFilter('all')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 sourceFilter === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
               }`}
             >
               <span>All Sources</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                sourceFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              }`}>
-                {sourceCounts?.all ?? counts.all}
-              </span>
+              <span className="text-[10px] font-mono opacity-80">{sourceCounts.all}</span>
             </button>
-
             <button
               type="button"
               onClick={() => setSourceFilter('app')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 sourceFilter === 'app'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
               }`}
             >
               <span>Booked in App</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              }`}>
-                {sourceCounts?.app ?? 0}
-              </span>
+              <span className="text-[10px] font-mono opacity-80">{sourceCounts.app}</span>
             </button>
-
             <button
               type="button"
               onClick={() => setSourceFilter('postex_portal')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 sourceFilter === 'postex_portal'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
               }`}
             >
               <span>External / Portal</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                sourceFilter === 'postex_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-              }`}>
-                {sourceCounts?.portal ?? 0}
-              </span>
+              <span className="text-[10px] font-mono opacity-80">{sourceCounts.portal}</span>
             </button>
-          </ScrollableChipsBar>
+          </div>
         )}
 
-        {/* WhatsApp Sent / Pending Quick Filter — same pill style as every other filter tab */}
+        {/* WhatsApp Sent / Pending Status Filter Chips */}
         {setWhatsappFilter && (
-          <ScrollableChipsBar
-            className="shrink-0"
-            containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
-          >
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0 flex items-center gap-1">
-              <WhatsAppIcon size={12} className="text-[#25D366] fill-current shrink-0" />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
+              <WhatsAppIcon size={12} className="text-emerald-500" />
               <span>WA:</span>
             </span>
             <button
               type="button"
               onClick={() => setWhatsappFilter('all')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 whatsappFilter === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
               }`}
             >
               <span>All</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                whatsappFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              }`}>
-                {counts.all}
-              </span>
+              <span className="text-[10px] font-mono opacity-80">{counts.all}</span>
             </button>
             <button
               type="button"
               onClick={() => setWhatsappFilter('pending')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 whatsappFilter === 'pending'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
               }`}
-              title="Show only customers who have not received WhatsApp tracking yet"
             >
               <span>Pending</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                whatsappFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              }`}>
-                {counts.waPending ?? 0}
-              </span>
+              <span className="text-[10px] font-mono opacity-90">{counts.waPending ?? 0}</span>
             </button>
             <button
               type="button"
               onClick={() => setWhatsappFilter('sent')}
-              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 whatsappFilter === 'sent'
-                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                  ? 'bg-emerald-600 text-white font-bold'
+                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
               }`}
-              title="Show customers who have already been sent WhatsApp tracking"
             >
               <span>Sent</span>
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                whatsappFilter === 'sent' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              }`}>
-                {counts.waSent ?? 0}
-              </span>
+              <span className="text-[10px] font-mono opacity-90">{counts.waSent ?? 0}</span>
             </button>
-          </ScrollableChipsBar>
+          </div>
         )}
       </div>
     </div>

@@ -23,6 +23,9 @@ export interface CustomerEntry {
   user_id: string
   phone: string
   name: string
+  city?: string
+  address?: string
+  total_orders?: number
   source?: 'app' | 'postex_portal' | string
   created_at: string
   updated_at?: string

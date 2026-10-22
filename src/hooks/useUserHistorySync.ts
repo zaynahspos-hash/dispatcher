@@ -158,9 +158,8 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
                 .then(({ data: fresh }) => {
                   if (fresh?.history) {
                     const dbHistory = fresh.history as unknown as BookedParcel[]
-                    // Keep only direct-from-PostEx rows; the DB stays the single
-                    // source of truth for app-booked parcels and deletions.
-                    setHistory(previous => mergeHistory(dbHistory, previous.filter(p => p.source === 'postex_portal')))
+                    // The DB stays the single source of truth for app-booked parcels.
+                    setHistory(dbHistory)
                     setCached(userHistoryKey, dbHistory, getTTL('days', 30))
                     localStorage.setItem(cacheKey, String(dbUpdated))
                   }
@@ -184,11 +183,7 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
         payload => {
           const fresh = payload.new as { history?: BookedParcel[]; updated_at?: string }
           if (fresh && fresh.history && Array.isArray(fresh.history)) {
-            // Merge only direct-from-PostEx rows so the database write never
-            // clears external parcels, while DB deletions still apply.
-            setHistory(previous =>
-              mergeHistory(fresh.history as BookedParcel[], previous.filter(p => p.source === 'postex_portal'))
-            )
+            setHistory(fresh.history as BookedParcel[])
             if (fresh.updated_at) {
               const cacheKey = `booked_history_synced_at_${user.id}`
               localStorage.setItem(cacheKey, String(new Date(fresh.updated_at).getTime()))
@@ -209,24 +204,20 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
   }, [user])
 
   const updateHistory = (updated: BookedParcel[]) => {
-    setHistory(updated)
+    // Only persist database orders (plus external orders that have merchant WhatsApp actions)
+    const toPersist = updated.filter(p => p.source !== 'postex_portal' || p.whatsapp_booking_sent || p.whatsapp_status_sent || p.whatsapp_sent)
+    setHistory(toPersist)
 
     if (user) {
       const userHistoryKey = `booked_history_${user.id}`
       const cacheKey = `booked_history_synced_at_${user.id}`
-      // External portal parcels can run into thousands; keeping them all in
-      // localStorage hits the browser quota and blocks the main thread.
-      if (updated.length <= MAX_CACHED_HISTORY_PARCELS) {
-        setCached(userHistoryKey, updated, getTTL('days', 30))
-      }
+      setCached(userHistoryKey, toPersist, getTTL('days', 30))
       const nowIso = new Date().toISOString()
       localStorage.setItem(cacheKey, String(new Date(nowIso).getTime()))
 
       // RULE C10: optimistic update above is already done. Now persist to DB.
       // RULE D15: Persist app-originated bookings AND any portal orders that have merchant WhatsApp actions
       // so that WhatsApp sent indicators sync across all devices in real-time.
-      const toPersist = updated.filter(p => p.source !== 'postex_portal' || p.whatsapp_booking_sent || p.whatsapp_status_sent || p.whatsapp_sent)
-
       supabase
         .from('booked_history')
         .upsert({
@@ -238,7 +229,7 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
           if (error) console.error('Failed to sync history to db:', error)
         })
     } else {
-      setCached('booked_history', updated, getTTL('days', 30))
+      setCached('booked_history', toPersist, getTTL('days', 30))
     }
   }
 

@@ -1,32 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchAllMerchantOrders } from '../utils/postexApi'
+import { hasExternalParcels, getLastRangeSyncTime, recordRangeSync } from '../utils/portalParcelStore'
 
 /**
  * Loads external PostEx parcels for the exact date range the merchant is
- * looking at. The history tab used to request 180 days in one call, which
- * routinely timed out (HTTP 524) and left the "External / Portal" list empty.
+ * looking at. Smart cached: does not auto-sync if parcels are already present in store.
  */
 
-const AUTO_SYNC_DEBOUNCE_MS = 450
-const AUTO_SYNC_COOLDOWN_MS = 5 * 60 * 1000
+const AUTO_SYNC_DEBOUNCE_MS = 300
+const AUTO_SYNC_COOLDOWN_MS = 60 * 1000
 
 interface UsePostExRangeSyncOptions {
   token?: string
+  userId?: string
   fromDate: string
   toDate: string
   onOrders: (orders: any[], range: string) => void
 }
 
-export function usePostExRangeSync({ token, fromDate, toDate, onOrders }: UsePostExRangeSyncOptions) {
+export function usePostExRangeSync({ token, userId, fromDate, toDate, onOrders }: UsePostExRangeSyncOptions) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
-  const lastSyncRef = useRef<Record<string, number>>({})
   const activeRangeRef = useRef<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const mountedRef = useRef(true)
   const onOrdersRef = useRef(onOrders)
+  const timerRef = useRef<any>(null)
 
   useEffect(() => {
     onOrdersRef.current = onOrders
@@ -37,19 +39,38 @@ export function usePostExRangeSync({ token, fromDate, toDate, onOrders }: UsePos
     return () => {
       mountedRef.current = false
       abortRef.current?.abort()
+      if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [])
+
+  // Timer increments every second while syncing
+  useEffect(() => {
+    if (isSyncing) {
+      setElapsedSeconds(0)
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1)
+      }, 1000)
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [isSyncing])
 
   const rangeKey = `${fromDate}|${toDate}`
 
   const sync = useCallback(
-    async (force = false): Promise<number | null> => {
+    async (force = true): Promise<number | null> => {
       const cleanToken = (token || '').trim()
       if (!cleanToken || !fromDate || !toDate) return null
-      if (activeRangeRef.current === rangeKey) return null
-
-      const lastSyncedAt = lastSyncRef.current[rangeKey] || 0
-      if (!force && Date.now() - lastSyncedAt < AUTO_SYNC_COOLDOWN_MS) return null
+      if (activeRangeRef.current === rangeKey && !force) return null
 
       abortRef.current?.abort()
       const controller = new AbortController()
@@ -59,7 +80,7 @@ export function usePostExRangeSync({ token, fromDate, toDate, onOrders }: UsePos
       if (mountedRef.current) {
         setIsSyncing(true)
         setError(null)
-        setProgress('Connecting to PostEx...')
+        setProgress('Connecting to PostEx API...')
       }
 
       try {
@@ -70,8 +91,8 @@ export function usePostExRangeSync({ token, fromDate, toDate, onOrders }: UsePos
           }
         })
 
-        lastSyncRef.current[rangeKey] = Date.now()
-        if (mountedRef.current && orders.length > 0) {
+        recordRangeSync(userId, rangeKey)
+        if (mountedRef.current) {
           onOrdersRef.current(orders, rangeKey)
         }
         return orders.length
@@ -92,19 +113,12 @@ export function usePostExRangeSync({ token, fromDate, toDate, onOrders }: UsePos
         }
       }
     },
-    [token, fromDate, toDate, rangeKey]
+    [token, userId, fromDate, toDate, rangeKey]
   )
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void sync(false)
-    }, AUTO_SYNC_DEBOUNCE_MS)
+  // NOTE: Auto-sync on date change is intentionally disabled.
+  // Both Booked History and Admin tabs sync strictly on "Sync PostEx" button click,
+  // while date filters instantly filter local/cached data without network round-trips.
 
-    return () => {
-      clearTimeout(timer)
-      abortRef.current?.abort()
-    }
-  }, [sync])
-
-  return { isSyncing, progress, error, sync }
+  return { isSyncing, progress, error, elapsedSeconds, sync }
 }

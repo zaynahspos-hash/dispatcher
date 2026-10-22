@@ -9,7 +9,7 @@ import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
-import { BookedParcel, DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from './history/types'
+import { BookedParcel, DEFAULT_MILESTONE_TEMPLATES, isCorruptText, getWhatsAppLink as getUnifiedWhatsAppLink } from './history/types'
 import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
@@ -100,29 +100,12 @@ export default function BookingResults({
   }
 
   const getWhatsAppLink = (parcel: BookingResult) => {
-    let cleanPhone = parcel.phone.replace(/\D/g, '')
-    if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1)
-    else if (!cleanPhone.startsWith('92') && cleanPhone.length === 10) cleanPhone = '92' + cleanPhone
-
-    const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
-    const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
-    const noteContent = settings.whatsapp_note && settings.whatsapp_note !== 'Thank you for shopping with us!' && !isCorruptText(settings.whatsapp_note) && settings.whatsapp_note.includes('📱')
-      ? settings.whatsapp_note 
-      : defaultNote
-
-    const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
-    let template = (settings.whatsapp_template && !isCorruptText(settings.whatsapp_template) && settings.whatsapp_template.includes('📦'))
-      ? settings.whatsapp_template
-      : DEFAULT_MILESTONE_TEMPLATES.booking
-
-    template = template
-      .replace(/{(?:name|customer_name)}/g, parcel.name)
-      .replace(/{(?:url|portal_link)}/g, trackingUrl)
-      .replace(/{(?:amount|order_amount|total)}/g, formattedTotal)
-      .replace(/{(?:tracking|tracking_number)}/g, parcel.tracking || '')
-      .replace(/{note}/g, noteContent)
-
-    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(template)}`
+    return getUnifiedWhatsAppLink(
+      parcel as unknown as BookedParcel,
+      settings.whatsapp_note,
+      settings.whatsapp_template,
+      'booking'
+    )
   }
 
   const booked = results.filter(r => r.status === 'success')
