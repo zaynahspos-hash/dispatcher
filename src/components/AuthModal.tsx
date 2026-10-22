@@ -25,8 +25,10 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [confirmationOtp, setConfirmationOtp] = useState('')
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
 
-  // Rule AUTH-DOMAIN1: Strictly use official production domain for email links
-  const PRODUCTION_APP_URL = 'https://dispatcher.zaynahspos.com'
+  // Rule AUTH-DOMAIN1: Strictly use active production domain for email links
+  const PRODUCTION_APP_URL = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://dispatcher.zaynahs.pk'
 
   // Ensure matching row exists in public.users (RULE D13: snake_case)
   const ensureUserProfile = async (user: any) => {

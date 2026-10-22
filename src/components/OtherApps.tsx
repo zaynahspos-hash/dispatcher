@@ -46,7 +46,7 @@ export default function OtherApps() {
       name: 'Zaynah Courier Dispatcher',
       tagline: 'Multi-Tenant Logistics Engine & Courier Automation',
       description: 'Intelligent parcel booking system converting unstructured customer chat messages into verified PostEx courier dispatches in seconds.',
-      url: 'https://dispatcher.zaynahspos.com/',
+      url: 'https://dispatcher.zaynahs.pk/',
       badge: 'Active System',
       logo: '/apple-touch-icon.png?v=20261014',
       image: '/app-preview.webp',

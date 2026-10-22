@@ -188,7 +188,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       // 2. If not sent via custom endpoint, trigger Supabase fallback
       if (!sentViaCustomSmtp) {
         const domain = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? 'https://dispatcher.zaynahspos.com'
+          ? 'https://dispatcher.zaynahs.pk'
           : window.location.origin
         const redirectTo = `${domain}/#recovery=true`
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {

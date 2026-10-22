@@ -60,8 +60,8 @@ function getTransporter() {
 }
 
 function renderConfirmationEmailHtml(code, actionUrl) {
-  const logoUrl = 'https://dispatcher.zaynahspos.com/apple-touch-icon.png';
-  const appUrl = 'https://dispatcher.zaynahspos.com';
+  const logoUrl = 'https://dispatcher.zaynahs.pk/apple-touch-icon.png';
+  const appUrl = 'https://dispatcher.zaynahs.pk';
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -161,7 +161,7 @@ function renderConfirmationEmailHtml(code, actionUrl) {
                   </tr>
                 </table>
 
-                <!-- 1-Click Action Button (Rule AUTH-DOMAIN1: strictly dispatcher.zaynahspos.com) -->
+                <!-- 1-Click Action Button (Rule AUTH-DOMAIN1: strictly dispatcher.zaynahs.pk) -->
                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 22px;">
                   <tr>
                     <td align="center">
@@ -195,7 +195,7 @@ function renderConfirmationEmailHtml(code, actionUrl) {
                 </p>
                 <p style="margin: 0; font-size: 11px; color: #475569;">
                   <a href="${appUrl}" target="_blank" style="color: #10b981; text-decoration: none;">
-                    dispatcher.zaynahspos.com
+                    dispatcher.zaynahs.pk
                   </a>
                 </p>
               </td>
@@ -342,8 +342,8 @@ export default async function handler(req, res) {
       [userId, cleanEmail, code, token]
     );
 
-    // 4. Construct 1-click confirmation URL (Rule AUTH-DOMAIN1: strictly dispatcher.zaynahspos.com)
-    const actionUrl = `https://dispatcher.zaynahspos.com/#type=signup&token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+    // 4. Construct 1-click confirmation URL (Rule AUTH-DOMAIN1: strictly dispatcher.zaynahs.pk)
+    const actionUrl = `https://dispatcher.zaynahs.pk/#type=signup&token=${token}&email=${encodeURIComponent(cleanEmail)}`;
 
     // 5. Send email via Gmail SMTP (Rule AUTH-SMTP1: always zaynahspos@gmail.com)
     const transporter = getTransporter();

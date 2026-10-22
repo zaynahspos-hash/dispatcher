@@ -19,8 +19,8 @@ if (fs.existsSync('.env.local')) {
 
 const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'xhwqasbnsfjyxvzwueoo';
 const SUPABASE_TOKEN = process.argv[2] || process.env.SUPABASE_TOKEN || 'sbp_fccc05a3d4aec534fe8f5cfb0137035d0acf5565';
-const LOGO_URL = 'https://dispatcher.zaynahspos.com/apple-touch-icon.png';
-const APP_URL = 'https://dispatcher.zaynahspos.com';
+const LOGO_URL = 'https://dispatcher.zaynahs.pk/apple-touch-icon.png';
+const APP_URL = 'https://dispatcher.zaynahs.pk';
 
 /**
  * Modern, mobile-native responsive HTML Email Template wrapper
@@ -212,7 +212,7 @@ function createEmailTemplate({
                 </p>
                 <p style="margin: 0; font-size: 11px; color: #475569;">
                   <a href="${APP_URL}" target="_blank" style="color: #10b981; text-decoration: none;">
-                    dispatcher.zaynahspos.com
+                    dispatcher.zaynahs.pk
                   </a>
                 </p>
               </td>
@@ -302,8 +302,8 @@ const reauthenticationContent = createEmailTemplate({
 
 // Payload for Supabase Management API
 const payload = {
-  site_url: 'https://dispatcher.zaynahspos.com',
-  uri_allow_list: 'https://dispatcher.zaynahspos.com/**,https://dispatcher.zaynahspos.com,http://localhost:5173/**,http://localhost:5173',
+  site_url: 'https://dispatcher.zaynahs.pk',
+  uri_allow_list: 'https://dispatcher.zaynahs.pk/**,https://dispatcher.zaynahs.pk,https://dispatcher.zaynahspos.com/**,https://dispatcher.zaynahspos.com,http://localhost:5173/**,http://localhost:5173',
   mailer_subjects_confirmation: 'Verify your Zaynahs Dispatcher account',
   mailer_subjects_recovery: 'Reset your Zaynahs Dispatcher password',
   mailer_subjects_magic_link: 'Sign in to Zaynahs Courier Dispatcher',

@@ -280,12 +280,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <span>&copy; 2026 Zaynahs POS Logistics Ecosystem</span>
             <span className="text-slate-300 dark:text-slate-700">&bull;</span>
             <a 
-              href="https://dispatcher.zaynahspos.com" 
+              href={typeof window !== 'undefined' ? window.location.origin : 'https://dispatcher.zaynahs.pk'} 
               target="_blank" 
               rel="noreferrer" 
               className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
             >
-              dispatcher.zaynahspos.com
+              {typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'dispatcher.zaynahs.pk'}
             </a>
           </div>
         </footer>

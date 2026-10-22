@@ -26,12 +26,12 @@
 1. **Strict Production URL Enclosure**:
    All verification links, password reset links, magic links, and action buttons inside emails MUST strictly use the official production domain:
    ```
-   https://dispatcher.zaynahspos.com
+   https://dispatcher.zaynahs.pk
    ```
 2. **Absolute Ban on Localhost/IP in Outgoing Emails**:
    - Never embed `http://localhost:*`, `http://127.0.0.1:*`, or local LAN IPs in `actionUrl`, `emailRedirectTo`, or email links.
    - Handheld mobile devices opening email client links cannot resolve `localhost` back to the development machine, causing fatal connection errors.
-   - Even when developers test on `http://localhost:5173`, the generated email link sent to an inbox must point strictly to `https://dispatcher.zaynahspos.com`.
+   - Even when developers test on `http://localhost:5173`, the generated email link sent to an inbox must point strictly to `https://dispatcher.zaynahs.pk`.
 
 ---
 
@@ -40,7 +40,7 @@
 1. **Dual Verification Architecture**:
    Every account confirmation and password recovery email MUST provide two independent verification mechanisms:
    - **Mechanism A (1-Click Action Button)**: High-contrast emerald button linking directly to:
-     `https://dispatcher.zaynahspos.com/#type=signup&token=${token}&email=${email}`
+     `https://dispatcher.zaynahs.pk/#type=signup&token=${token}&email=${email}`
    - **Mechanism B (6-Digit Security Code)**: Prominent monospaced OTP code (e.g. `482915`) displayed inside an emerald card with `letter-spacing: 4px`.
 2. **Mobile Keyboard-Friendly Input**:
    - The confirmation screen (`isAwaitingConfirmation`) and password reset screen must render a dedicated 6-digit numeric input with a "Verify" button.

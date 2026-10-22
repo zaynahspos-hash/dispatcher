@@ -176,16 +176,16 @@ When a user clicks a password reset or email verification link, Supabase redirec
 
 ### 3.1 Allowed URLs Format
 In production, you must whitelist both the exact apex/subdomain and the wildcard subpaths:
-- `https://dispatcher.zaynahspos.com`
-- `https://dispatcher.zaynahspos.com/**`
+- `https://dispatcher.zaynahs.pk`
+- `https://dispatcher.zaynahs.pk/**`
 - `http://localhost:5173`
 - `http://localhost:5173/**`
 
 ### 3.2 Method A: Supabase Dashboard
 1. Go to **Authentication** → **URL Configuration**.
-2. Set **Site URL** to: `https://dispatcher.zaynahspos.com`
+2. Set **Site URL** to: `https://dispatcher.zaynahs.pk`
 3. Under **Redirect URLs**, click **Add URL** and add:
-   - `https://dispatcher.zaynahspos.com/**`
+   - `https://dispatcher.zaynahs.pk/**`
    - `http://localhost:5173/**`
 4. Click **Save**.
 
@@ -196,8 +196,8 @@ curl -X PATCH 'https://api.supabase.com/v1/projects/YOUR_PROJECT_REF/config/auth
   -H "Authorization: Bearer sbp_YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "site_url": "https://dispatcher.zaynahspos.com",
-    "uri_allow_list": "https://dispatcher.zaynahspos.com/**,https://dispatcher.zaynahspos.com,http://localhost:5173/**,http://localhost:5173"
+    "site_url": "https://dispatcher.zaynahs.pk",
+    "uri_allow_list": "https://dispatcher.zaynahs.pk/**,https://dispatcher.zaynahs.pk,http://localhost:5173/**,http://localhost:5173"
   }'
 ```
 
@@ -283,7 +283,7 @@ Email clients (especially Gmail for Android and iOS) strip modern CSS properties
             <!-- Brand Logo & Header -->
             <tr>
               <td align="center" style="padding: 28px 24px 20px 24px;">
-                <img src="https://dispatcher.zaynahspos.com/apple-touch-icon.png" width="52" height="52" style="border-radius: 13px; border: 1.5px solid rgba(16, 185, 129, 0.4); display: block;" />
+                <img src="https://dispatcher.zaynahs.pk/apple-touch-icon.png" width="52" height="52" style="border-radius: 13px; border: 1.5px solid rgba(16, 185, 129, 0.4); display: block;" />
                 <h1 style="margin: 14px 0 6px 0; font-size: 18px; font-weight: 700; color: #ffffff;">Zaynahs Courier Dispatcher</h1>
                 <span style="background-color: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 700; color: #10b981; letter-spacing: 1.5px; text-transform: uppercase;">
                   ACCOUNT SECURITY
@@ -342,7 +342,7 @@ Email clients (especially Gmail for Android and iOS) strip modern CSS properties
             <tr>
               <td style="padding: 18px 24px; background-color: #070b14; border-top: 1px solid #1e293b; text-align: center;">
                 <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b;">&copy; 2026 <strong>Zaynahs Courier Dispatcher</strong> &bull; Intelligent Logistics Engine</p>
-                <a href="https://dispatcher.zaynahspos.com" target="_blank" style="color: #10b981; font-size: 11px; text-decoration: none;">dispatcher.zaynahspos.com</a>
+                <a href="https://dispatcher.zaynahs.pk" target="_blank" style="color: #10b981; font-size: 11px; text-decoration: none;">dispatcher.zaynahs.pk</a>
               </td>
             </tr>
 
@@ -370,7 +370,7 @@ When the user requests a password reset from the frontend, the request is sent t
   2. Generate a secure 6-digit numeric OTP (`Math.floor(100000 + Math.random() * 900000)`).
   3. Generate a 64-character cryptographic token (`crypto.randomBytes(32).toString('hex')`).
   4. Store the tuple `(email, code, token, expires_at)` in `public.password_resets` with a 1-hour expiration window.
-  5. Formulate 1-click URL: `https://dispatcher.zaynahspos.com/#recovery=true&token=${token}&email=${encodeURIComponent(email)}`.
+  5. Formulate 1-click URL: `https://dispatcher.zaynahs.pk/#recovery=true&token=${token}&email=${encodeURIComponent(email)}`.
   6. Dispatch using `nodemailer` via Gmail SMTP over port 465 (SSL).
 
 ---
@@ -435,7 +435,7 @@ const handlePasswordUpdate = async (newPassword: string) => {
 ## 8. Interactive Email Testing Tool (`public/email-preview.html`)
 
 To preview and visually audit all email templates across different screen viewports without sending real test emails:
-1. Open the preview tool: [https://dispatcher.zaynahspos.com/email-preview.html](https://dispatcher.zaynahspos.com/email-preview.html)
+1. Open the preview tool: [https://dispatcher.zaynahs.pk/email-preview.html](https://dispatcher.zaynahs.pk/email-preview.html)
 2. Use the top tab bar to switch between templates:
    - `Password Reset`
    - `Email Confirm`

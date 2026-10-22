@@ -60,8 +60,8 @@ function getTransporter() {
 }
 
 function renderEmailHtml(code, actionUrl) {
-  const logoUrl = 'https://dispatcher.zaynahspos.com/apple-touch-icon.png';
-  const appUrl = 'https://dispatcher.zaynahspos.com';
+  const logoUrl = 'https://dispatcher.zaynahs.pk/apple-touch-icon.png';
+  const appUrl = 'https://dispatcher.zaynahs.pk';
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -233,7 +233,7 @@ function renderEmailHtml(code, actionUrl) {
                 </p>
                 <p style="margin: 0; font-size: 11px; color: #475569;">
                   <a href="${appUrl}" target="_blank" style="color: #10b981; text-decoration: none;">
-                    dispatcher.zaynahspos.com
+                    dispatcher.zaynahs.pk
                   </a>
                 </p>
               </td>
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
     );
 
     // 3. Construct 1-click URL
-    const actionUrl = `https://dispatcher.zaynahspos.com/#recovery=true&token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+    const actionUrl = `https://dispatcher.zaynahs.pk/#recovery=true&token=${token}&email=${encodeURIComponent(cleanEmail)}`;
 
     // 4. Send email via Gmail SMTP
     const transporter = getTransporter();
