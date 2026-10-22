@@ -423,13 +423,13 @@ export function HistoryFilterBar({
               onClick={() => setSourceFilter('app')}
               className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
                 sourceFilter === 'app'
-                  ? 'bg-emerald-600 text-white shadow-xs border-emerald-600 font-bold'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
                   : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
               }`}
             >
               <span>Booked in App</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
               }`}>
                 {sourceCounts?.app ?? 0}
               </span>
@@ -454,57 +454,67 @@ export function HistoryFilterBar({
           </ScrollableChipsBar>
         )}
 
-        {/* WhatsApp Sent / Pending Quick Filter Toggle */}
+        {/* WhatsApp Sent / Pending Quick Filter — same pill style as every other filter tab */}
         {setWhatsappFilter && (
-          <div className="h-8 flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 shrink-0 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 flex items-center gap-1">
+          <ScrollableChipsBar
+            className="shrink-0"
+            containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+          >
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0 flex items-center gap-1">
               <WhatsAppIcon size={12} className="text-[#25D366] fill-current shrink-0" />
               <span>WA:</span>
             </span>
             <button
               type="button"
               onClick={() => setWhatsappFilter('all')}
-              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center justify-center ${
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
                 whatsappFilter === 'all'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
               }`}
             >
-              All
+              <span>All</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                whatsappFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}>
+                {counts.all}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => setWhatsappFilter('pending')}
-              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
                 whatsappFilter === 'pending'
-                  ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 shadow-2xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-amber-600'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
               }`}
               title="Show only customers who have not received WhatsApp tracking yet"
             >
               <span>Pending</span>
-              <span className="text-[9px] font-mono font-bold px-1 rounded bg-amber-500/25 text-amber-800 dark:text-amber-300">
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                whatsappFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}>
                 {counts.waPending ?? 0}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setWhatsappFilter('sent')}
-              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
                 whatsappFilter === 'sent'
-                  ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
               }`}
               title="Show customers who have already been sent WhatsApp tracking"
             >
               <span>Sent</span>
-              <span className={`text-[9px] font-mono font-bold px-1 rounded ${
-                whatsappFilter === 'sent' ? 'bg-white/20 text-white' : 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-400'
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                whatsappFilter === 'sent' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
               }`}>
                 {counts.waSent ?? 0}
               </span>
             </button>
-          </div>
+          </ScrollableChipsBar>
         )}
       </div>
     </div>

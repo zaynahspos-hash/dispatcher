@@ -1,17 +1,22 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Settings } from '../utils/aiParser'
 import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon } from './Icons'
-import { 
-  BookedParcel, 
-  StatusFilterType, 
-  SourceFilterType, 
+import {
+  BookedParcel,
+  StatusFilterType,
+  SourceFilterType,
   isCancellable,
   isCancelledStatus,
   getStatusCategory,
-  getLocalTodayDate
+  getLocalTodayDate,
+  getParcelDateStr,
+  mergePostExOrders,
+  mergeParcelLists
 } from './history/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
 import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
+import { usePostExRangeSync } from '../hooks/usePostExRangeSync'
+import { readExternalParcels, writeExternalParcels } from '../utils/portalParcelStore'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
 import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
@@ -49,7 +54,71 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
   const [whatsAppModalParcel, setWhatsAppModalParcel] = useState<BookedParcel | null>(null)
 
-  const waTracker = useWhatsAppSentTracker(userId || settings?.postex_token, history, onUpdateHistory)
+  // External / Portal parcels live in their own state so database sync,
+  // realtime echoes or auth refreshes can never wipe them. They stay visible
+  // until the merchant changes the date filter.
+  const [externalParcels, setExternalParcels] = useState<BookedParcel[]>(() =>
+    readExternalParcels(userId, fromDate, toDate)
+  )
+
+  useEffect(() => {
+    setExternalParcels(readExternalParcels(userId, fromDate, toDate))
+  }, [userId, fromDate, toDate])
+
+  const externalParcelsRef = useRef<BookedParcel[]>(externalParcels)
+  useEffect(() => {
+    externalParcelsRef.current = externalParcels
+  }, [externalParcels])
+
+  const activeRangeRef = useRef(`${fromDate}|${toDate}`)
+  useEffect(() => {
+    activeRangeRef.current = `${fromDate}|${toDate}`
+  }, [fromDate, toDate])
+
+  // Single list used for filters, counts, actions and WhatsApp — app bookings
+  // and direct-from-PostEx parcels behave exactly the same here.
+  const combinedHistory = useMemo(
+    () => mergeParcelLists(history, externalParcels),
+    [history, externalParcels]
+  )
+
+  // Route every action result to both stores: database rows to Supabase,
+  // external rows back into the persisted PostEx list.
+  const applyHistoryUpdate = useCallback((updated: BookedParcel[]) => {
+    const external = updated.filter(parcel => {
+      if (parcel.source !== 'postex_portal') return false
+      const parcelDate = getParcelDateStr(parcel.bookingDate)
+      if (fromDate && (!parcelDate || parcelDate < fromDate)) return false
+      if (toDate && (!parcelDate || parcelDate > toDate)) return false
+      return true
+    })
+    externalParcelsRef.current = external
+    setExternalParcels(external)
+    writeExternalParcels(userId, fromDate, toDate, external)
+    onUpdateHistory(updated)
+  }, [onUpdateHistory, userId, fromDate, toDate])
+
+  const applyPortalOrders = useCallback((orders: any[], range: string) => {
+    // Ignore a response that belongs to a date range the merchant already left.
+    if (range !== activeRangeRef.current) return
+    const merged = mergePostExOrders(externalParcelsRef.current, orders)
+    externalParcelsRef.current = merged
+    writeExternalParcels(userId, fromDate, toDate, merged)
+    setExternalParcels(merged)
+  }, [userId, fromDate, toDate])
+
+  const portalSync = usePostExRangeSync({
+    token: settings.postex_token,
+    fromDate,
+    toDate,
+    onOrders: applyPortalOrders
+  })
+
+  const waTracker = useWhatsAppSentTracker(
+    userId || settings?.postex_token,
+    combinedHistory,
+    applyHistoryUpdate
+  )
 
   const handleClearFilters = () => {
     const today = getLocalTodayDate()
@@ -65,22 +134,37 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   // Filter and dynamic counts hook
   const { counts, sourceCounts, filteredParcels } = useBookedHistoryFilter({
-    history, statusFilter, sourceFilter, searchQuery, fromDate, toDate,
+    history: combinedHistory, statusFilter, sourceFilter, searchQuery, fromDate, toDate,
     statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
   // PostEx operations hook
   const {
     selectedIds, setSelectedIds, handleSelectAll, handleSelectItem, isLoading,
-    actionStatus, setActionStatus, syncingTracking, isSyncingAll, syncProgress,
+    actionStatus, setActionStatus, syncingTracking,
     isCancellingAll, cancelProgress, adviceParcel, setAdviceParcel,
     adviceStatusId, setAdviceStatusId, adviceRemarks, setAdviceRemarks,
     isSubmittingAdvice, adviceError, setAdviceError, handlePrintSelected,
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
-    handleSyncStatus, handleSyncSelected, handleRefreshAll, handleSubmitAdvice
+    handleSyncStatus, handleSyncSelected, handleSubmitAdvice
   } = useBookedHistoryOperations({
-    settings, history, onUpdateHistory, filteredParcels, fromDate, toDate, userId
+    settings, history: combinedHistory, onUpdateHistory: applyHistoryUpdate, filteredParcels, userId
   })
+
+  const handleManualRefresh = async () => {
+    if (!settings.postex_token) {
+      setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
+      return
+    }
+    const fetchedCount = await portalSync.sync(true)
+    if (fetchedCount === null) return
+    setActionStatus({
+      type: 'success',
+      message: fetchedCount > 0
+        ? `${fetchedCount} external parcels loaded directly from PostEx.`
+        : 'No PostEx parcels found for the selected date range.'
+    })
+  }
 
   // DB-Optimized Shared Pagination
   const {
@@ -97,9 +181,9 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   })
 
   const uniqueCities = useMemo(() => {
-    const citiesSet = new Set(history.map(item => item.city.toUpperCase().trim()))
+    const citiesSet = new Set(combinedHistory.map(item => item.city.toUpperCase().trim()))
     return Array.from(citiesSet).filter(Boolean).sort()
-  }, [history])
+  }, [combinedHistory])
 
   const [autoExpandLines, setAutoExpandLines] = useState<boolean>(() => {
     return localStorage.getItem('zaynah_history_auto_expand_lines') === 'true'
@@ -141,22 +225,22 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
           <button
             type="button"
-            onClick={handleRefreshAll}
-            disabled={isSyncingAll || isLoading}
+            onClick={handleManualRefresh}
+            disabled={portalSync.isSyncing || isLoading}
             className="flex-1 sm:flex-initial h-8 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
           >
-            {isSyncingAll ? (
+            {portalSync.isSyncing ? (
               <>
                 <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-[11px]">{syncProgress}</span>
+                <span className="text-[11px]">Syncing...</span>
               </>
             ) : (
               <>
                 <RefreshIcon size={13} />
-                <span>Refresh Statuses</span>
+                <span>Sync PostEx</span>
               </>
             )}
           </button>
@@ -176,6 +260,35 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         counts={counts}
         sourceCounts={sourceCounts}
       />
+
+      {/* Live PostEx range sync feedback */}
+      {portalSync.isSyncing && (
+        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/90 dark:bg-emerald-900/25 px-3 py-2">
+          <svg className="animate-spin h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex-1 min-w-0 truncate">
+            {portalSync.progress || 'Loading parcels directly from PostEx...'}
+          </p>
+        </div>
+      )}
+
+      {portalSync.error && !portalSync.isSyncing && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/90 dark:bg-rose-900/25 px-3 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertIcon size={15} className="text-rose-600 dark:text-rose-400 shrink-0" />
+            <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">{portalSync.error}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            className="shrink-0 text-xs font-bold px-3 py-1 rounded-lg bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
 
       {/* Action Notification Banner */}
@@ -220,9 +333,9 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       <HistorySelectionBar
         selectedCount={selectedIds.length}
         totalCount={paginatedParcels.length}
-        cancellableCount={history.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
-        printableCount={history.filter(p => selectedIds.includes(p.tracking) && !isCancelledStatus(p.status) && getStatusCategory(p.status, p.tracking) !== 'returned').length}
-        loadsheetableCount={history.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length}
+        cancellableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
+        printableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && !isCancelledStatus(p.status) && getStatusCategory(p.status, p.tracking) !== 'returned').length}
+        loadsheetableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
         onGenerateLoadSheet={handleGenerateLoadSheet}
@@ -239,27 +352,21 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           <div className="flex justify-center">
             <HistoryIcon size={36} className="text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold mt-3">No parcels match the filters</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try changing date or status filters</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold mt-3">
+            {portalSync.isSyncing ? 'Loading parcels directly from PostEx...' : 'No parcels match the filters'}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            {portalSync.isSyncing ? 'This may take a few seconds for busy accounts' : 'Try changing date or status filters'}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {/* Desktop Table: 100% Non-Movable Responsive Layout */}
-          <div className="hidden lg:block overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full">
-            <table className="w-full min-w-[960px] max-w-full text-left text-xs border-collapse select-none">
-              <colgroup>
-                <col style={{ width: '44px' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '8%' }} />
-              </colgroup>
+          {/* Desktop Table: fixed layout, columns shrink to fit — zero horizontal scroll */}
+          <div className="hidden lg:block rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full overflow-hidden">
+            <table className="w-full table-fixed max-w-full text-left text-xs border-collapse select-none">
               <thead>
-                <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
-                  <th className="p-3 text-center">
+                <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                  <th className="w-[5%] xl:w-[4%] px-1.5 py-2.5 xl:px-3 xl:py-3 text-center">
                     <input
                       type="checkbox"
                       ref={el => {
@@ -278,13 +385,13 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                       className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
                     />
                   </th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Customer</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap min-w-[145px]">Tracking Info</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200">Destination</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Booking Date</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap">COD Amount</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap min-w-[155px]">Status</th>
-                  <th className="p-3 font-bold text-slate-700 dark:text-slate-200 text-center whitespace-nowrap" title="WhatsApp: Sky Blue = Booking Only • Amber = Status Only • Emerald = Both Sent">Action</th>
+                  <th className="w-[14%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Customer</th>
+                  <th className="w-[17%] xl:w-[18%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
+                  <th className="w-[19%] xl:w-[15%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Destination</th>
+                  <th className="hidden xl:table-cell xl:w-[10%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Booking Date</th>
+                  <th className="w-[12%] xl:w-[9%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap">COD Amount</th>
+                  <th className="w-[17%] xl:w-[16%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Status</th>
+                  <th className="w-[16%] xl:w-[14%] px-1 py-2.5 xl:px-2 xl:py-3 font-bold text-slate-700 dark:text-slate-200 text-center whitespace-nowrap" title="WhatsApp: Sky Blue = Booking Only • Amber = Status Only • Emerald = Both Sent">Action</th>
                 </tr>
               </thead>
               <tbody>

@@ -525,7 +525,7 @@ export function useSettings() {
         // Ensure that any secret cleared in DB is strictly cleared in merged state and local cache
         CRITICAL_SECRET_KEYS.forEach(secKey => {
           if (!dbSettings[secKey]) {
-            merged[secKey] = ''
+            (merged as any)[secKey] = ''
           }
         })
         if (!merged.gemini_api_key) {

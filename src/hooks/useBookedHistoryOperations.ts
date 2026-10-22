@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Settings } from '../utils/aiParser'
-import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice, fetchAllMerchantOrders } from '../utils/postexApi'
+import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice } from '../utils/postexApi'
 import { saveAirwayDocument, saveLoadSheetDocument } from '../utils/localPdfVault'
 import {
   BookedParcel,
@@ -9,7 +9,6 @@ import {
   determineNewStatus,
   isCancellable,
   isPlaceholder,
-  mergePostExOrders,
   getLatestPostExStatus
 } from '../components/history/types'
 
@@ -18,8 +17,6 @@ interface UseBookedHistoryOperationsProps {
   history: BookedParcel[]
   onUpdateHistory: (updated: BookedParcel[]) => void
   filteredParcels: BookedParcel[]
-  fromDate?: string
-  toDate?: string
   userId?: string
 }
 
@@ -28,8 +25,6 @@ export function useBookedHistoryOperations({
   history,
   onUpdateHistory,
   filteredParcels: _filteredParcels,
-  fromDate,
-  toDate,
   userId
 }: UseBookedHistoryOperationsProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -302,39 +297,6 @@ export function useBookedHistoryOperations({
     })
   }
 
-  const handleRefreshAll = async () => {
-    if (!settings.postex_token) {
-      setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
-      return
-    }
-
-    setIsSyncingAll(true)
-    setActionStatus(null)
-    setSyncProgress('Connecting to PostEx API...')
-
-    let mergedHistory = [...history]
-    let fetchedOrdersCount = 0
-
-    try {
-      // Pass fromDate and toDate if user has chosen date filters
-      const postexOrders = await fetchAllMerchantOrders(settings.postex_token, fromDate, toDate)
-      if (Array.isArray(postexOrders) && postexOrders.length > 0) {
-        fetchedOrdersCount = postexOrders.length
-        mergedHistory = mergePostExOrders(mergedHistory, postexOrders)
-      }
-    } catch (e: any) {
-      console.warn('PostEx get-all-order sync error:', e)
-    }
-
-    onUpdateHistory(mergedHistory)
-    setIsSyncingAll(false)
-    setSyncProgress('')
-    setActionStatus({
-      type: 'success',
-      message: `Successfully synchronized ${fetchedOrdersCount > 0 ? `${fetchedOrdersCount} orders from PostEx` : 'all parcel statuses'} in real-time!`
-    })
-  }
-
   const handleSubmitAdvice = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adviceParcel) return
@@ -403,7 +365,6 @@ export function useBookedHistoryOperations({
     handleCancelSingle,
     handleSyncStatus,
     handleSyncSelected,
-    handleRefreshAll,
     handleSubmitAdvice
   }
 }

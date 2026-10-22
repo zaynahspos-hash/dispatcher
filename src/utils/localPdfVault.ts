@@ -207,6 +207,7 @@ export function saveLoadSheetDocument(
     batchName?: string
     totalCOD?: number
     items?: VaultParcelItem[]
+    pdfBase64?: string
     notes?: string
   }
 ): SavedAirwayDocument {
@@ -223,13 +224,19 @@ export function saveLoadSheetDocument(
     totalCOD: doc.totalCOD || 0,
     createdAt: new Date().toISOString(),
     pickupCode: doc.pickupCode,
+    pdfBase64: doc.pdfBase64,
     notes: doc.notes
   }
 
   const updated = [newEntry, ...current]
   try {
     localStorage.setItem(getVaultStorageKey(userId), JSON.stringify(updated))
-  } catch {}
+  } catch {
+    const slim = updated.map(item => ({ ...item, pdfBase64: undefined }))
+    try {
+      localStorage.setItem(getVaultStorageKey(userId), JSON.stringify(slim))
+    } catch {}
+  }
 
   notifyVaultChange()
   return newEntry

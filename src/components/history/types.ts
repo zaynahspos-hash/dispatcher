@@ -479,6 +479,82 @@ export const isPlaceholder = (val: string) => {
   return !v || v === 'customer name' || v === 'customer' || v === 'placeholder' || v === 'undefined' || v === 'null'
 }
 
+const POSTEX_PORTAL_STATUS_MAP: Record<string, string> = {
+  unbooked: 'Unbooked',
+  booked: 'Booked',
+  picked: 'Picked by PostEx',
+  'picked by postex': 'Picked by PostEx',
+  dispatched: 'In Transit',
+  'in transit': 'In Transit',
+  'in-transit': 'In Transit',
+  'in stock': 'In Transit',
+  transferred: 'In Transit',
+  'under verification': 'Under Review',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  canceled: 'Cancelled',
+  returned: 'Returned',
+  'out for delivery': 'Out for Delivery'
+}
+
+export const normalizePortalStatus = (raw?: string): string => {
+  const value = (raw || '').trim()
+  if (!value) return 'Unbooked'
+  return POSTEX_PORTAL_STATUS_MAP[value.toLowerCase()] || value
+}
+
+/**
+ * PostEx sends dates like "2026-10-22T08:41:11.000+0500".
+ * The "+0500" offset is not valid ISO-8601 and Safari rejects it, so we
+ * normalise it to "+05:00" before parsing.
+ */
+const parsePortalDate = (value?: string): string => {
+  const raw = (value || '').trim()
+  if (!raw) return new Date().toISOString()
+  const normalized = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+  const parsed = new Date(normalized)
+  return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
+}
+
+/**
+ * Combines the database-backed history with the direct-from-PostEx list.
+ * Database entries always win (they carry the synced status), while external
+ * parcels fill in everything that exists only on the PostEx side.
+ */
+export function mergeParcelLists(base: BookedParcel[], extras: BookedParcel[]): BookedParcel[] {
+  if (!extras || extras.length === 0) return base
+  const merged = new Map<string, BookedParcel>()
+
+  base.forEach(parcel => {
+    const key = (parcel.tracking || parcel.id || '').trim()
+    if (key) merged.set(key, parcel)
+  })
+
+  extras.forEach(parcel => {
+    const key = (parcel.tracking || parcel.id || '').trim()
+    if (!key) return
+    const existing = merged.get(key)
+    if (!existing) {
+      merged.set(key, parcel)
+      return
+    }
+    const bookingSent = Boolean(existing.whatsapp_booking_sent || parcel.whatsapp_booking_sent)
+    const statusSent = Boolean(existing.whatsapp_status_sent || parcel.whatsapp_status_sent)
+    merged.set(key, {
+      ...parcel,
+      ...existing,
+      whatsapp_booking_sent: bookingSent,
+      whatsapp_status_sent: statusSent,
+      whatsapp_sent: Boolean(existing.whatsapp_sent || existing.whatsappSent || parcel.whatsapp_sent || parcel.whatsappSent),
+      whatsappSent: Boolean(existing.whatsapp_sent || existing.whatsappSent || parcel.whatsapp_sent || parcel.whatsappSent),
+      whatsapp_sent_at: existing.whatsapp_sent_at || parcel.whatsapp_sent_at
+    })
+  })
+
+  return Array.from(merged.values())
+    .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
+}
+
 export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]): BookedParcel[] {
   if (!postExOrders || !Array.isArray(postExOrders) || postExOrders.length === 0) return history
   const map = new Map<string, BookedParcel>()
@@ -499,7 +575,7 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
     const refKey = ref.toLowerCase()
 
     const existing = (trackKey && map.get(trackKey)) || (refKey && map.get(refKey))
-    const rawOrderStatus = (order.transactionStatus || order.orderStatus || '').trim()
+    const rawOrderStatus = normalizePortalStatus(order.transactionStatus || order.orderStatus)
     const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
     const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
 
@@ -522,6 +598,7 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
       if (trackKey) map.set(trackKey, merged)
       if (refKey) map.set(refKey, merged)
     } else if (tracking) {
+      const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
       const newParcel: BookedParcel = {
         id: ref || tracking,
         name: order.customerName || 'Customer',
@@ -529,13 +606,13 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
         city: order.cityName || '',
         address: order.deliveryAddress || '',
         total: Number(order.invoicePayment || 0),
-        items: Number(order.items || 1),
-        weight: 0.5,
+        items: Number(order.items || 1) || 1,
+        weight: declaredWeight > 0 ? declaredWeight : 0.5,
         detail: order.orderDetail || 'Kids Clothes',
         note: order.transactionNotes || '',
         tracking: tracking,
-        bookingDate: order.transactionDate ? new Date(order.transactionDate).toISOString() : new Date().toISOString(),
-        status: order.transactionStatus || (hasLoadSheet ? 'BOOKED' : 'UNBOOKED'),
+        bookingDate: parsePortalDate(order.transactionDate),
+        status: rawOrderStatus,
         orderType: 'Normal',
         source: 'postex_portal',
         hasLoadSheet,

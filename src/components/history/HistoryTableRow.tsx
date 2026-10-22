@@ -55,12 +55,12 @@ export function HistoryTableRow({
           ? 'bg-slate-50/90 dark:bg-slate-800/60' 
           : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
       }`}>
-        <td className="p-3 text-center">
-          <div className="flex items-center justify-center gap-1.5">
+        <td className="px-1.5 py-2.5 xl:px-3 xl:py-3 text-center align-middle">
+          <div className="flex items-center justify-center gap-1 xl:gap-1.5">
             <button
               type="button"
               onClick={() => setIsExpanded(prev => !prev)}
-              className="w-5 h-5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
+              className="w-5 h-5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer shrink-0"
               title={isExpanded ? 'Collapse row details' : 'Expand full order details'}
               aria-label="Expand row details"
             >
@@ -70,13 +70,13 @@ export function HistoryTableRow({
               type="checkbox"
               checked={isSelected}
               onChange={e => onToggleSelect(parcel.tracking, e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer"
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 dark:text-emerald-400 focus:ring-0 cursor-pointer shrink-0"
             />
           </div>
         </td>
-        <td className="p-3 min-w-0">
+        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 align-middle">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span className={`font-semibold text-slate-900 dark:text-white text-xs ${autoExpandLines ? 'break-words' : 'truncate max-w-[125px] 2xl:max-w-none'}`}>
+            <span className={`font-semibold text-slate-900 dark:text-white text-xs min-w-0 ${autoExpandLines ? 'break-words' : 'truncate'}`}>
               {parcel.name}
             </span>
             {effectiveWhatsAppSent ? (
@@ -92,32 +92,33 @@ export function HistoryTableRow({
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium mt-0.5 truncate">{parcel.phone}</div>
         </td>
-        <td className="p-3 whitespace-nowrap min-w-[145px]">
+        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 align-middle">
           <a
             href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-xs inline-flex items-center gap-1.5 select-all"
+            className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold font-mono text-[11px] xl:text-xs inline-flex items-center gap-1 xl:gap-1.5 max-w-full min-w-0 select-all"
             title={`PostEx CN: ${parcel.tracking} (Click to open tracking)`}
           >
-            <span>{parcel.tracking}</span>
-            <ExternalLinkIcon size={11} className="opacity-70 shrink-0" />
+            <span className="truncate min-w-0">{parcel.tracking}</span>
+            <ExternalLinkIcon size={11} className="opacity-70 shrink-0 hidden xl:inline-block" />
           </a>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ref: {parcel.id}</span>
+          <div className="flex items-center gap-1.5 flex-wrap mt-0.5 min-w-0">
+            <span className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">Ref: {parcel.id}</span>
             {parcel.source === 'postex_portal' && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 shrink-0">
-                Portal / External
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 shrink-0 whitespace-nowrap">
+                <span className="hidden xl:inline">Portal / External</span>
+                <span className="xl:hidden">Portal</span>
               </span>
             )}
           </div>
         </td>
 
-        <td className="p-3 min-w-0">
+        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 align-middle">
           <div className={`font-semibold text-slate-800 dark:text-slate-100 text-xs ${autoExpandLines ? 'break-words' : 'truncate'}`}>{parcel.city}</div>
-          <div className={`text-[11px] text-slate-500 dark:text-slate-400 ${autoExpandLines ? 'break-words whitespace-normal leading-tight mt-0.5' : 'truncate max-w-full'}`}>{parcel.address}</div>
+          <div className={`text-[11px] text-slate-500 dark:text-slate-400 ${autoExpandLines ? 'break-words whitespace-normal leading-tight mt-0.5' : 'truncate'}`}>{parcel.address}</div>
         </td>
-        <td className="p-3 min-w-0 text-slate-600 dark:text-slate-400 font-medium text-xs whitespace-nowrap">
+        <td className="hidden xl:table-cell px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 text-slate-600 dark:text-slate-400 font-medium text-[11px] xl:text-xs whitespace-nowrap align-middle">
           {new Date(parcel.bookingDate).toLocaleString('en-GB', {
             day: 'numeric',
             month: 'short',
@@ -125,44 +126,26 @@ export function HistoryTableRow({
             minute: '2-digit'
           })}
         </td>
-        <td className="p-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-[11px] xl:text-xs whitespace-nowrap align-middle">
           Rs. {parcel.total.toLocaleString()}
         </td>
-        <td className="p-3 whitespace-nowrap min-w-[155px]">
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            {(() => {
-              const badgeColor = getStatusBadgeStyle(parcel.status, parcel.tracking, parcel.loadsheet_generated)
-              const displayStatus = getDisplayStatus(parcel.status, parcel.loadsheet_generated)
+        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 align-middle">
+          {(() => {
+            const badgeColor = getStatusBadgeStyle(parcel.status, parcel.tracking, parcel.loadsheet_generated)
+            const displayStatus = getDisplayStatus(parcel.status, parcel.loadsheet_generated)
 
-              return (
-                <span
-                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border whitespace-nowrap select-none shadow-2xs max-w-[200px] truncate ${badgeColor}`}
-                  title={displayStatus}
-                >
-                  {displayStatus}
-                </span>
-              )
-            })()}
-            <button
-              type="button"
-              onClick={() => onSyncStatus(parcel.tracking)}
-              disabled={isSyncing}
-              title="Sync real-time status from PostEx"
-              className="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center shrink-0 border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60"
-            >
-              {isSyncing ? (
-                <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <SyncIcon size={13} />
-              )}
-            </button>
-          </div>
+            return (
+              <span
+                className={`inline-block px-2 py-1 rounded-lg text-[9px] xl:text-[10px] font-bold uppercase tracking-normal xl:tracking-wider border text-center leading-tight whitespace-normal xl:whitespace-nowrap break-words select-none shadow-2xs max-w-full ${badgeColor}`}
+                title={displayStatus}
+              >
+                {displayStatus}
+              </span>
+            )
+          })()}
         </td>
-        <td className="p-3 text-center min-w-0">
-          <div className="flex items-center justify-center gap-1.5">
+        <td className="px-1 py-2.5 xl:px-2 xl:py-3 text-center min-w-0 align-middle">
+          <div className="flex items-center justify-center gap-1 xl:gap-1.5 flex-wrap">
             <WhatsAppActionButton
               isSent={effectiveWhatsAppSent}
               disabled={isCancelledStatus(parcel.status)}
@@ -176,12 +159,29 @@ export function HistoryTableRow({
               }
             />
 
+            <button
+              type="button"
+              onClick={() => onSyncStatus(parcel.tracking)}
+              disabled={isSyncing}
+              title="Sync real-time status from PostEx"
+              className="w-7 h-7 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50 cursor-pointer flex items-center justify-center shrink-0 border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60"
+            >
+              {isSyncing ? (
+                <svg className="animate-spin h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <SyncIcon size={13} />
+              )}
+            </button>
+
             {isCancellable(parcel.status, parcel.loadsheet_generated, parcel.tracking) && (
               <button
                 type="button"
                 onClick={() => onCancel(parcel.tracking)}
                 disabled={isSyncing}
-                className="w-7.5 h-7.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-800/80 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 flex items-center justify-center transition cursor-pointer disabled:opacity-50 shadow-2xs active:scale-95"
+                className="w-7 h-7 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-800/80 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 flex items-center justify-center transition cursor-pointer disabled:opacity-50 shadow-2xs active:scale-95 shrink-0"
                 title="Cancel Booking"
               >
                 {isSyncing ? (
@@ -198,7 +198,7 @@ export function HistoryTableRow({
               <button
                 type="button"
                 onClick={() => onOpenAdvice(parcel)}
-                className="h-7 px-2 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                className="h-7 px-2 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
                 title="Submit Shipper Advice (Retry/Return)"
               >
                 <InfoIcon size={11} />

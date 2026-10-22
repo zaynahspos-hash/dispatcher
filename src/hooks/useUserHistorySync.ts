@@ -3,8 +3,8 @@ import { User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabaseClient'
 import { BookedParcel } from '../components/BookedHistory'
 import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
-import { fetchAllMerchantOrders } from '../utils/postexApi'
-import { mergePostExOrders } from '../components/history/types'
+
+const MAX_CACHED_HISTORY_PARCELS = 1500
 
 function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[] {
   const map = new Map<string, BookedParcel>()
@@ -39,7 +39,7 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
     .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
 }
 
-export function useUserHistorySync(user: User | null, postexToken?: string) {
+export function useUserHistorySync(user: User | null, _postexToken?: string) {
   const [history, setHistory] = useState<BookedParcel[]>([])
   const [dailyTokens, setDailyTokens] = useState<number>(0)
   const [monthlyTokens, setMonthlyTokens] = useState<number>(0)
@@ -98,29 +98,6 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
     const cachedHistory = getCached<BookedParcel[]>(userHistoryKey) || []
     setHistory(cachedHistory)
 
-    const syncPostExOrdersIfDue = async (currentList: BookedParcel[]) => {
-      if (!postexToken || !user) return
-      const portalSyncKey = `postex_portal_synced_at_${user.id}`
-      const lastPortalSync = Number(localStorage.getItem(portalSyncKey) || 0)
-      const now = Date.now()
-      const hasNoPortalOrders = !currentList.some(p => p.source === 'postex_portal')
-
-      // Sync if no portal orders yet or if > 30 minutes since last background sync
-      if (hasNoPortalOrders || now - lastPortalSync > 30 * 60 * 1000) {
-        try {
-          const orders = await fetchAllMerchantOrders(postexToken)
-          if (Array.isArray(orders) && orders.length > 0) {
-            const mergedWithPostEx = mergePostExOrders(currentList, orders)
-            setHistory(mergedWithPostEx)
-            setCached(userHistoryKey, mergedWithPostEx, getTTL('days', 30))
-            localStorage.setItem(portalSyncKey, String(now))
-          }
-        } catch (err) {
-          console.warn('Background PostEx order sync failed:', err)
-        }
-      }
-    }
-
     // RULE D13: snake_case table 'booked_history', column 'user_id'
     supabase
       .from('booked_history')
@@ -142,9 +119,6 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
             setHistory(merged)
             setCached(userHistoryKey, merged, getTTL('days', 30))
             localStorage.setItem(cacheKey, String(dbUpdated))
-            syncPostExOrdersIfDue(merged)
-          } else {
-            syncPostExOrdersIfDue(cachedHistory)
           }
         } else {
           if (cachedHistory.length > 0) {
@@ -157,10 +131,7 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
               }, { onConflict: 'user_id' })
               .then(({ error }) => {
                 if (error) console.error('Failed to sync initial history to db:', error)
-                syncPostExOrdersIfDue(cachedHistory)
               })
-          } else {
-            syncPostExOrdersIfDue([])
           }
         }
       })
@@ -187,7 +158,9 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
                 .then(({ data: fresh }) => {
                   if (fresh?.history) {
                     const dbHistory = fresh.history as unknown as BookedParcel[]
-                    setHistory(dbHistory)
+                    // Keep only direct-from-PostEx rows; the DB stays the single
+                    // source of truth for app-booked parcels and deletions.
+                    setHistory(previous => mergeHistory(dbHistory, previous.filter(p => p.source === 'postex_portal')))
                     setCached(userHistoryKey, dbHistory, getTTL('days', 30))
                     localStorage.setItem(cacheKey, String(dbUpdated))
                   }
@@ -211,8 +184,11 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
         payload => {
           const fresh = payload.new as { history?: BookedParcel[]; updated_at?: string }
           if (fresh && fresh.history && Array.isArray(fresh.history)) {
-            setHistory(fresh.history)
-            setCached(userHistoryKey, fresh.history, getTTL('days', 30))
+            // Merge only direct-from-PostEx rows so the database write never
+            // clears external parcels, while DB deletions still apply.
+            setHistory(previous =>
+              mergeHistory(fresh.history as BookedParcel[], previous.filter(p => p.source === 'postex_portal'))
+            )
             if (fresh.updated_at) {
               const cacheKey = `booked_history_synced_at_${user.id}`
               localStorage.setItem(cacheKey, String(new Date(fresh.updated_at).getTime()))
@@ -230,7 +206,7 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
       window.removeEventListener('focus', handleSyncCheck)
       document.removeEventListener('visibilitychange', handleSyncCheck)
     }
-  }, [user, postexToken])
+  }, [user])
 
   const updateHistory = (updated: BookedParcel[]) => {
     setHistory(updated)
@@ -238,7 +214,11 @@ export function useUserHistorySync(user: User | null, postexToken?: string) {
     if (user) {
       const userHistoryKey = `booked_history_${user.id}`
       const cacheKey = `booked_history_synced_at_${user.id}`
-      setCached(userHistoryKey, updated, getTTL('days', 30))
+      // External portal parcels can run into thousands; keeping them all in
+      // localStorage hits the browser quota and blocks the main thread.
+      if (updated.length <= MAX_CACHED_HISTORY_PARCELS) {
+        setCached(userHistoryKey, updated, getTTL('days', 30))
+      }
       const nowIso = new Date().toISOString()
       localStorage.setItem(cacheKey, String(new Date(nowIso).getTime()))
 

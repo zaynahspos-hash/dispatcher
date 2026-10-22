@@ -196,9 +196,17 @@ export default function BookingResults({
   function exportResultsExcel() {
     const listToExport = selected.size > 0 ? results.filter(r => selected.has(r.id)) : filteredResults
     const data = listToExport.map(r => ({
-      Name: r.name, Phone: r.phone, City: r.city, Address: r.address, 'COD Amount': r.total,
-      Status: r.status === 'success' ? 'Booked' : r.status === 'cancelled' ? 'Cancelled' : r.status === 'manual' ? 'Draft' : 'Failed',
-      'Tracking Number': r.tracking || '', 'Order Type': r.orderType || 'Normal', Error: r.error || '',
+      'Order Reference Number': r.id,
+      'Customer Name': r.name,
+      'Customer Phone': r.phone,
+      'City': r.city,
+      'Order Address': r.address,
+      'COD Amount': r.total,
+      'Items': r.items || 1,
+      'Status': r.status === 'success' ? 'Booked' : r.status === 'cancelled' ? 'Cancelled' : r.status === 'manual' ? 'Draft' : 'Failed',
+      'Tracking Number': r.tracking || '',
+      'Order Type': r.orderType || 'Normal',
+      'Error': r.error || '',
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
@@ -266,7 +274,7 @@ export default function BookingResults({
     const lengths = measureMaxContentLengths(
       {
         refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
-        address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', orderType: 'ORDER TYPE',
+        address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS', orderType: 'ORDER TYPE',
         weight: 'WEIGHT (KG)', detail: 'PRODUCT / DETAIL', note: 'NOTE / INSTRUCTIONS',
         copies: 'COPIES', statusTracking: 'STATUS / TRACKING'
       },
@@ -274,6 +282,7 @@ export default function BookingResults({
       {
         refId: r => r.id, customer: r => r.name, phone: r => r.phone,
         city: r => r.city, address: r => r.address, cod: r => `Rs. ${r.total || 0}`,
+        items: r => String(r.items || 1),
         orderType: () => 'Normal (COD)    ', weight: r => `${r.weight || 0.5} kg`,
         detail: r => r.detail, note: r => r.note,
         copies: () => 'COPIES  ', statusTracking: r => `${r.tracking || '2226280000000'}     `

@@ -1,9 +1,12 @@
-import { useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { BookingResult } from '../BookingResults'
 import { TrashIcon, CancelIcon, CheckIcon, TruckIcon } from '../Icons'
 import { WhatsAppActionButton } from '../common/WhatsAppActionButton'
 import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { LogisticsDefaultsCells } from '../common/LogisticsDefaultsCells'
+import { CityDropdownMenu } from '../parcel/CityDropdownMenu'
+import { getFilteredCities } from '../parcel/cityAutocomplete'
+import { CITY_LIST } from '../../utils/cityList'
 
 interface ResultsDesktopGridProps {
   results: BookingResult[]
@@ -26,25 +29,49 @@ interface ResultsDesktopGridProps {
 
 const DEFAULT_RESULTS_WIDTHS = {
   checkbox: 38, index: 34, refId: 110, customer: 145, phone: 125, city: 120, address: 240,
-  cod: 100, orderType: 155, weight: 75, detail: 150, note: 160, copies: 75, statusTracking: 185, actions: 115
+  cod: 100, items: 50, orderType: 155, weight: 75, detail: 150, note: 160, copies: 75, statusTracking: 185, actions: 115
 }
 
 export function ResultsDesktopGrid({
   results, selected, toggleSelect, toggleAll, updateField, onDelete,
   onBookSingle, onCancelShipment, cancellingTracking, getWhatsAppLink,
-  orderTypes, expandDefaults, isWhatsAppSent, onMarkWhatsAppSent, onToggleWhatsAppSent
+  cities, orderTypes, expandDefaults, isWhatsAppSent, onMarkWhatsAppSent, onToggleWhatsAppSent
 }: ResultsDesktopGridProps) {
+  const [cityFilter, setCityFilter] = useState('')
+  const [editingCity, setEditingCity] = useState<{ id: string } | null>(null)
+  const cityInputRef = useRef<HTMLInputElement>(null)
+  const activeCityList = (cities && cities.length > 0) ? cities : CITY_LIST
+  const filteredCities = getFilteredCities(cityFilter, activeCityList)
+
+  // Handle outside clicks to close city autocomplete cleanly without race conditions
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
+      if (editingCity !== null) {
+        const target = e.target as HTMLElement
+        if (!target.closest('.city-autocomplete-container')) {
+          setEditingCity(null)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [editingCity])
   const { widths, getResizerProps } = useResizableColumns({
     storageKey: 'results_desktop_grid_col_widths',
     defaultWidths: DEFAULT_RESULTS_WIDTHS,
     minWidths: {
       checkbox: 28, index: 28, refId: 40, customer: 40, phone: 40, city: 40, address: 40,
-      cod: 40, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, statusTracking: 50, actions: 50
+      cod: 40, items: 36, orderType: 40, weight: 36, detail: 40, note: 40, copies: 36, statusTracking: 50, actions: 50
     },
     onMeasureCol: (colKey) => {
       const lengths = measureMaxContentLengths({ [colKey]: colKey }, results, {
         refId: r => r.id, customer: r => r.name, phone: r => r.phone,
         city: r => r.city, address: r => r.address, cod: r => `Rs. ${r.total || 0}`,
+        items: r => String(r.items || 1),
         orderType: () => 'Normal (COD)    ', weight: r => `${r.weight || 0.5} kg`,
         detail: r => r.detail, note: r => r.note,
         copies: () => 'COPIES  ', statusTracking: r => `${r.tracking || '2226280000000'}     `
@@ -85,6 +112,7 @@ export function ResultsDesktopGrid({
     widths.city || DEFAULT_RESULTS_WIDTHS.city,
     widths.address || DEFAULT_RESULTS_WIDTHS.address,
     widths.cod || DEFAULT_RESULTS_WIDTHS.cod,
+    widths.items || DEFAULT_RESULTS_WIDTHS.items,
     widths.orderType || DEFAULT_RESULTS_WIDTHS.orderType,
     ...(expandDefaults ? [
       widths.weight || DEFAULT_RESULTS_WIDTHS.weight,
@@ -113,6 +141,7 @@ export function ResultsDesktopGrid({
             <col style={{ width: `${widths.city || DEFAULT_RESULTS_WIDTHS.city}px` }} />
             <col style={{ width: `${widths.address || DEFAULT_RESULTS_WIDTHS.address}px` }} />
             <col style={{ width: `${widths.cod || DEFAULT_RESULTS_WIDTHS.cod}px` }} />
+            <col style={{ width: `${widths.items || DEFAULT_RESULTS_WIDTHS.items}px` }} />
             <col style={{ width: `${widths.orderType || DEFAULT_RESULTS_WIDTHS.orderType}px` }} />
             {expandDefaults && (
               <>
@@ -171,6 +200,10 @@ export function ResultsDesktopGrid({
                 COD (Rs.)
                 <div {...getResizerProps('cod')} />
               </th>
+              <th className="p-3 text-center border-r border-slate-200/80 dark:border-slate-800 relative">
+                Items
+                <div {...getResizerProps('items')} />
+              </th>
               <th className="p-3 text-left border-r border-slate-200/80 dark:border-slate-800 relative">
                 Order Type
                 <div {...getResizerProps('orderType')} />
@@ -209,13 +242,19 @@ export function ResultsDesktopGrid({
               const isError = r.status === 'error'
               const isChecked = selected ? selected.has(r.id) : false
               const isSent = isWhatsAppSent ? (isWhatsAppSent(r.tracking) || isWhatsAppSent(r.id)) : false
+              const cleanPhone = (r.phone || '').replace(/[-+\s]/g, '')
+              const isPhoneEmpty = !r.phone || r.phone.trim() === ''
+              const isPhoneDummy = r.phone?.trim() === '03001234567' || cleanPhone === '03001234567'
+              const isPhoneWarning = isPhoneEmpty || isPhoneDummy
+              const isPhoneValid = !r.phone || /^03\d{9}$/.test(cleanPhone)
+              const isCityValid = !r.city || activeCityList.includes(r.city.toUpperCase())
 
               return (
                 <tr
                   key={r.id || i}
                   className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
                     isChecked ? 'bg-emerald-500/[0.04]' : isBooked ? 'bg-emerald-500/[0.02]' : isError ? 'bg-rose-500/[0.03]' : ''
-                  }`}
+                  } ${editingCity?.id === r.id && !isBooked ? 'relative z-40' : ''}`}
                 >
                   {/* Row Checkbox */}
                   <td className="p-3 text-center border-r border-b border-slate-200/80 dark:border-slate-800">
@@ -255,26 +294,72 @@ export function ResultsDesktopGrid({
                     />
                   </td>
 
-                  {/* Phone */}
+                  {/* Phone (with validation highlights matching Parcels tab) */}
                   <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
                     <input
                       value={r.phone || ''}
                       disabled={isBooked}
                       onChange={e => updateField(r.id, 'phone', e.target.value)}
                       placeholder="03001234567"
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
+                      className={`w-full h-10 px-3 py-2 bg-transparent text-xs font-mono focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset disabled:opacity-75 ${
+                        !isBooked && isPhoneWarning
+                          ? 'bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 focus:ring-amber-500 placeholder:text-amber-500/70'
+                          : !isBooked && !isPhoneValid
+                          ? 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 focus:ring-rose-500'
+                          : 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
+                      }`}
                     />
                   </td>
 
-                  {/* City */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800">
+                  {/* City (with live searchable dropdown matching Parcels tab) */}
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 relative city-autocomplete-container min-w-0 ${
+                    editingCity?.id === r.id && !isBooked ? 'overflow-visible z-50' : 'overflow-hidden'
+                  }`}>
                     <input
+                      ref={editingCity?.id === r.id ? cityInputRef : undefined}
                       value={r.city || ''}
                       disabled={isBooked}
-                      onChange={e => updateField(r.id, 'city', e.target.value)}
-                      placeholder="City Name"
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
+                      onChange={e => {
+                        updateField(r.id, 'city', e.target.value)
+                        setCityFilter(e.target.value)
+                        setEditingCity({ id: r.id })
+                      }}
+                      onFocus={() => {
+                        if (!isBooked) {
+                          setCityFilter(r.city || '')
+                          setEditingCity({ id: r.id })
+                        }
+                      }}
+                      placeholder="Type City..."
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={editingCity?.id === r.id && !isBooked}
+                      data-lpignore="true"
+                      data-form-type="other"
+                      name={`city_results_dropdown_${r.id || i}`}
+                      className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-semibold focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-inset disabled:opacity-75 ${
+                        !isBooked && !isCityValid
+                          ? 'bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 focus:ring-amber-500'
+                          : 'text-slate-800 dark:text-slate-100 focus:ring-emerald-500'
+                      }`}
                     />
+
+                    {/* City Dropdown Menu (Always opens downwards with clear visibility) */}
+                    {editingCity?.id === r.id && !isBooked && (
+                      <CityDropdownMenu
+                        filteredCities={filteredCities}
+                        isNearBottom={i >= results.length - 2 && results.length > 3}
+                        selectedCity={r.city}
+                        onSelectCity={city => {
+                          updateField(r.id, 'city', city)
+                          setEditingCity(null)
+                        }}
+                      />
+                    )}
                   </td>
 
                   {/* Address */}
@@ -288,8 +373,10 @@ export function ResultsDesktopGrid({
                     />
                   </td>
 
-                  {/* COD */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                  {/* COD Amount (Right Aligned Font Mono) - Yellow/Amber for 0 COD, Green for > 0 */}
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono overflow-hidden min-w-0 ${
+                    Number(r.total || 0) === 0 ? 'bg-amber-500/5 dark:bg-amber-950/15' : ''
+                  }`}>
                     <input
                       type="number"
                       value={r.total === 0 ? '' : r.total}
@@ -297,17 +384,41 @@ export function ResultsDesktopGrid({
                       onChange={e => updateField(r.id, 'total', e.target.value === '' ? 0 : Number(e.target.value))}
                       onFocus={e => e.target.select()}
                       placeholder="0"
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right text-emerald-600 dark:text-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
+                      className={`w-full min-w-0 h-10 px-3 py-2 bg-transparent text-xs font-mono font-bold text-right focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75 ${
+                        Number(r.total || 0) === 0
+                          ? 'text-amber-500 dark:text-amber-400 placeholder:text-amber-500 dark:placeholder:text-amber-400 font-black'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}
                     />
                   </td>
 
-                  {/* Order Type */}
-                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0">
+                  {/* Items Count (Centered) */}
+                  <td className="p-0 border-r border-b border-slate-200/80 dark:border-slate-800 font-mono">
+                    <input
+                      type="number"
+                      min="1"
+                      disabled={isBooked}
+                      value={!r.items || r.items === 0 ? '' : r.items}
+                      onChange={e => updateField(r.id, 'items', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                      onFocus={e => e.target.select()}
+                      placeholder="1"
+                      className="w-full h-10 px-2 py-2 bg-transparent text-xs font-mono text-center text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75"
+                    />
+                  </td>
+
+                  {/* Order Type - Yellow text for anything other than Normal */}
+                  <td className={`p-0 border-r border-b border-slate-200/80 dark:border-slate-800 overflow-hidden min-w-0 ${
+                    (r.orderType && r.orderType !== 'Normal') ? 'bg-amber-500/10 dark:bg-amber-950/25' : ''
+                  }`}>
                     <select
                       value={r.orderType || 'Normal'}
                       disabled={isBooked}
                       onChange={e => updateField(r.id, 'orderType', e.target.value)}
-                      className="w-full h-10 px-3 py-2 bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75 cursor-pointer"
+                      className={`w-full h-10 px-3 py-2 bg-transparent text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-inset disabled:opacity-75 cursor-pointer ${
+                        (r.orderType && r.orderType !== 'Normal')
+                          ? 'text-amber-600 dark:text-amber-400 font-black'
+                          : 'font-medium text-slate-800 dark:text-slate-200'
+                      }`}
                     >
                       {orderTypes.map(ot => (
                         <option key={ot.value} value={ot.value}>

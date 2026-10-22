@@ -614,27 +614,129 @@ export async function trackOrder(token: string, trackingNumber: string) {
   return { statusCode: 400, statusMessage: 'Tracking status not found' }
 }
 
+/**
+ * PostEx get-all-order is a heavy endpoint: a single 180-day request can take
+ * over two minutes and gets killed by the gateway (HTTP 524), which silently
+ * left external/portal parcels empty. We therefore fetch exactly the range the
+ * merchant is looking at and split long ranges into small windows.
+ */
+const ORDER_FETCH_WINDOW_DAYS = 14
+const ORDER_FETCH_TIMEOUT_MS = 110000
+
+export interface PostExOrderFetchOptions {
+  timeout_ms?: number
+  window_days?: number
+  signal?: AbortSignal
+  on_progress?: (message: string, completed_windows: number, total_windows: number) => void
+}
+
+function padDatePart(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function formatDateOnly(date: Date): string {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
+}
+
+function parseDateOnly(value?: string): Date | null {
+  const raw = (value || '').trim()
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return null
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
+}
+
+function extractOrderList(payload: any): any[] {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload.dist)) return payload.dist
+  if (Array.isArray(payload.data)) return payload.data
+  if (payload.data && Array.isArray(payload.data.dist)) return payload.data.dist
+  return []
+}
+
+function orderIdentity(order: any): string {
+  const tracking = String(order?.trackingNumber || '').trim()
+  const reference = String(order?.orderRefNumber || '').trim()
+  return `${tracking}|${reference}`
+}
+
+function describeOrderFetchError(err: any): string {
+  const status = err?.response?.status
+  if (status === 524 || status === 504) return 'PostEx took too long to respond for this date range. Please try a shorter range.'
+  if (status === 401 || status === 403) return 'PostEx token is invalid or expired. Update it in Settings.'
+  if (err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT') return 'PostEx request timed out. Please try a shorter date range.'
+  if (status) return `PostEx request failed (HTTP ${status}).`
+  return err?.message || 'PostEx request failed.'
+}
+
 export async function fetchAllMerchantOrders(
-  token: string, 
-  startDate?: string, 
-  endDate?: string
+  token: string,
+  startDate?: string,
+  endDate?: string,
+  options: PostExOrderFetchOptions = {}
 ): Promise<any[]> {
   if (!token || !token.trim()) return []
-  const now = new Date()
-  const end = endDate || new Date(now.getTime() + 86400000).toISOString().split('T')[0]
-  const past = new Date(now.getTime() - 180 * 86400000)
-  const start = startDate || past.toISOString().split('T')[0]
 
-  try {
-    const res = await axios.get(
-      `${BASE}/order/v1/get-all-order?startDate=${start}&endDate=${end}&orderStatusId=0`,
-      { headers: headers(token) }
-    )
-    if (res.data && Array.isArray(res.data.dist)) {
-      return res.data.dist
-    }
-  } catch (err: any) {
-    console.warn('Failed to fetch all orders from PostEx API:', err?.response?.data || err.message)
+  const today = new Date()
+  const requestedEnd = parseDateOnly(endDate) || new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const requestedStart = parseDateOnly(startDate) || new Date(requestedEnd.getTime())
+  const rangeStart = requestedStart.getTime() <= requestedEnd.getTime() ? requestedStart : requestedEnd
+  const rangeEnd = requestedStart.getTime() <= requestedEnd.getTime() ? requestedEnd : requestedStart
+
+  const windowDays = Math.max(1, Math.floor(options.window_days ?? ORDER_FETCH_WINDOW_DAYS))
+  const timeoutMs = options.timeout_ms ?? ORDER_FETCH_TIMEOUT_MS
+
+  const windows: Array<{ from: Date; to: Date }> = []
+  let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate())
+  while (cursor.getTime() <= rangeEnd.getTime()) {
+    const windowEnd = addDays(cursor, windowDays - 1)
+    windows.push({ from: new Date(cursor), to: windowEnd.getTime() > rangeEnd.getTime() ? new Date(rangeEnd) : windowEnd })
+    cursor = addDays(cursor, windowDays)
   }
-  return []
+
+  const collected: any[] = []
+  const seen = new Set<string>()
+  const failures: string[] = []
+
+  for (let index = 0; index < windows.length; index++) {
+    const window = windows[index]
+    const from = formatDateOnly(window.from)
+    const to = formatDateOnly(window.to)
+    options.on_progress?.(
+      `Loading parcels from PostEx (${index + 1}/${windows.length})...`,
+      index,
+      windows.length
+    )
+
+    try {
+      const res = await axios.get(
+        `${BASE}/order/v1/get-all-order?startDate=${from}&endDate=${to}&orderStatusId=0`,
+        { headers: headers(token), timeout: timeoutMs, signal: options.signal }
+      )
+      for (const order of extractOrderList(res.data)) {
+        const identity = orderIdentity(order)
+        if (identity === '|' || seen.has(identity)) continue
+        seen.add(identity)
+        collected.push(order)
+      }
+    } catch (err: any) {
+      if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') throw err
+      const message = describeOrderFetchError(err)
+      failures.push(message)
+      console.warn(`PostEx orders ${from} → ${to} failed:`, message)
+    }
+  }
+
+  options.on_progress?.(`Loaded ${collected.length} parcels from PostEx`, windows.length, windows.length)
+
+  if (collected.length === 0 && failures.length > 0) {
+    throw new Error(failures[0])
+  }
+
+  return collected
 }
