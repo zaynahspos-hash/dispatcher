@@ -3,7 +3,8 @@ import React from 'react'
 interface AdminStatsBarProps {
   totalUsers: number
   activeUsersTodayCount: number
-  totalAIparses: number
+  liveCouriers?: number
+  totalAIparses?: number
   totalBookings: number
   totalCustomers: number
 }
@@ -11,6 +12,7 @@ interface AdminStatsBarProps {
 export const AdminStatsBar: React.FC<AdminStatsBarProps> = ({
   totalUsers,
   activeUsersTodayCount,
+  liveCouriers,
   totalAIparses,
   totalBookings,
   totalCustomers
@@ -34,10 +36,10 @@ export const AdminStatsBar: React.FC<AdminStatsBarProps> = ({
       </div>
 
       <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 shadow-2xs">
-        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">AI Parses</span>
+        <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Courier Live</span>
         <div className="flex items-baseline gap-1.5 mt-1">
-          <span className="text-lg sm:text-2xl font-black font-mono text-slate-900 dark:text-white">{totalAIparses}</span>
-          <span className="text-[10px] text-slate-400 font-semibold">Orders</span>
+          <span className="text-lg sm:text-2xl font-black font-mono text-sky-600 dark:text-sky-400">{liveCouriers ?? totalAIparses ?? 0}</span>
+          <span className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold">PostEx V3</span>
         </div>
       </div>
 

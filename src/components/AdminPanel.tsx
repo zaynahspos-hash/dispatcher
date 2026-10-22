@@ -82,6 +82,7 @@ export default function AdminPanel() {
           user_id,
           phone,
           name,
+          source,
           created_at,
           updated_at,
           user:users (email)
@@ -96,6 +97,7 @@ export default function AdminPanel() {
         user_id: c.user_id,
         phone: c.phone,
         name: c.name,
+        source: c.source || 'app',
         created_at: c.created_at,
         updated_at: c.updated_at,
         user: c.user
@@ -154,7 +156,7 @@ export default function AdminPanel() {
 
   // Compute metrics
   const totalUsers = users.length
-  const totalAIparses = logs.filter(l => l.action === 'order_parsed').length
+  const liveCouriers = users.filter(u => !!(u.settings as any)?.settings?.postex_token).length
   const totalBookings = logs.filter(l => l.action === 'order_booked').length
   const totalCustomers = uniqueCustomers.length
   const activeUsersTodayCount = new Set(
@@ -197,7 +199,7 @@ export default function AdminPanel() {
       <AdminStatsBar
         totalUsers={totalUsers}
         activeUsersTodayCount={activeUsersTodayCount}
-        totalAIparses={totalAIparses}
+        liveCouriers={liveCouriers}
         totalBookings={totalBookings}
         totalCustomers={totalCustomers}
       />

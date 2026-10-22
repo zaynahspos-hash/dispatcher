@@ -203,7 +203,6 @@ export function useParcelOperations({
         })
 
         setParcels(result.parcels)
-        await logUsage('order_parsed', `Successfully parsed ${result.parcels.length} parcel(s) using ${activeProvider.toUpperCase()}. Tokens used: ${result.tokensUsed}`)
         fetchTokenUsage()
         setActiveTab('table')
         return
@@ -255,8 +254,6 @@ export function useParcelOperations({
           if (res.nextSerialNum !== undefined) {
             runningSettings = { ...runningSettings, order_id_next_num: String(res.nextSerialNum) }
           }
-          // Log REAL API request count per batch HTTP call
-          await logUsage('order_parsed', `Batch ${batchNum}/${totalBatches} (${currentBatch} orders) parsed with ${activeProvider.toUpperCase()}. Tokens used: ${res.tokensUsed || 0}`)
           fetchTokenUsage()
         }
 

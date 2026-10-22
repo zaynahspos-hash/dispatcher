@@ -3,6 +3,7 @@ import { CustomerEntry, UserProfile } from './types'
 import { SharedPagination } from '../common/SharedPagination'
 import { usePagination } from '../../hooks/usePagination'
 import { WhatsAppIcon } from '../Icons'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -15,10 +16,18 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 }) => {
   const [filterCustomer, setFilterCustomer] = useState('')
   const [filterMerchant, setFilterMerchant] = useState('all')
+  const [filterSource, setFilterSource] = useState<'all' | 'app' | 'postex_portal'>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  // Filter customers by search term, merchant, and date range
+  // Compute dynamic counts per source
+  const sourceCounts = {
+    all: customers.filter(c => filterMerchant === 'all' || c.user_id === filterMerchant).length,
+    app: customers.filter(c => (filterMerchant === 'all' || c.user_id === filterMerchant) && (c.source === 'app' || !c.source)).length,
+    portal: customers.filter(c => (filterMerchant === 'all' || c.user_id === filterMerchant) && c.source === 'postex_portal').length,
+  }
+
+  // Filter customers by search term, merchant, source, and date range
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = !filterCustomer ||
       (c.name || '').toLowerCase().includes(filterCustomer.toLowerCase()) ||
@@ -26,6 +35,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       (c.user?.email || '').toLowerCase().includes(filterCustomer.toLowerCase())
 
     const matchesMerchant = filterMerchant === 'all' || c.user_id === filterMerchant
+
+    const matchesSource = filterSource === 'all' ||
+      (filterSource === 'app' && (c.source === 'app' || !c.source)) ||
+      (filterSource === 'postex_portal' && c.source === 'postex_portal')
 
     let matchesDate = true
     const effectiveDate = c.updated_at || c.created_at
@@ -42,7 +55,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       if (cDate > eDate) matchesDate = false
     }
 
-    return matchesSearch && matchesMerchant && matchesDate
+    return matchesSearch && matchesMerchant && matchesSource && matchesDate
   })
 
   // DB-Optimized Shared Pagination
@@ -53,12 +66,14 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 
   const handleExportCSV = () => {
     if (filteredCustomers.length === 0) return
-    const headers = ['Customer Name', 'Customer Phone', 'WhatsApp Link', 'Date Added']
+    const headers = ['Customer Name', 'Customer Phone', 'Source', 'Date Added', 'Merchant Store', 'WhatsApp Link']
     const rows = filteredCustomers.map(c => [
       `"${(c.name || '').replace(/"/g, '""')}"`,
       `"${c.phone || ''}"`,
-      `"https://wa.me/${c.phone.replace(/\D/g,'').replace(/^0/, '92')}"`,
-      new Date(c.created_at).toLocaleString()
+      `"${c.source === 'postex_portal' ? 'External / Portal' : 'Booked in App'}"`,
+      `"${new Date(c.created_at).toLocaleString()}"`,
+      `"${(c.user?.email || 'N/A').replace(/"/g, '""')}"`,
+      `"https://wa.me/${c.phone.replace(/\D/g,'').replace(/^0/, '92')}"`
     ])
     
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
@@ -66,7 +81,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', `customers_directory_${new Date().toISOString().slice(0,10)}.csv`)
+    const sourceSuffix = filterSource === 'all' ? 'all' : filterSource === 'app' ? 'app' : 'external'
+    link.setAttribute('download', `customers_directory_${sourceSuffix}_${new Date().toISOString().slice(0,10)}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -87,7 +103,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-emerald-500">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
           </svg>
-          <span>Export CSV</span>
+          <span>Export CSV {filterSource !== 'all' ? `(${filterSource === 'app' ? 'App' : 'External'})` : ''}</span>
         </button>
       </div>
 
@@ -105,6 +121,66 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
           </svg>
         </div>
+
+        {/* Source Pills (All Sources, Booked in App, External / Portal) */}
+        <ScrollableChipsBar
+          className="w-full"
+          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+        >
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0">
+            Source:
+          </span>
+          <button
+            type="button"
+            onClick={() => setFilterSource('all')}
+            className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              filterSource === 'all'
+                ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>All Sources</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+              filterSource === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}>
+              {sourceCounts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterSource('app')}
+            className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              filterSource === 'app'
+                ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>Booked in App</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+              filterSource === 'app' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}>
+              {sourceCounts.app}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterSource('postex_portal')}
+            className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+              filterSource === 'postex_portal'
+                ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+            }`}
+          >
+            <span>External / Portal</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+              filterSource === 'postex_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}>
+              {sourceCounts.portal}
+            </span>
+          </button>
+        </ScrollableChipsBar>
 
         {/* Merchant and Date Filters */}
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
@@ -142,10 +218,11 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             />
           </div>
 
-          {(filterMerchant !== 'all' || startDate || endDate || filterCustomer) && (
+          {(filterMerchant !== 'all' || filterSource !== 'all' || startDate || endDate || filterCustomer) && (
             <button
               onClick={() => {
                 setFilterMerchant('all')
+                setFilterSource('all')
                 setStartDate('')
                 setEndDate('')
                 setFilterCustomer('')
@@ -190,9 +267,19 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   </a>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Added: {new Date(c.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${
+                      c.source === 'postex_portal'
+                        ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                    }`}>
+                      <span className={`w-1 h-1 rounded-full ${c.source === 'postex_portal' ? 'bg-sky-500' : 'bg-emerald-500'}`} />
+                      {c.source === 'postex_portal' ? 'External' : 'App'}
+                    </span>
+                    <span>Added: {new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
                   {c.user?.email && (
-                    <span className="truncate max-w-[150px] font-medium text-slate-500 dark:text-slate-400">
+                    <span className="truncate max-w-[130px] font-medium text-slate-500 dark:text-slate-400">
                       {c.user.email}
                     </span>
                   )}
@@ -206,11 +293,18 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       {/* Desktop Table View */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left border-collapse table-fixed">
-          <colgroup><col className="w-1/3" /><col className="w-1/4" /><col className="w-1/4" /><col className="w-20" /></colgroup>
+          <colgroup>
+            <col className="w-[30%]" />
+            <col className="w-[22%]" />
+            <col className="w-[20%]" />
+            <col className="w-[18%]" />
+            <col className="w-[10%]" />
+          </colgroup>
           <thead>
             <tr className="bg-slate-50 dark:bg-[#070b12] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200/80 dark:border-slate-800">
               <th className="px-4 py-3 border-r border-slate-100 dark:border-slate-800">Customer Name</th>
               <th className="px-4 py-3 border-r border-slate-100 dark:border-slate-800">Phone Number</th>
+              <th className="px-4 py-3 border-r border-slate-100 dark:border-slate-800">Source</th>
               <th className="px-4 py-3 border-r border-slate-100 dark:border-slate-800">Date Added</th>
               <th className="px-4 py-3 text-center">WhatsApp</th>
             </tr>
@@ -218,16 +312,27 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs font-medium">
             {filteredCustomers.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-12 text-slate-400">No customers found in database.</td>
+                <td colSpan={5} className="text-center py-12 text-slate-400">No customers found in database.</td>
               </tr>
             ) : (
               paginatedCustomers.map(c => {
                 const rawPhone = (c.phone || '').replace(/\D/g, '')
                 const waPhone = rawPhone.startsWith('0') ? '92' + rawPhone.slice(1) : rawPhone
+                const isExternal = c.source === 'postex_portal'
                 return (
                   <tr key={c.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-100">{c.name}</td>
                     <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-300">{c.phone}</td>
+                    <td className="px-4 py-3 border-r border-slate-100 dark:border-slate-800">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        isExternal
+                          ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800'
+                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isExternal ? 'bg-sky-500' : 'bg-emerald-500'}`} />
+                        {isExternal ? 'External / Portal' : 'Booked in App'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-[11px]">
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>

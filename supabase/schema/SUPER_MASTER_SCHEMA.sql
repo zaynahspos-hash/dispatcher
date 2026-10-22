@@ -53,10 +53,18 @@ CREATE TABLE IF NOT EXISTS public.customers (
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   phone TEXT NOT NULL,
   name TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'app',
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT unique_tenant_customer_phone UNIQUE (user_id, phone)
 );
+
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'source') THEN 
+    ALTER TABLE public.customers ADD COLUMN source TEXT NOT NULL DEFAULT 'app'; 
+  END IF; 
+END $$;
 
 -- Table: usage_logs
 -- Audit trail of operations (parsing, bookings, advice, loadsheet)

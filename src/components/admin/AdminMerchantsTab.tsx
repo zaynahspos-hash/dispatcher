@@ -611,22 +611,25 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                 )}
 
-                {/* 6. Previous & Changed APIs Archive (Newest to Oldest & In Use on Top, Deduplicated) */}
-                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                {/* 6. Keys Timeline & Audit History (Complete Date & Time, In Use on Top, Deduplicated) */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                        Previous & Changed APIs Archive ({deduplicatedHistory.length})
+                      <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Keys Timeline & Audit History ({deduplicatedHistory.length})</span>
                       </h4>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
-                        Admin Vault
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                        Keys Vault
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono">In Use First • No Duplicates</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Complete Date & Time</span>
                   </div>
 
                   {deduplicatedHistory.length === 0 ? (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs text-center">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs text-center">
                       No previous or replaced API keys recorded yet for this merchant.
                     </div>
                   ) : (
@@ -642,7 +645,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                         'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
 
                       return (
-                        <div key={item.id || idx} className={`p-3 rounded-xl space-y-1.5 border ${
+                        <div key={item.id || idx} className={`p-3 rounded-xl space-y-2 border ${
                           isInUse 
                             ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/[0.12] border-emerald-500/30' 
                             : 'bg-amber-500/[0.03] dark:bg-amber-950/[0.08] border-amber-500/20 dark:border-amber-500/15'
@@ -696,9 +699,13 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                             {isShown ? item.api_key : '••••••••••••••••••••••••••••••••••••••••'}
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                            <span>{isInUse ? 'Changed / In Use:' : isRemoved ? 'Removed:' : 'Replaced:'} {formatTokenDate(item.replaced_at)}</span>
-                            <span className="font-mono text-[9px] text-slate-400">
+                          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                            <span className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${isInUse ? 'bg-emerald-500 animate-pulse' : isRemoved ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                              <strong className="text-slate-700 dark:text-slate-200">{isInUse ? 'Changed / In Use:' : isRemoved ? 'Removed:' : 'Replaced:'}</strong>
+                              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{formatTokenDate(item.replaced_at)}</span>
+                            </span>
+                            <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
                               {isInUse ? 'Active #1' : 'Admin Archive'}
                             </span>
                           </div>
@@ -727,41 +734,6 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Activity Logs */}
-          <div>
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Recent Merchant Activity ({selectedUserLogs.length})</h4>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-              {selectedUserLogs.length === 0 ? (
-                <p className="p-4 text-center text-slate-400 text-xs">No activity logs recorded.</p>
-              ) : (
-                pagedLogs.map(l => (
-                  <div key={l.id} className="p-3 flex items-center justify-between text-xs">
-                    <div className="space-y-0.5">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 uppercase text-[10px]">
-                        {l.action.replace('_', ' ')}
-                      </span>
-                      {l.details && <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400">{l.details}</p>}
-                    </div>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <SharedPagination
-              currentPage={logsPage}
-              totalItems={totalLogs}
-              pageSize={logsPageSize}
-              onPageChange={setLogsPage}
-              onPageSizeChange={setLogsPageSize}
-              pageSizeOptions={[10, 25, 50, 100, 200, 300]}
-              itemLabel="activity logs"
-              className="mt-3"
-            />
           </div>
         </div>
       </div>
@@ -807,7 +779,12 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
           ) : (
             filteredUsers.map(u => {
               const isSelected = selectedUser?.id === u.id
-              const userActionsCount = logs.filter(l => l.user_id === u.id).length
+              const uSettings = (u.settings as any)?.settings || {}
+              const historyCount = Array.isArray(uSettings.api_history) ? uSettings.api_history.length : 0
+              const hasActiveKey = !!(uSettings.postex_token || uSettings.gemini_api_key || uSettings.groq_api_key)
+              const keysBadge = historyCount > 0 
+                ? `${historyCount} key${historyCount === 1 ? '' : 's'}` 
+                : (hasActiveKey ? '1 key' : (u.role === 'admin' ? 'Admin' : 'Merchant'))
               
               return (
                 <button
@@ -832,7 +809,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                     )}
                   </div>
 
-                  {/* Row 2: Status, PostEx Live, AI Set, Actions count */}
+                  {/* Row 2: Status, PostEx Live, AI Set, Keys count */}
                   <div className="flex flex-wrap items-center gap-1.5 pl-9 text-[10px]">
                     {!!(u.is_blocked || u.status === 'suspended' || (u.settings as any)?.settings?.is_blocked) ? (
                       <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.2 rounded font-bold">Paused</span>
@@ -848,7 +825,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                       <span className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-1.5 py-0.2 rounded font-bold">AI Set</span>
                     )}
                     <span className="text-[9px] text-slate-400 ml-auto font-mono">
-                      {userActionsCount} actions
+                      {keysBadge}
                     </span>
                   </div>
                 </button>

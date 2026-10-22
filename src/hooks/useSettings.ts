@@ -701,17 +701,6 @@ export function useSettings() {
         })
       }
 
-      // Log archived keys to usage_logs audit trail for Admin
-      if (newArchives.length > 0) {
-        const auditEntries = newArchives.map(item => ({
-          user_id: currentUserId,
-          action: 'api_key_archived',
-          details: `${item.key_label} (${item.provider.toUpperCase()}) ${item.action.toUpperCase()} — saved for admin history (${item.api_key.slice(0, 5)}...${item.api_key.slice(-4)})`
-        }))
-        supabase.from('usage_logs').insert(auditEntries).then(({ error }) => {
-          if (error) console.warn('[useSettings] Audit log insert error:', error)
-        })
-      }
 
       try {
         const now = new Date().toISOString()
