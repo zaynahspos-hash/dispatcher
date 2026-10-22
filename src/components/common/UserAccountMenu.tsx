@@ -48,6 +48,49 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'password'>('profile')
   const { uploadingAvatar, handleAvatarFile } = useAvatarUpload(user, updateSetting)
 
+  // Display Name editing
+  const initialName = user?.user_metadata?.full_name || user?.user_metadata?.name || (typeof window !== 'undefined' && user?.id ? localStorage.getItem(`zaynah_name_${user.id}`) : null) || user?.email?.split('@')[0] || ''
+  const [displayName, setDisplayName] = useState(initialName)
+  const [tempName, setTempName] = useState(initialName)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [savingName, setSavingName] = useState(false)
+
+  useEffect(() => {
+    const current = user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.id ? localStorage.getItem(`zaynah_name_${user.id}`) : null) || user?.email?.split('@')[0] || ''
+    setDisplayName(current)
+    if (!isEditingName) setTempName(current)
+  }, [user, isEditingName])
+
+  const handleSaveName = async () => {
+    const trimmed = tempName.trim()
+    if (!trimmed) {
+      toast.warning('Name Required', 'Please enter a valid display name.')
+      return
+    }
+    setSavingName(true)
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: trimmed, name: trimmed }
+      })
+      if (error) throw error
+
+      if (user?.id) {
+        localStorage.setItem(`zaynah_name_${user.id}`, trimmed)
+      }
+      localStorage.setItem('zaynah_name', trimmed)
+
+      setDisplayName(trimmed)
+      setIsEditingName(false)
+      window.dispatchEvent(new CustomEvent('zaynah_user_name_updated', { detail: trimmed }))
+      toast.success('Name Saved', `Display name updated to "${trimmed}".`)
+    } catch (err: any) {
+      console.error('Failed to update name:', err)
+      toast.error('Update Failed', err.message || 'Could not update display name.')
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
@@ -134,14 +177,65 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
             </div>
 
             <div className="min-w-0 flex-1 pr-6">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
-                  {user.email?.split('@')[0]}
-                </h3>
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 uppercase tracking-wider">
-                  Verified
-                </span>
-              </div>
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={e => setTempName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSaveName()
+                      if (e.key === 'Escape') setIsEditingName(false)
+                    }}
+                    autoFocus
+                    disabled={savingName}
+                    placeholder="Enter full name"
+                    className="h-7 px-2 text-xs font-bold rounded-lg border border-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 min-w-0 w-36"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={savingName || !tempName.trim()}
+                    className="h-7 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
+                  >
+                    {savingName ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempName(displayName)
+                      setIsEditingName(false)
+                    }}
+                    disabled={savingName}
+                    className="h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-0.5 min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                    {displayName}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempName(displayName)
+                      setIsEditingName(true)
+                    }}
+                    className="p-1 rounded-md text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    title="Edit display name"
+                    aria-label="Edit display name"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 uppercase tracking-wider shrink-0">
+                    Verified
+                  </span>
+                </div>
+              )}
               <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
                 {user.email}
               </p>

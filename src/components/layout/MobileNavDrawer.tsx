@@ -10,6 +10,7 @@ interface MobileNavDrawerProps {
   activeTab: string
   setActiveTab: (tab: any) => void
   user: any
+  displayName?: string
   avatarUrl?: string
   isRefreshing: boolean
   onRefreshApp: () => void
@@ -29,6 +30,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   activeTab,
   setActiveTab,
   user,
+  displayName,
   avatarUrl,
   isRefreshing,
   onRefreshApp,
@@ -84,7 +86,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
               <UserAvatar email={user.email} avatarUrl={avatarUrl} size="sm" />
               <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                  {user.email?.split('@')[0]}
+                  {displayName || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]}
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">
                   {user.email}

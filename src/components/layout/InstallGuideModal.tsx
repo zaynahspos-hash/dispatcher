@@ -83,59 +83,59 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
         <div className="space-y-4 text-sm text-slate-300">
           {installGuideTab === 'desktop' ? (
             <>
-              <p className="leading-relaxed text-xs">Windows, Mac ya Laptop par Zaynahs Courier app install karne ke steps:</p>
+              <p className="leading-relaxed text-xs">Steps to install Zaynahs Courier app on Windows, Mac, or PC:</p>
               <ol className="list-decimal list-inside space-y-2.5 text-xs text-slate-200">
                 <li className="leading-relaxed">
-                  Chrome ya Edge ke address bar ke right side par <strong>Install icon (⊕)</strong> par click karein.
+                  Click the <strong>Install icon (⊕)</strong> in the right corner of Chrome or Edge address bar.
                 </li>
                 <li className="leading-relaxed">
-                  Ya top-right mein <strong>three dots menu (⋮)</strong> click karein &rarr; <strong>"Save and share"</strong> &rarr; <strong>"Install Zaynahs Courier"</strong> select karein.
+                  Or click the <strong>three dots menu (⋮)</strong> &rarr; <strong>"Save and share"</strong> &rarr; select <strong>"Install Zaynahs Courier"</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Popup confirmation mein <strong>"Install"</strong> button par click karein. App direct separate desktop window mein launch ho jayegi.
+                  Click <strong>"Install"</strong> in the prompt. The app launches immediately in a clean, standalone desktop window.
                 </li>
               </ol>
             </>
           ) : installGuideTab === 'android' ? (
             <>
-              <p className="leading-relaxed text-xs">Android phone par Zaynahs Courier app install karne ke liye ye steps follow karein:</p>
+              <p className="leading-relaxed text-xs">Follow these steps to install Zaynahs Courier app on Android:</p>
               <ol className="list-decimal list-inside space-y-2.5 text-xs text-slate-200">
                 <li className="leading-relaxed">
-                  Apne phone par <strong>Google Chrome</strong> ya default browser open karein.
+                  Open <strong>Google Chrome</strong> or your default browser on your phone.
                 </li>
                 <li className="leading-relaxed">
-                  Top-right corner mein <strong>three-dots menu</strong> (⋮) par click karein.
+                  Tap the <strong>three-dots menu</strong> (⋮) in the top-right corner.
                 </li>
                 <li className="leading-relaxed">
-                  Menu list mein <strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> par tap karein.
+                  Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Screen par aane wale popup mein <strong>"Install"</strong> button par click karke confirm karein.
+                  Tap <strong>"Install"</strong> in the confirmation popup.
                 </li>
               </ol>
             </>
           ) : (
             <>
-              <p className="leading-relaxed text-xs">Apple iOS (Safari) par direct click se app install nahi hoti. Ise Home Screen par lane ke liye ye steps follow karein:</p>
+              <p className="leading-relaxed text-xs">Follow these steps to add Zaynahs Courier to your iPhone or iPad Home Screen:</p>
               <ol className="list-decimal list-inside space-y-2.5 text-xs text-slate-200">
                 <li className="leading-relaxed">
-                  Apne iPhone/iPad par standard <strong>Safari</strong> browser open karein.
+                  Open the app in standard <strong>Safari</strong> browser on your iPhone/iPad.
                 </li>
                 <li className="leading-relaxed">
-                  Safari ke bottom menu bar mein <strong>Share</strong> button (box with an arrow up icon) par click karein.
+                  Tap the <strong>Share</strong> button (box with an arrow up icon) in Safari's bottom toolbar.
                 </li>
                 <li className="leading-relaxed">
-                  Options menu ko scroll down karein aur <strong>"Add to Home Screen"</strong> par tap karein.
+                  Scroll down the share sheet and tap <strong>"Add to Home Screen"</strong>.
                 </li>
                 <li className="leading-relaxed">
-                  Top-right corner mein <strong>"Add"</strong> par click karke save karlein.
+                  Tap <strong>"Add"</strong> in the top-right corner to save.
                 </li>
               </ol>
             </>
           )}
           
           <div className="mt-4 p-3 bg-emerald-950/30 border border-emerald-900/60 rounded-xl text-[11px] text-emerald-300 leading-relaxed">
-            Install hone ke baad, aap Zaynahs Courier app ko normal app ki tarah mobile home screen se fast aur full-screen chala sakenge.
+            Once installed, you can launch Zaynahs Courier directly from your home screen as a fast, full-screen standalone application.
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export const InstallGuideModal: React.FC<InstallGuideModalProps> = ({
           onClick={onClose}
           className="mt-6 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
         >
-          Samajh Gaya (Done)
+          Done
         </button>
       </div>
     </div>

@@ -173,7 +173,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
               <span>WhatsApp Order Dispatcher</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Raw chats ko smart AI models se 1-click clean parcel records mein convert karein.
+              Convert raw customer chats into clean parcel records with 1-click AI parsing.
             </p>
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function PasteInput({ onParse, onExcelParse, loading }: PasteInpu
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="Yahan WhatsApp ke single ya multiple customer messages copy paste karein...
+              placeholder="Paste single or multiple customer WhatsApp messages here...
 
 Example:
 Muhammad Ali
@@ -308,7 +308,7 @@ Items: 2 Suits"
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Shopify, WooCommerce ya PostEx format ki Excel sheet (.xlsx) direct upload karein.
+              Directly upload Excel sheets (.xlsx) in Shopify, WooCommerce, or PostEx format.
             </p>
 
             <div
@@ -356,19 +356,19 @@ Items: 2 Suits"
             <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-2.5">
               <li className="flex items-start gap-2">
                 <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Multi-Order Splitting:</strong> Ek sath 50+ messages paste karein, AI automatic alag kar dega.</span>
+                <span><strong>Multi-Order Splitting:</strong> Paste 50+ messages at once; AI automatically splits and parses individual orders.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>City Normalization:</strong> 500+ PostEx operational cities ke spelling auto-match hote hain.</span>
+                <span><strong>City Normalization:</strong> Auto-resolves spellings against 500+ PostEx operational delivery cities.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Phone Sanitization:</strong> +92, 92, spaces aur dashes hata kar standard 11 digits format banta hai.</span>
+                <span><strong>Phone Sanitization:</strong> Normalizes numbers by removing prefixes and formatting to clean 11 digits.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckIcon size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Exchange / Non-COD:</strong> Return/replacement detect hote hi COD 0 ho jata hai.</span>
+                <span><strong>Exchange / Non-COD:</strong> Automatically zeroes COD when return or replacement tags are detected.</span>
               </li>
             </ul>
           </div>

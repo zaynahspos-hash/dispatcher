@@ -38,7 +38,7 @@ export const MobileInstallBanner: React.FC<MobileInstallBannerProps> = ({
             Install Zaynahs Courier App
           </h4>
           <p className="text-[10px] sm:text-xs text-slate-600 dark:text-emerald-100/70 leading-tight">
-            Apne phone par full-screen use karne ke liye app install karein.
+            Install the app on your phone for a fast, full-screen experience.
           </p>
         </div>
       </div>

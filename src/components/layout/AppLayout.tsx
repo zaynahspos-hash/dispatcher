@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { TabItem } from './BottomTabBar'
 import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
@@ -64,6 +64,44 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       return false
     }
   })
+
+  // Reactive Display Name (Updated immediately when edited in UserAccountMenu)
+  const [userDisplayName, setUserDisplayName] = useState<string>(() => {
+    return (
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      (typeof window !== 'undefined' && user?.id ? localStorage.getItem(`zaynah_name_${user.id}`) : null) ||
+      (typeof window !== 'undefined' ? localStorage.getItem('zaynah_name') : null) ||
+      user?.email?.split('@')[0] ||
+      'Merchant'
+    )
+  })
+
+  useEffect(() => {
+    if (!user) return
+    const updateName = () => {
+      const current =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        (user?.id ? localStorage.getItem(`zaynah_name_${user.id}`) : null) ||
+        localStorage.getItem('zaynah_name') ||
+        user?.email?.split('@')[0] ||
+        'Merchant'
+      setUserDisplayName(current)
+    }
+    updateName()
+    const handleNameEvent = (e: any) => {
+      if (e?.detail && typeof e.detail === 'string') {
+        setUserDisplayName(e.detail)
+      } else {
+        updateName()
+      }
+    }
+    window.addEventListener('zaynah_user_name_updated', handleNameEvent)
+    return () => {
+      window.removeEventListener('zaynah_user_name_updated', handleNameEvent)
+    }
+  }, [user])
 
   const handleToggleSidebarCollapse = () => {
     setIsSidebarCollapsed(prev => {
@@ -202,7 +240,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               >
                 <UserAvatar email={user.email} avatarUrl={settings?.avatar_url || avatarUrl} size="xs" />
                 <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[120px] truncate">
-                  {user.email?.split('@')[0]}
+                  {userDisplayName}
                 </span>
                 <svg className={`hidden sm:block w-3.5 h-3.5 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180 text-emerald-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -301,6 +339,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
+        displayName={userDisplayName}
         avatarUrl={avatarUrl}
         isRefreshing={isRefreshing}
         onRefreshApp={handleRefreshApp}
