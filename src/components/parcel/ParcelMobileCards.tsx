@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Parcel } from '../../utils/groqParser'
+import { Parcel } from '../../utils/aiParser'
 import { PlusIcon, TrashIcon, RefreshIcon } from '../Icons'
 import { MobileCityDropdown } from './MobileCityDropdown'
 import { ParcelExtraDetails } from './ParcelExtraDetails'

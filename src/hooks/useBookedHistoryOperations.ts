@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings } from '../utils/groqParser'
+import { Settings } from '../utils/aiParser'
 import { printLabels, cancelOrder, generateLoadSheet, trackOrder, saveShipperAdvice, fetchAllMerchantOrders } from '../utils/postexApi'
 import { saveAirwayDocument, saveLoadSheetDocument } from '../utils/localPdfVault'
 import {

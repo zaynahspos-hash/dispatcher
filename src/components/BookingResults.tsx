@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { PlusIcon, HistoryIcon } from './Icons'
-import { Settings } from '../utils/groqParser'
+import { Settings } from '../utils/aiParser'
 import { saveAirwayDocument } from '../utils/localPdfVault'
 import { ResultsKPIBar } from './results/ResultsKPIBar'
 import { ResultsFilterBar, ResultsStatusFilter } from './results/ResultsFilterBar'

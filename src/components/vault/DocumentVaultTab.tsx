@@ -10,7 +10,7 @@ import {
 } from '../../utils/localPdfVault'
 import { VaultDocumentCard } from './VaultDocumentCard'
 import { BookedParcel } from '../history/types'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { 
   FolderIcon, SearchIcon, TrashIcon, SyncIcon, CopyIcon, CheckIcon 
 } from '../Icons'

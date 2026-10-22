@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { WhatsAppMilestone, DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../history/types'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 import { SaveIcon } from '../Icons'

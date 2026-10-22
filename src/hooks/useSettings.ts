@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Settings } from '../utils/groqParser'
+import { Settings, ApiHistoryItem } from '../utils/aiParser'
 import { supabase } from '../utils/supabaseClient'
 import { clearCachedAvatar } from '../utils/avatarCache'
 import { DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../components/history/types'
@@ -70,10 +70,137 @@ const DEFAULTS: Settings = {
   whatsapp_template_delivered: DEFAULT_MILESTONE_TEMPLATES.delivered,
   whatsapp_min_delay_sec: 30,
   whatsapp_max_delay_sec: 50,
+  api_history: [],
 }
 
 const DEFAULT_WHATSAPP_TEMPLATE = DEFAULT_MILESTONE_TEMPLATES.booking
 const DEFAULT_WHATSAPP_NOTE = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
+
+function extractApiKeysList(raw: any): string[] {
+  const list: string[] = []
+  if (typeof raw === 'string') {
+    raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).forEach(k => {
+      if (!list.includes(k)) list.push(k)
+    })
+  } else if (Array.isArray(raw)) {
+    raw.forEach(item => {
+      const s = String(item || '').trim()
+      if (s && !list.includes(s)) list.push(s)
+    })
+  }
+  return list
+}
+
+export function detectArchivedApiKeys(prev: Settings, next: Partial<Settings> | Settings): ApiHistoryItem[] {
+  const archives: ApiHistoryItem[] = []
+  const now = new Date().toISOString()
+
+  // 1. PostEx Token
+  if ('postex_token' in next) {
+    const oldVal = (prev.postex_token || '').trim()
+    const newVal = (next.postex_token || '').trim()
+    if (oldVal && oldVal !== newVal) {
+      archives.push({
+        id: `postex_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        provider: 'postex',
+        key_label: 'PostEx API Token (V3)',
+        api_key: oldVal,
+        action: newVal ? 'replaced' : 'removed',
+        replaced_at: now
+      })
+    }
+  }
+
+  // 2. Gemini Keys
+  if ('gemini_api_key' in next || 'gemini_api_keys' in (next as any)) {
+    const oldKeys = extractApiKeysList(prev.gemini_api_key)
+    if (Array.isArray((prev as any).gemini_api_keys)) {
+      (prev as any).gemini_api_keys.forEach((k: string) => {
+        const tr = String(k || '').trim()
+        if (tr && !oldKeys.includes(tr)) oldKeys.push(tr)
+      })
+    }
+    const newKeys = extractApiKeysList((next as any).gemini_api_key)
+    if (Array.isArray((next as any).gemini_api_keys)) {
+      (next as any).gemini_api_keys.forEach((k: string) => {
+        const tr = String(k || '').trim()
+        if (tr && !newKeys.includes(tr)) newKeys.push(tr)
+      })
+    }
+    oldKeys.forEach((oldK, idx) => {
+      if (!newKeys.includes(oldK)) {
+        archives.push({
+          id: `gemini_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`,
+          provider: 'gemini',
+          key_label: `Google Gemini Key #${idx + 1}`,
+          api_key: oldK,
+          action: newKeys.length > 0 ? 'replaced' : 'removed',
+          old_model: prev.gemini_model,
+          replaced_at: now
+        })
+      }
+    })
+  }
+
+  // 3. Groq Keys
+  if ('groq_api_key' in next || 'groq_api_keys' in (next as any)) {
+    const oldKeys = extractApiKeysList(prev.groq_api_key)
+    if (Array.isArray((prev as any).groq_api_keys)) {
+      (prev as any).groq_api_keys.forEach((k: string) => {
+        const tr = String(k || '').trim()
+        if (tr && !oldKeys.includes(tr)) oldKeys.push(tr)
+      })
+    }
+    const newKeys = extractApiKeysList((next as any).groq_api_key)
+    if (Array.isArray((next as any).groq_api_keys)) {
+      (next as any).groq_api_keys.forEach((k: string) => {
+        const tr = String(k || '').trim()
+        if (tr && !newKeys.includes(tr)) newKeys.push(tr)
+      })
+    }
+    oldKeys.forEach((oldK, idx) => {
+      if (!newKeys.includes(oldK)) {
+        archives.push({
+          id: `groq_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`,
+          provider: 'groq',
+          key_label: `Groq LLaMA Key #${idx + 1}`,
+          api_key: oldK,
+          action: newKeys.length > 0 ? 'replaced' : 'removed',
+          old_model: prev.groq_model,
+          replaced_at: now
+        })
+      }
+    })
+  }
+
+  // 4. Other AI providers
+  const otherProviders: Array<{ field: keyof Settings; name: string; modelField?: keyof Settings; provider: any }> = [
+    { field: 'openrouter_api_key', name: 'OpenRouter', modelField: 'openrouter_model', provider: 'openrouter' },
+    { field: 'openai_api_key', name: 'OpenAI', modelField: 'openai_model', provider: 'openai' },
+    { field: 'deepseek_api_key', name: 'DeepSeek', modelField: 'deepseek_model', provider: 'deepseek' },
+    { field: 'anthropic_api_key', name: 'Anthropic', modelField: 'anthropic_model', provider: 'anthropic' },
+    { field: 'mistral_api_key', name: 'Mistral', modelField: 'mistral_model', provider: 'mistral' }
+  ]
+  otherProviders.forEach(cfg => {
+    if (cfg.field in next) {
+      const oldVal = (prev[cfg.field] as string || '').trim()
+      const newVal = ((next as any)[cfg.field] as string || '').trim()
+      if (oldVal && oldVal !== newVal) {
+        archives.push({
+          id: `${cfg.provider}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          provider: cfg.provider,
+          key_label: `${cfg.name} API Key`,
+          api_key: oldVal,
+          action: newVal ? 'replaced' : 'removed',
+          old_model: cfg.modelField ? (prev[cfg.modelField] as string) : undefined,
+          replaced_at: now
+        })
+      }
+    }
+  })
+
+  return archives
+}
 
 // ─── Per-user localStorage helpers ───────────────────────────────────────────
 // All keys are namespaced with the user's UUID so that two tenants on the
@@ -98,15 +225,6 @@ function userVersionKey(userId: string) {
 
 function readLocal(userId: string, field: keyof Settings): any {
   let val = localStorage.getItem(userSettingsKey(userId, field))
-  
-  // Anti-Wipe: If critical secret is missing from primary slot, check persistent resilient vault
-  if ((!val || val === '') && CRITICAL_SECRET_KEYS.includes(field)) {
-    const vaultVal = localStorage.getItem(userVaultKey(userId, field)) || localStorage.getItem(`zaynah_vault_${field}`)
-    if (vaultVal) {
-      val = vaultVal
-      localStorage.setItem(userSettingsKey(userId, field), vaultVal)
-    }
-  }
 
   if (field === 'whatsapp_note') {
     if (!val || val === 'Thank you for shopping with us!' || isCorruptText(val) || !val.includes('📱')) {
@@ -157,18 +275,24 @@ function writeLocal(userId: string, field: keyof Settings, value: any, explicitD
   
   if (isDeleting) {
     localStorage.removeItem(userSettingsKey(userId, field))
+    localStorage.removeItem(userVaultKey(userId, field))
+    localStorage.removeItem(`zaynah_vault_${field}`)
+    localStorage.removeItem(`zaynah_vault_active_tenant_${field}`)
+    if (field === 'gemini_api_key') {
+      localStorage.removeItem(`u_${userId}_gemini_api_keys`)
+      localStorage.removeItem(`zaynah_vault_${userId}_gemini_api_keys`)
+      localStorage.removeItem('zaynah_vault_gemini_api_keys')
+    }
+    if (field === 'groq_api_key') {
+      localStorage.removeItem(`u_${userId}_groq_api_keys`)
+      localStorage.removeItem(`zaynah_vault_${userId}_groq_api_keys`)
+      localStorage.removeItem('zaynah_vault_groq_api_keys')
+    }
   } else {
     localStorage.setItem(userSettingsKey(userId, field), strVal)
-  }
-
-  // Maintain persistent resilient vault for secrets so they survive browser cache clear
-  if (CRITICAL_SECRET_KEYS.includes(field)) {
-    if (strVal && !isDeleting) {
+    if (CRITICAL_SECRET_KEYS.includes(field)) {
       localStorage.setItem(userVaultKey(userId, field), strVal)
       localStorage.setItem(`zaynah_vault_${field}`, strVal)
-    } else {
-      localStorage.removeItem(userVaultKey(userId, field))
-      localStorage.removeItem(`zaynah_vault_${field}`)
     }
   }
 }
@@ -178,10 +302,6 @@ function writeAllLocal(userId: string, data: Settings) {
   ;(Object.keys(DEFAULTS) as Array<keyof Settings>).forEach(k => {
     const val = data[k]
     const isEmpty = val === undefined || val === null || val === ''
-    if (CRITICAL_SECRET_KEYS.includes(k) && isEmpty) {
-      localStorage.removeItem(userVaultKey(userId, k))
-      localStorage.removeItem(`zaynah_vault_${k}`)
-    }
     writeLocal(userId, k, val || '', isEmpty)
   })
 }
@@ -326,18 +446,19 @@ export function useSettings() {
         // DB has settings — load them and refresh local cache
         const dbSettings = { ...(data.settings as unknown as Settings) }
 
-        // ANTI-WIPE PROTECTION (RULE C12 & RULE AI-INTEG):
-        // If local storage or persistent vault has a valid secret key, but the database row had an empty/missing string,
-        // NEVER overwrite local token with blank! Instead, preserve token and auto-repair DB!
         let needsDbRepair = false
+        // When DB has an empty/cleared secret, purge local storage & vault so it never resurrects
         CRITICAL_SECRET_KEYS.forEach(secKey => {
-          const validSecret = localSettings[secKey] || localStorage.getItem(userVaultKey(currentUser.id, secKey)) || localStorage.getItem(`zaynah_vault_${secKey}`)
-          if (validSecret && !dbSettings[secKey]) {
-            console.log(`[useSettings] Preserved local/vault ${secKey} against empty DB row; syncing back to cloud`)
-            ;(dbSettings as any)[secKey] = validSecret
-            needsDbRepair = true
+          if (!dbSettings[secKey]) {
+            writeLocal(currentUser.id, secKey, '', true)
           }
         })
+        if (!dbSettings.gemini_api_key) {
+          (dbSettings as any).gemini_api_keys = []
+        }
+        if (!dbSettings.groq_api_key) {
+          (dbSettings as any).groq_api_keys = []
+        }
 
         const VALID_GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
         if (!dbSettings.gemini_model || !VALID_GEMINI_MODELS.includes(dbSettings.gemini_model)) {
@@ -412,6 +533,10 @@ export function useSettings() {
 
         const merged = { ...DEFAULTS, ...localSettings, ...dbSettings }
         
+        if (Array.isArray((data.settings as any)?.api_history)) {
+          merged.api_history = (data.settings as any).api_history
+        }
+
         // Hydrate avatar_url from Auth metadata if missing in DB / local
         if (!merged.avatar_url && currentUser.user_metadata?.avatar_url) {
           const metaAvatar = currentUser.user_metadata.avatar_url
@@ -510,14 +635,49 @@ export function useSettings() {
     const uId = currentUserId || localStorage.getItem('zaynah_active_user_id') || 'guest'
     let updated: Settings
 
+    const changes = typeof key === 'object' ? key : { [key]: value ?? '' }
+    const newArchives = detectArchivedApiKeys(settings, changes)
+    const existingHistory: ApiHistoryItem[] = Array.isArray(settings.api_history) ? [...settings.api_history] : []
+
     if (typeof key === 'object') {
       updated = { ...settings, ...key }
-      writeAllLocal(uId, updated)
+      Object.entries(key).forEach(([k, v]) => {
+        const str = v === undefined || v === null ? '' : String(v).trim()
+        if (str === '') {
+          writeLocal(uId, k as keyof Settings, '', true)
+        }
+      })
     } else {
       const val = value ?? ''
       const isExplicitDelete = val === ''
       updated = { ...settings, [key]: val }
       writeLocal(uId, key, val, isExplicitDelete)
+    }
+
+    if (updated.gemini_api_key === '') {
+      (updated as any).gemini_api_keys = []
+    }
+    if (updated.groq_api_key === '') {
+      (updated as any).groq_api_keys = []
+    }
+
+    // Preserve and append any changed/removed API keys to history archive for Admin
+    if (newArchives.length > 0) {
+      newArchives.forEach(newItem => {
+        const foundIdx = existingHistory.findIndex(h => h.api_key === newItem.api_key)
+        if (foundIdx >= 0) {
+          existingHistory[foundIdx] = { ...existingHistory[foundIdx], ...newItem }
+        } else {
+          existingHistory.unshift(newItem)
+        }
+      })
+      updated.api_history = existingHistory
+    } else if (existingHistory.length > 0 && !updated.api_history) {
+      updated.api_history = existingHistory
+    }
+
+    if (typeof key === 'object') {
+      writeAllLocal(uId, updated)
     }
 
     setSettings(updated)
@@ -528,6 +688,18 @@ export function useSettings() {
       if (avatarTouch !== undefined) {
         supabase.auth.updateUser({ data: { avatar_url: avatarTouch || '' } }).catch(e => {
           console.warn('[useSettings] Auth metadata avatar sync error:', e)
+        })
+      }
+
+      // Log archived keys to usage_logs audit trail for Admin
+      if (newArchives.length > 0) {
+        const auditEntries = newArchives.map(item => ({
+          user_id: currentUserId,
+          action: 'api_key_archived',
+          details: `${item.key_label} (${item.provider.toUpperCase()}) ${item.action.toUpperCase()} — saved for admin history (${item.api_key.slice(0, 5)}...${item.api_key.slice(-4)})`
+        }))
+        supabase.from('usage_logs').insert(auditEntries).then(({ error }) => {
+          if (error) console.warn('[useSettings] Audit log insert error:', error)
         })
       }
 
@@ -558,6 +730,22 @@ export function useSettings() {
 
   // ── Force-sync (e.g. bulk import from Settings page) ────────────────────
   async function forceSyncSettings(newSettings: Settings): Promise<boolean> {
+    const newArchives = detectArchivedApiKeys(settings, newSettings)
+    const existingHistory: ApiHistoryItem[] = Array.isArray(settings.api_history) ? [...settings.api_history] : []
+    if (newArchives.length > 0) {
+      newArchives.forEach(newItem => {
+        const foundIdx = existingHistory.findIndex(h => h.api_key === newItem.api_key)
+        if (foundIdx >= 0) {
+          existingHistory[foundIdx] = { ...existingHistory[foundIdx], ...newItem }
+        } else {
+          existingHistory.unshift(newItem)
+        }
+      })
+      newSettings.api_history = existingHistory
+    } else if (existingHistory.length > 0 && !newSettings.api_history) {
+      newSettings.api_history = existingHistory
+    }
+
     setSettings(newSettings)
     const uId = user?.id || 'guest'
     writeAllLocal(uId, newSettings)

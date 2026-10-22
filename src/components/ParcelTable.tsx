@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import * as XLSX from 'xlsx'
-import { Parcel, Settings } from '../utils/groqParser'
+import { Parcel, Settings } from '../utils/aiParser'
 import { BookedParcel } from './history/types'
 import { CITY_LIST } from '../utils/cityList'
 import { PlusIcon, HistoryIcon } from './Icons'

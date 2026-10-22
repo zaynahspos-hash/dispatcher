@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { Parcel } from '../../utils/groqParser'
+import { Parcel } from '../../utils/aiParser'
 import { TrashIcon, RefreshIcon } from '../Icons'
 import { useResizableColumns, measureMaxContentLengths } from '../../hooks/useResizableColumns'
 import { CityDropdownMenu } from './CityDropdownMenu'

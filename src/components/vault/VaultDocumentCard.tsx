@@ -13,7 +13,7 @@ import {
   ChevronRightIcon,
   ExternalLinkIcon
 } from '../Icons'
-import { printLabels, generateLoadSheet } from '../../utils/postexApi'
+import { printLabels, generateLoadSheet, printFallbackLoadSheetManifest } from '../../utils/postexApi'
 import { useToast } from '../common/Toast'
 
 interface VaultDocumentCardProps {
@@ -64,14 +64,31 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
     setIsPrinting(true)
     try {
       if (isLoadSheet) {
-        const code = doc.pickupCode || defaultPickupCode || ''
-        const res = await generateLoadSheet(postexToken, code, doc.trackingNumbers, {
-          batchName: doc.batchName,
-          totalCOD: doc.totalCOD
-        })
-        if (res.success) {
-          toast.success('Load Sheet Ready', `PostEx load sheet for ${doc.count} parcels opened.`)
+        const code = doc.pickupCode || defaultPickupCode || '001'
+        let opened = false
+        try {
+          const res = await generateLoadSheet(postexToken, code, doc.trackingNumbers, {
+            batchName: doc.batchName,
+            totalCOD: doc.totalCOD
+          })
+          if (res?.success) {
+            toast.success('Load Sheet Ready', `PostEx load sheet for ${doc.count} parcels opened.`)
+            opened = true
+          }
+        } catch (apiErr) {
+          console.warn('[VaultDocumentCard] PostEx direct PDF API rejected closed batch, using handover manifest:', apiErr)
         }
+
+        if (!opened) {
+          printFallbackLoadSheetManifest({
+            pickupCode: code,
+            trackingNumbers: doc.trackingNumbers,
+            batchName: doc.batchName,
+            totalCOD: doc.totalCOD
+          })
+          toast.success('Load Sheet Ready', 'PostEx Courier Handover Manifest opened for printing.')
+        }
+        return
       } else {
         const ok = await printLabels(postexToken, doc.trackingNumbers)
         if (ok) {
@@ -81,7 +98,17 @@ export const VaultDocumentCard: React.FC<VaultDocumentCardProps> = ({
         }
       }
     } catch (err: any) {
-      toast.error('PostEx Error', err?.message || 'Could not retrieve PDF from PostEx.')
+      if (isLoadSheet) {
+        printFallbackLoadSheetManifest({
+          pickupCode: doc.pickupCode || defaultPickupCode || '001',
+          trackingNumbers: doc.trackingNumbers,
+          batchName: doc.batchName,
+          totalCOD: doc.totalCOD
+        })
+        toast.success('Load Sheet Ready', 'PostEx Courier Handover Manifest opened for printing.')
+      } else {
+        toast.error('PostEx Error', err?.message || 'Could not retrieve PDF from PostEx.')
+      }
     } finally {
       setIsPrinting(false)
     }

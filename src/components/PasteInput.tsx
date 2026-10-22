@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import * as XLSX from 'xlsx'
-import { Parcel } from '../utils/groqParser'
+import { Parcel } from '../utils/aiParser'
 import { PasteIcon, SparklesIcon, UploadIcon, InfoIcon, DownloadIcon, CheckIcon } from './Icons'
 import { useToast } from './common/Toast'
 import { ScrollableChipsBar } from './common/ScrollableChipsBar'

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { parseParcelText, parseTextFallback, splitRawTextIntoOrderBlocks, Parcel, Settings } from '../utils/groqParser'
+import { parseParcelText, parseTextFallback, splitRawTextIntoOrderBlocks, Parcel, Settings } from '../utils/aiParser'
 import { BookingResult } from '../components/BookingResults'
 import { BookedParcel } from '../components/BookedHistory'
 import { createOrder, printLabels, cancelOrder } from '../utils/postexApi'

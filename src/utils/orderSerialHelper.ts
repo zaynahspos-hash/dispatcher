@@ -1,4 +1,4 @@
-import { Parcel } from './groqParser'
+import { Parcel } from './aiParser'
 
 export interface SerialConflictInfo {
   conflictedIndices: Set<number>

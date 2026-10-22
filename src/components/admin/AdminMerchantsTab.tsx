@@ -219,8 +219,13 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
             if (userSettings.openai_api_key) otherAiKeys.push({ name: 'OpenAI', key: userSettings.openai_api_key, model: userSettings.openai_model })
             if (userSettings.deepseek_api_key) otherAiKeys.push({ name: 'DeepSeek', key: userSettings.deepseek_api_key, model: userSettings.deepseek_model })
 
+            // Previous / Changed APIs Archive (Sorted NEW to OLD)
+            const apiHistory: any[] = Array.isArray(userSettings.api_history)
+              ? [...userSettings.api_history].sort((a, b) => (b.replaced_at || '').localeCompare(a.replaced_at || ''))
+              : []
+
             return (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
                   <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Configured API Keys & Integrations
@@ -235,44 +240,48 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                 </div>
 
                 {/* 1. PostEx V3 API Token */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">PostEx API Token</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                      postexToken ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                    }`}>
-                      {postexToken ? 'Active' : 'Not Configured'}
-                    </span>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider truncate">
+                        PostEx API Token
+                      </span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0 ${
+                        postexToken ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                      }`}>
+                        {postexToken ? 'Active' : 'Not Configured'}
+                      </span>
+                    </div>
+                    {postexToken && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
+                          className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                        >
+                          {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(postexToken)
+                            setFeedbackMsg({ text: 'PostEx token copied to clipboard.' })
+                            setTimeout(() => setFeedbackMsg(null), 2500)
+                          }}
+                          className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all pr-20">
+                  <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
                     {postexToken ? (
-                      showCredentials[`postex_${selectedUser.id}`] ? postexToken : '••••••••••••••••••••••••'
+                      showCredentials[`postex_${selectedUser.id}`] ? postexToken : '••••••••••••••••••••••••••••••••••••••••'
                     ) : (
                       <span className="text-slate-400 italic">Not configured</span>
                     )}
                   </p>
-                  {postexToken && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleCreds(`postex_${selectedUser.id}`)}
-                        className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-semibold"
-                      >
-                        {showCredentials[`postex_${selectedUser.id}`] ? 'Hide' : 'Show'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(postexToken)
-                          setFeedbackMsg({ text: 'PostEx token copied to clipboard.' })
-                          setTimeout(() => setFeedbackMsg(null), 2500)
-                        }}
-                        className="text-xs text-emerald-600 hover:text-emerald-500 cursor-pointer font-semibold"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* 2. AI Engine Summary */}
@@ -288,7 +297,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </span>
                 </div>
 
-                {/* 3. Gemini API Keys */}
+                {/* 3. Gemini API Keys (Current Active) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-bold uppercase">Google Gemini Keys ({geminiKeys.length})</span>
@@ -296,47 +305,54 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                   {geminiKeys.length === 0 ? (
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
-                      No Gemini keys configured
+                      No active Gemini keys configured
                     </div>
                   ) : (
                     geminiKeys.map((keyVal, idx) => {
                       const credKey = `gemini_${selectedUser.id}_${idx}`
                       const isShown = showCredentials[credKey]
                       return (
-                        <div key={idx} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">Gemini API Key #{idx + 1}</span>
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">
+                                Gemini API Key #{idx + 1}
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
+                                Active
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleCreds(credKey)}
+                                className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                              >
+                                {isShown ? 'Hide' : 'Show'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(keyVal)
+                                  setFeedbackMsg({ text: `Gemini Key #${idx + 1} copied.` })
+                                  setTimeout(() => setFeedbackMsg(null), 2500)
+                                }}
+                                className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
+                              >
+                                Copy
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all pr-20">
-                            {isShown ? keyVal : '••••••••••••••••••••••••'}
+                          <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
+                            {isShown ? keyVal : '••••••••••••••••••••••••••••••••••••••••'}
                           </p>
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleCreds(credKey)}
-                              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-semibold"
-                            >
-                              {isShown ? 'Hide' : 'Show'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(keyVal)
-                                setFeedbackMsg({ text: `Gemini Key #${idx + 1} copied.` })
-                                setTimeout(() => setFeedbackMsg(null), 2500)
-                              }}
-                              className="text-xs text-emerald-600 hover:text-emerald-500 cursor-pointer font-semibold"
-                            >
-                              Copy
-                            </button>
-                          </div>
                         </div>
                       )
                     })
                   )}
                 </div>
 
-                {/* 4. Groq API Keys */}
+                {/* 4. Groq API Keys (Current Active) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-bold uppercase">Groq LLaMA Keys ({groqKeys.length})</span>
@@ -344,40 +360,47 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                   </div>
                   {groqKeys.length === 0 ? (
                     <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs italic">
-                      No Groq keys configured
+                      No active Groq keys configured
                     </div>
                   ) : (
                     groqKeys.map((keyVal, idx) => {
                       const credKey = `groq_${selectedUser.id}_${idx}`
                       const isShown = showCredentials[credKey]
                       return (
-                        <div key={idx} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">Groq API Key #{idx + 1}</span>
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">
+                                Groq API Key #{idx + 1}
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 font-bold">
+                                Active
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleCreds(credKey)}
+                                className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                              >
+                                {isShown ? 'Hide' : 'Show'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(keyVal)
+                                  setFeedbackMsg({ text: `Groq Key #${idx + 1} copied.` })
+                                  setTimeout(() => setFeedbackMsg(null), 2500)
+                                }}
+                                className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
+                              >
+                                Copy
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all pr-20">
-                            {isShown ? keyVal : '••••••••••••••••••••••••'}
+                          <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
+                            {isShown ? keyVal : '••••••••••••••••••••••••••••••••••••••••'}
                           </p>
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleCreds(credKey)}
-                              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-semibold"
-                            >
-                              {isShown ? 'Hide' : 'Show'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(keyVal)
-                                setFeedbackMsg({ text: `Groq Key #${idx + 1} copied.` })
-                                setTimeout(() => setFeedbackMsg(null), 2500)
-                              }}
-                              className="text-xs text-emerald-600 hover:text-emerald-500 cursor-pointer font-semibold"
-                            >
-                              Copy
-                            </button>
-                          </div>
                         </div>
                       )
                     })
@@ -392,38 +415,125 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                       const credKey = `other_${selectedUser.id}_${idx}`
                       const isShown = showCredentials[credKey]
                       return (
-                        <div key={idx} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{item.name} API Key</span>
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">
+                              {item.name} API Key
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleCreds(credKey)}
+                                className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                              >
+                                {isShown ? 'Hide' : 'Show'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(item.key)
+                                  setFeedbackMsg({ text: `${item.name} key copied.` })
+                                  setTimeout(() => setFeedbackMsg(null), 2500)
+                                }}
+                                className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition cursor-pointer font-medium"
+                              >
+                                Copy
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs font-mono text-slate-800 dark:text-slate-100 break-all pr-20">
-                            {isShown ? item.key : '••••••••••••••••••••••••'}
+                          <p className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
+                            {isShown ? item.key : '••••••••••••••••••••••••••••••••••••••••'}
                           </p>
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleCreds(credKey)}
-                              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-semibold"
-                            >
-                              {isShown ? 'Hide' : 'Show'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(item.key)
-                                setFeedbackMsg({ text: `${item.name} key copied.` })
-                                setTimeout(() => setFeedbackMsg(null), 2500)
-                              }}
-                              className="text-xs text-emerald-600 hover:text-emerald-500 cursor-pointer font-semibold"
-                            >
-                              Copy
-                            </button>
-                          </div>
                         </div>
                       )
                     })}
                   </div>
                 )}
+
+                {/* 6. Previous & Changed APIs Archive (Newest to Oldest) */}
+                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                        Previous & Changed APIs Archive ({apiHistory.length})
+                      </h4>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold">
+                        Admin Vault
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">Newest to Oldest</span>
+                  </div>
+
+                  {apiHistory.length === 0 ? (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs text-center">
+                      No previous or replaced API keys recorded yet for this merchant.
+                    </div>
+                  ) : (
+                    apiHistory.map((item: any, idx: number) => {
+                      const credKey = `hist_${selectedUser.id}_${item.id || idx}`
+                      const isShown = showCredentials[credKey]
+                      const providerBadgeColor = 
+                        item.provider === 'postex' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20' :
+                        item.provider === 'gemini' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' :
+                        item.provider === 'groq' ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20' :
+                        'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
+
+                      return (
+                        <div key={item.id || idx} className="p-3 bg-amber-500/[0.03] dark:bg-amber-950/[0.08] border border-amber-500/20 dark:border-amber-500/15 rounded-xl space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border ${providerBadgeColor}`}>
+                                {item.provider}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                {item.key_label || 'API Key'}
+                              </span>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                                item.action === 'removed' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                              }`}>
+                                {item.action === 'removed' ? 'Removed' : 'Replaced'}
+                              </span>
+                              {item.old_model && (
+                                <span className="text-[9px] font-mono text-slate-400">
+                                  model: {item.old_model}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => toggleCreds(credKey)}
+                                className="text-[11px] px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition cursor-pointer font-medium"
+                              >
+                                {isShown ? 'Hide' : 'Show'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(item.api_key)
+                                  setFeedbackMsg({ text: `Archived ${item.key_label} copied.` })
+                                  setTimeout(() => setFeedbackMsg(null), 2500)
+                                }}
+                                className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/25 transition cursor-pointer font-medium"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="p-2 bg-white dark:bg-slate-950/80 rounded-lg border border-slate-200/80 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all">
+                            {isShown ? item.api_key : '••••••••••••••••••••••••••••••••••••••••'}
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                            <span>Changed/Removed: {new Date(item.replaced_at).toLocaleString()}</span>
+                            <span className="font-mono text-[9px] text-slate-400">Archived for Admin</span>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
               </div>
             )
           })()}
@@ -530,37 +640,41 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
                 <button
                   key={u.id}
                   onClick={() => onSelectUser(u)}
-                  className={`w-full text-left p-3.5 flex items-center justify-between transition-colors cursor-pointer ${
+                  className={`w-full text-left p-3 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/80 ${
                     isSelected ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-l-4 border-emerald-500 pl-2.5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <UserAvatar email={u.email} avatarUrl={(u.settings as any)?.avatar_url || (u.settings as any)?.settings?.avatar_url} size="sm" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{u.email}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Joined: {new Date(u.created_at).toLocaleDateString()}
+                  {/* Row 1: Avatar, Email, Admin badge */}
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <UserAvatar email={u.email} avatarUrl={(u.settings as any)?.avatar_url || (u.settings as any)?.settings?.avatar_url} size="sm" />
+                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        {u.email}
                       </p>
                     </div>
+                    {u.role === 'admin' && (
+                      <span className="text-[9px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                        Admin
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+
+                  {/* Row 2: Status, PostEx Live, AI Set, Actions count */}
+                  <div className="flex flex-wrap items-center gap-1.5 pl-9 text-[10px]">
                     {!!(u.is_blocked || u.status === 'suspended' || (u.settings as any)?.settings?.is_blocked) ? (
-                      <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded font-bold">Paused</span>
+                      <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.2 rounded font-bold">Paused</span>
                     ) : (
-                      <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">Active</span>
+                      <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded font-bold">Active</span>
                     )}
                     {!!(u.settings as any)?.settings?.postex_token ? (
-                      <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded font-bold">PostEx Live</span>
+                      <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 px-1.5 py-0.2 rounded font-bold">PostEx Live</span>
                     ) : (
-                      <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-medium">No Courier</span>
+                      <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-medium">No Courier</span>
                     )}
                     {!!((u.settings as any)?.settings?.gemini_api_key || (u.settings as any)?.settings?.groq_api_key) && (
-                      <span className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded font-bold">AI Set</span>
+                      <span className="text-[9px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-1.5 py-0.2 rounded font-bold">AI Set</span>
                     )}
-                    {u.role === 'admin' && (
-                      <span className="text-[9px] bg-rose-500/10 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-bold uppercase">Admin</span>
-                    )}
-                    <span className="text-[10px] bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">
+                    <span className="text-[9px] text-slate-400 ml-auto font-mono">
                       {userActionsCount} actions
                     </span>
                   </div>

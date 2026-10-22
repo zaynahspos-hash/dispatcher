@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { ExternalLinkIcon, LockIcon } from '../Icons'
 
 export const PROVIDER_METADATA: Record<string, {
@@ -214,8 +214,11 @@ export const AiSettingsTab: React.FC<AiSettingsTabProps> = ({
                   onClick={async () => {
                     if (window.confirm(`Are you sure you want to remove your ${activeMeta.name} API Key?`)) {
                       const keyField = `${activeProvider}_api_key` as keyof Settings
-                      updateSetting(keyField, '')
-                      if (onSave) await onSave({ [keyField]: '' })
+                      const updates: any = { [keyField]: '' }
+                      if (activeProvider === 'gemini') updates.gemini_api_keys = []
+                      if (activeProvider === 'groq') updates.groq_api_keys = []
+                      await updateSetting(updates)
+                      if (onSave) await onSave(updates)
                       setIsEditingKey(false)
                       setTempKey('')
                     }

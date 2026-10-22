@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Parcel, Settings } from './groqParser'
+import { Parcel, Settings } from './aiParser'
 
 const IS_DEV = (import.meta as any).env.DEV;
 const POSTEX_HOST = IS_DEV ? '/postex-api' : 'https://api.postex.pk';
@@ -262,11 +262,6 @@ export function printFallbackLoadSheetManifest(params: {
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  const win = window.open('', '_blank')
-  if (!win) {
-    alert('Please allow popups to print load sheet manifest.')
-    return false
-  }
 
   const rowsHtml = trackingNumbers.map((cn, i) => `
     <tr>
@@ -371,9 +366,45 @@ export function printFallbackLoadSheetManifest(params: {
     </html>
   `
 
-  win.document.open()
-  win.document.write(html)
-  win.document.close()
+  let targetDoc: Document | null = null
+  let isIframe = false
+
+  try {
+    const win = window.open('', '_blank')
+    if (win && win.document) {
+      targetDoc = win.document
+    }
+  } catch {}
+
+  let iframe: HTMLIFrameElement | null = null
+  if (!targetDoc) {
+    isIframe = true
+    iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+    targetDoc = iframe.contentWindow?.document || null
+  }
+
+  if (!targetDoc) return false
+
+  targetDoc.open()
+  targetDoc.write(html)
+  targetDoc.close()
+
+  if (isIframe && iframe) {
+    setTimeout(() => {
+      iframe?.contentWindow?.focus()
+      iframe?.contentWindow?.print()
+      setTimeout(() => {
+        if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe)
+      }, 4000)
+    }, 500)
+  }
   return true
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { useToast } from '../components/common/Toast'
-import { Settings } from '../utils/groqParser'
+import { Settings } from '../utils/aiParser'
 import { setCachedAvatar } from '../utils/avatarCache'
 
 export function useAvatarUpload(

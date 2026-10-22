@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getMerchantAddresses, getOrderTypes } from '../utils/postexApi'
-import { Settings } from '../utils/groqParser'
+import { Settings } from '../utils/aiParser'
 import { 
   TruckIcon, 
   BotIcon, 
@@ -67,6 +67,17 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
     setSaving(true)
     try {
       const toSave = { ...draftSettings, ...(override || {}) }
+      if (override) {
+        Object.entries(override).forEach(([k, v]) => {
+          (toSave as any)[k] = v
+        })
+      }
+      if (toSave.gemini_api_key === '') {
+        (toSave as any).gemini_api_keys = []
+      }
+      if (toSave.groq_api_key === '') {
+        (toSave as any).groq_api_keys = []
+      }
       if (settings.avatar_url && !toSave.avatar_url) {
         toSave.avatar_url = settings.avatar_url
       }

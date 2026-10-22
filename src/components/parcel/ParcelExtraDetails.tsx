@@ -1,5 +1,5 @@
 import React from 'react'
-import { Parcel } from '../../utils/groqParser'
+import { Parcel } from '../../utils/aiParser'
 
 interface ParcelExtraDetailsProps {
   index: number

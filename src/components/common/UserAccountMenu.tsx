@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { UserAvatar } from './UserAvatar'
 import { useToast } from './Toast'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { useAvatarUpload } from '../../hooks/useAvatarUpload'
 import { clearCachedAvatar } from '../../utils/avatarCache'
 import { supabase } from '../../utils/supabaseClient'

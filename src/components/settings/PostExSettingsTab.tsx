@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { ExternalLinkIcon, LockIcon } from '../Icons'
 
 export interface MerchantAddress {
@@ -105,7 +105,7 @@ export const PostExSettingsTab: React.FC<PostExSettingsTabProps> = ({
                   type="button"
                   onClick={async () => {
                     if (window.confirm('Are you sure you want to remove your PostEx API Token?')) {
-                      updateSetting('postex_token', '')
+                      await updateSetting({ postex_token: '' })
                       if (onSave) await onSave({ postex_token: '' })
                       setIsEditingToken(false)
                       setTempToken('')

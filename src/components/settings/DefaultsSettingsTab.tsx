@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { ORDER_TYPES } from '../ParcelTable'
 import { SaveIcon } from '../Icons'
 

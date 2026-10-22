@@ -4,7 +4,7 @@ import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
 import { UserAvatar } from '../common/UserAvatar'
 import { UserAccountMenu } from '../common/UserAccountMenu'
-import { Settings } from '../../utils/groqParser'
+import { Settings } from '../../utils/aiParser'
 import { DesktopSidebar } from './DesktopSidebar'
 import { MobileNavDrawer } from './MobileNavDrawer'
 

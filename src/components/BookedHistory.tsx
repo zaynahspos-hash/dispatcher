@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Settings } from '../utils/groqParser'
+import { Settings } from '../utils/aiParser'
 import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon } from './Icons'
 import { 
   BookedParcel, 
