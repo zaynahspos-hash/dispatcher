@@ -353,16 +353,6 @@ function getInitialSettings(): Settings {
     if (activeId) {
       return readAllLocal(activeId)
     }
-    const guestSettings = { ...DEFAULTS }
-    let hasAny = false
-    CRITICAL_SECRET_KEYS.forEach(k => {
-      const v = localStorage.getItem(`zaynah_vault_${k}`) || localStorage.getItem(`zaynah_vault_active_tenant_${k}`)
-      if (v) {
-        (guestSettings as any)[k] = v
-        hasAny = true
-      }
-    })
-    if (hasAny) return guestSettings
   } catch {}
   return DEFAULTS
 }
@@ -532,6 +522,18 @@ export function useSettings() {
         }
 
         const merged = { ...DEFAULTS, ...localSettings, ...dbSettings }
+        // Ensure that any secret cleared in DB is strictly cleared in merged state and local cache
+        CRITICAL_SECRET_KEYS.forEach(secKey => {
+          if (!dbSettings[secKey]) {
+            merged[secKey] = ''
+          }
+        })
+        if (!merged.gemini_api_key) {
+          (merged as any).gemini_api_keys = []
+        }
+        if (!merged.groq_api_key) {
+          (merged as any).groq_api_keys = []
+        }
         
         if (Array.isArray((data.settings as any)?.api_history)) {
           merged.api_history = (data.settings as any).api_history
@@ -604,13 +606,7 @@ export function useSettings() {
 
   useEffect(() => {
     if (!user) {
-      // Hydrate with local vault fallback so API keys don't blank out on reload
-      const guestSettings = { ...DEFAULTS }
-      CRITICAL_SECRET_KEYS.forEach(k => {
-        const v = localStorage.getItem(`zaynah_vault_${k}`)
-        if (v) (guestSettings as any)[k] = v
-      })
-      setSettings(guestSettings)
+      setSettings(DEFAULTS)
       return
     }
 
