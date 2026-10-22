@@ -121,10 +121,10 @@ export const ScrollableChipsBar: React.FC<ScrollableChipsBarProps> = ({
 
   return (
     <div className={`relative flex items-center w-full min-w-0 max-w-full group ${className}`}>
-      {/* Left Navigation Arrow */}
+      {/* Left Navigation Arrow (Desktop mouse only, hidden on mobile for native iOS swipe) */}
       {canScrollLeft && (
         <div
-          className={`absolute left-0 top-0 bottom-0 z-10 flex items-center pr-4 pl-0.5 pointer-events-none transition-opacity duration-200 ${
+          className={`hidden sm:flex absolute left-0 top-0 bottom-0 z-10 items-center pr-4 pl-0.5 pointer-events-none transition-opacity duration-200 ${
             fadeGradient ? `bg-gradient-to-r ${leftFadeClass}` : ''
           }`}
         >
@@ -149,10 +149,10 @@ export const ScrollableChipsBar: React.FC<ScrollableChipsBarProps> = ({
         {children}
       </div>
 
-      {/* Right Navigation Arrow */}
+      {/* Right Navigation Arrow (Desktop mouse only, hidden on mobile for native iOS swipe) */}
       {canScrollRight && (
         <div
-          className={`absolute right-0 top-0 bottom-0 z-10 flex items-center pl-4 pr-0.5 pointer-events-none transition-opacity duration-200 ${
+          className={`hidden sm:flex absolute right-0 top-0 bottom-0 z-10 items-center pl-4 pr-0.5 pointer-events-none transition-opacity duration-200 ${
             fadeGradient ? `bg-gradient-to-l ${rightFadeClass}` : ''
           }`}
         >

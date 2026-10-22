@@ -11,7 +11,8 @@ import {
   SunIcon, 
   SettingsIcon,
   TruckIcon,
-  BotIcon
+  BotIcon,
+  AdminIcon
 } from '../Icons'
 
 export interface UserAccountMenuProps {
@@ -22,6 +23,8 @@ export interface UserAccountMenuProps {
   onClose: () => void
   onLogout: () => void
   onNavigateToSettings: () => void
+  isAdmin?: boolean
+  onNavigateToAdmin?: () => void
   theme: 'light' | 'dark'
   onToggleTheme: () => void
   isStandalone?: boolean
@@ -38,6 +41,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   onClose,
   onLogout,
   onNavigateToSettings,
+  isAdmin,
+  onNavigateToAdmin,
   theme,
   onToggleTheme,
   isStandalone,
@@ -368,6 +373,21 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     Install
                   </button>
                 </div>
+              )}
+
+              {/* Shortcut to Admin Control Dashboard (Admins Only) */}
+              {isAdmin && onNavigateToAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigateToAdmin()
+                    onClose()
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/25 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer active:scale-98"
+                >
+                  <AdminIcon size={14} className="text-rose-500" />
+                  Admin Control &amp; Merchants
+                </button>
               )}
 
               {/* Shortcut to full Settings */}

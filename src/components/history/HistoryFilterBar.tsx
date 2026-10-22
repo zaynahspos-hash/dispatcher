@@ -353,118 +353,118 @@ export function HistoryFilterBar({
         </div>
       </div>
 
-      {/* Source Origin Filter Pills (App vs PostEx External / Shopify / Stores) */}
-      {setSourceFilter && (
-        <ScrollableChipsBar
-          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
-        >
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0">
-            Source:
-          </span>
-          <button
-            type="button"
-            onClick={() => setSourceFilter('all')}
-            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
-              sourceFilter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-emerald-500/15 dark:text-emerald-400 border-slate-900 dark:border-emerald-500/30 shadow-xs'
-                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
-            }`}
+      {/* 1. Primary Status Pills (Apple iOS Horizontal Touch Scroll) */}
+      <ScrollableChipsBar
+        className="w-full"
+        containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+      >
+        {tabs.map(tab => {
+          const isActive = statusFilter === tab.id
+          const isAttention = (tab as any).isAttention && tab.count > 0
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id)}
+              className={`h-8 flex items-center gap-2 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
+                isActive
+                  ? isAttention
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs font-bold'
+                    : 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : isAttention
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                    : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : isAttention
+                    ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          )
+        })}
+      </ScrollableChipsBar>
+
+      {/* 2. Secondary Filter Pills: Source & WhatsApp (Uniform h-8, perfectly aligned) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {setSourceFilter && (
+          <ScrollableChipsBar
+            className="flex-1 min-w-0"
+            containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
           >
-            <span>All Sources</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-              sourceFilter === 'all' ? 'bg-white/20 dark:bg-emerald-400/20 text-white dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-            }`}>
-              {sourceCounts?.all ?? counts.all}
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1 shrink-0">
+              Source:
             </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setSourceFilter('all')}
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+                sourceFilter === 'all'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+              }`}
+            >
+              <span>All Sources</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                sourceFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}>
+                {sourceCounts?.all ?? counts.all}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setSourceFilter('app')}
-            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
-              sourceFilter === 'app'
-                ? 'bg-emerald-600 text-white shadow-xs border-emerald-600'
-                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
-            }`}
-          >
-            <span>Booked in App</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-              sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-            }`}>
-              {sourceCounts?.app ?? 0}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setSourceFilter('app')}
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+                sourceFilter === 'app'
+                  ? 'bg-emerald-600 text-white shadow-xs border-emerald-600 font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+              }`}
+            >
+              <span>Booked in App</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                sourceFilter === 'app' ? 'bg-white/20 text-white' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+              }`}>
+                {sourceCounts?.app ?? 0}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setSourceFilter('postex_portal')}
-            className={`h-7.5 flex items-center gap-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 border ${
-              sourceFilter === 'postex_portal'
-                ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
-            }`}
-          >
-            <span>External / Portal / Stores</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-              sourceFilter === 'postex_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}>
-              {sourceCounts?.portal ?? 0}
-            </span>
-          </button>
-        </ScrollableChipsBar>
-      )}
-
-      {/* Segmented Status Pill Tabs & WhatsApp Filter Tabs (Native Touch Scroll) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-        <ScrollableChipsBar
-          className="flex-1 min-w-0"
-          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
-        >
-          {tabs.map(tab => {
-            const isActive = statusFilter === tab.id
-            const isAttention = (tab as any).isAttention && tab.count > 0
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setStatusFilter(tab.id)}
-                className={`h-8 flex items-center gap-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer shrink-0 border ${
-                  isActive
-                    ? isAttention
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs font-bold'
-                      : 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
-                    : isAttention
-                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                      : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
-                  isActive
-                    ? 'bg-white/20 text-white'
-                    : isAttention
-                      ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                }`}>
-                  {tab.count}
-                </span>
-              </button>
-            )
-          })}
-        </ScrollableChipsBar>
-
+            <button
+              type="button"
+              onClick={() => setSourceFilter('postex_portal')}
+              className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0 border ${
+                sourceFilter === 'postex_portal'
+                  ? 'bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border-slate-900 dark:border-emerald-500/40 shadow-xs font-bold'
+                  : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
+              }`}
+            >
+              <span>External / Portal</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
+                sourceFilter === 'postex_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }`}>
+                {sourceCounts?.portal ?? 0}
+              </span>
+            </button>
+          </ScrollableChipsBar>
+        )}
 
         {/* WhatsApp Sent / Pending Quick Filter Toggle */}
         {setWhatsappFilter && (
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 shrink-0 self-start md:self-auto shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1.5 flex items-center gap-1">
+          <div className="h-8 flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-slate-200/80 dark:border-slate-800 shrink-0 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 flex items-center gap-1">
               <WhatsAppIcon size={12} className="text-[#25D366] fill-current shrink-0" />
               <span>WA:</span>
             </span>
             <button
               type="button"
               onClick={() => setWhatsappFilter('all')}
-              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center justify-center ${
                 whatsappFilter === 'all'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -475,7 +475,7 @@ export function HistoryFilterBar({
             <button
               type="button"
               onClick={() => setWhatsappFilter('pending')}
-              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
                 whatsappFilter === 'pending'
                   ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 shadow-2xs'
                   : 'text-slate-500 dark:text-slate-400 hover:text-amber-600'
@@ -490,9 +490,9 @@ export function HistoryFilterBar({
             <button
               type="button"
               onClick={() => setWhatsappFilter('sent')}
-              className={`px-2 py-0.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
+              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
                 whatsappFilter === 'sent'
-                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  ? 'bg-emerald-600 text-white shadow-2xs font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600'
               }`}
               title="Show customers who have already been sent WhatsApp tracking"

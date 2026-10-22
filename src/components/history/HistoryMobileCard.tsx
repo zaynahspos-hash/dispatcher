@@ -79,9 +79,9 @@ export function HistoryMobileCard({
           : 'border-slate-200/90 dark:border-slate-800'
       }`}
     >
-      {/* 1. Top Row: Checkbox, Tracking Pill, City Badge, Status Badge & Price */}
+      {/* 1. Top Row: Checkbox, Tracking Pill, City Badge & COD Price */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 min-w-0 flex-wrap flex-1">
+        <div className="flex items-center gap-1.5 min-w-0">
           <input
             type="checkbox"
             checked={isSelected}
@@ -89,7 +89,7 @@ export function HistoryMobileCard({
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer shrink-0"
           />
 
-          {/* Tracking Number Pill (Matches Results tab) */}
+          {/* Tracking Number Pill */}
           <a
             href={`https://postex.pk/tracking?cn=${parcel.tracking}`}
             target="_blank"
@@ -107,21 +107,9 @@ export function HistoryMobileCard({
               {parcel.city}
             </span>
           )}
-
-          {/* Live Status Badge (Calibrated Alpha Opacity) */}
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-nowrap shrink-0 max-w-[155px] truncate ${getStatusBadgeStyle(
-              parcel.status,
-              parcel.tracking,
-              parcel.loadsheet_generated
-            )}`}
-            title={getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
-          >
-            {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
-          </span>
         </div>
 
-        {/* COD Price Token (Matches Parcels & Results tabs) */}
+        {/* COD Price Token */}
         <div className="text-right shrink-0">
           <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
             Rs. {Number(parcel.total || 0).toLocaleString()}
@@ -134,9 +122,13 @@ export function HistoryMobileCard({
         <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
           <span className="truncate">{parcel.name || 'Unnamed Recipient'}</span>
           {parcel.phone && (
-            <span className="font-mono text-[11px] text-slate-400 font-semibold shrink-0">
+            <a
+              href={`tel:${parcel.phone}`}
+              className="font-mono text-[11px] text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold shrink-0 transition"
+              title="Click to call"
+            >
               {parcel.phone}
-            </span>
+            </a>
           )}
         </div>
         {parcel.address && (
@@ -146,8 +138,20 @@ export function HistoryMobileCard({
         )}
       </div>
 
-      {/* 3. Sub-meta Tags: WhatsApp Alert State, Portal Source, Booking Date */}
+      {/* 3. Sub-meta Tags: Live Status Badge, WhatsApp Alert State, Portal Source, Booking Date */}
       <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+        {/* Live Status Badge */}
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-nowrap shrink-0 max-w-[155px] truncate ${getStatusBadgeStyle(
+            parcel.status,
+            parcel.tracking,
+            parcel.loadsheet_generated
+          )}`}
+          title={getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+        >
+          {getDisplayStatus(parcel.status, parcel.loadsheet_generated)}
+        </span>
+
         {effectiveWhatsAppSent ? (
           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#25D366]/15 text-[#128C7E] dark:text-[#25D366] border border-[#25D366]/25 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
@@ -212,26 +216,29 @@ export function HistoryMobileCard({
         </div>
       )}
 
-      {/* 5. Bottom Actions Bar (Matches Results tab: WhatsApp, Copy CN, Advice, Cancel, Sync, Expand) */}
-      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      {/* 5. Bottom Actions Bar (Apple iOS Aligned Grid: Primary Row + Dedicated Secondary Row) */}
+      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+        <div className="flex items-center gap-1.5">
           {/* WhatsApp Action Button */}
           {!isCancelledStatus(parcel.status) && (
-            <WhatsAppActionButton
-              variant="chip"
-              isSent={effectiveWhatsAppSent}
-              onClick={() => onOpenWhatsApp(parcel)}
-              label={effectiveState === 'both' ? 'Both Sent' : effectiveWhatsAppSent ? 'Sent' : 'WhatsApp'}
-              title="Send WhatsApp Order Update"
-            />
+            <div className="flex-1 min-w-0">
+              <WhatsAppActionButton
+                variant="chip"
+                isSent={effectiveWhatsAppSent}
+                onClick={() => onOpenWhatsApp(parcel)}
+                label={effectiveState === 'both' ? 'Both Sent' : effectiveWhatsAppSent ? 'Sent' : 'WhatsApp'}
+                title="Send WhatsApp Order Update"
+                className="w-full h-8 rounded-xl font-bold text-xs"
+              />
+            </div>
           )}
 
-          {/* Copy CN Button (Matches Results tab) */}
+          {/* Copy CN Button */}
           {parcel.tracking && (
             <button
               type="button"
               onClick={handleCopyCN}
-              className={`h-8 px-2.5 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+              className={`h-8 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer shrink-0 ${
                 copied
                   ? 'bg-emerald-500 text-white border-emerald-500'
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -242,41 +249,12 @@ export function HistoryMobileCard({
             </button>
           )}
 
-          {/* Shipper Advice Button (Only if review/action required) */}
-          {isUnderReview(parcel.status) && (
-            <button
-              type="button"
-              onClick={() => onOpenAdvice(parcel)}
-              className="h-8 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer active:scale-95"
-              title="Submit Shipper Advice"
-            >
-              <InfoIcon size={12} />
-              <span>Advice</span>
-            </button>
-          )}
-
-          {/* Cancel Button (Only if cancellable) */}
-          {canCancel && (
-            <button
-              type="button"
-              onClick={() => onCancel(parcel.tracking)}
-              disabled={isSyncing}
-              className="h-8 px-2.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:text-rose-600 font-semibold rounded-xl transition flex items-center justify-center gap-1 text-xs cursor-pointer disabled:opacity-50 shadow-xs active:scale-95"
-              title="Cancel Booking"
-            >
-              <CancelIcon size={12} />
-              <span>Cancel</span>
-            </button>
-          )}
-        </div>
-
-        {/* Right side utilities: Sync Status & Expand Drawer */}
-        <div className="flex items-center gap-1 shrink-0">
+          {/* Sync Status Button */}
           <button
             type="button"
             onClick={() => onSyncStatus(parcel.tracking)}
             disabled={isSyncing}
-            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition cursor-pointer flex items-center justify-center disabled:opacity-50 active:scale-95 shadow-2xs"
+            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition cursor-pointer flex items-center justify-center disabled:opacity-50 active:scale-95 shadow-2xs shrink-0"
             title="Sync Live Status from PostEx"
           >
             {isSyncing ? (
@@ -289,15 +267,46 @@ export function HistoryMobileCard({
             )}
           </button>
 
+          {/* Expand Details Drawer */}
           <button
             type="button"
             onClick={onToggleExpand}
-            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-2xs"
+            className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-2xs shrink-0"
             title={isExpanded ? 'Hide Extra Details' : 'View Extra Details'}
           >
             <ChevronDownIcon size={14} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
           </button>
         </div>
+
+        {/* Dedicated Secondary Row for Shipper Advice & Cancel (Clean Full-Width, 0 Orphan Wrapping) */}
+        {(isUnderReview(parcel.status) || canCancel) && (
+          <div className="flex items-center gap-1.5 pt-0.5">
+            {isUnderReview(parcel.status) && (
+              <button
+                type="button"
+                onClick={() => onOpenAdvice(parcel)}
+                className="flex-1 h-8 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-xs cursor-pointer active:scale-95"
+                title="Submit Shipper Advice"
+              >
+                <InfoIcon size={12} />
+                <span>Submit Shipper Advice</span>
+              </button>
+            )}
+
+            {canCancel && (
+              <button
+                type="button"
+                onClick={() => onCancel(parcel.tracking)}
+                disabled={isSyncing}
+                className="flex-1 h-8 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/25 font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50 active:scale-95"
+                title="Cancel Booking"
+              >
+                <CancelIcon size={12} />
+                <span>Cancel Order</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { TabItem } from './BottomTabBar'
-import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon } from '../Icons'
+import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon, AdminIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
 import { UserAvatar } from '../common/UserAvatar'
 import { UserAccountMenu } from '../common/UserAccountMenu'
@@ -119,8 +119,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     await forceAppUpdate()
   }
 
-  // Mobile Bottom Bar (5 core focused operations tabs)
-  const baseBottomTabIds = ['paste', 'table', 'results', 'history', 'vault']
+  // Mobile Bottom Bar (5 core focused operations tabs - includes Admin for admin merchants)
+  const hasAdminAccess = tabs.some(t => t.id === 'admin')
+  const baseBottomTabIds = hasAdminAccess
+    ? ['paste', 'table', 'results', 'history', 'admin']
+    : ['paste', 'table', 'results', 'history', 'vault']
   const mobileBottomTabIds = baseBottomTabIds.includes(activeTab)
     ? baseBottomTabIds
     : [...baseBottomTabIds.slice(0, 4), activeTab]
@@ -228,6 +231,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             >
               {theme === 'dark' ? <SunIcon size={15} className="text-amber-400" /> : <MoonIcon size={15} className="text-indigo-400" />}
             </button>
+
+            {/* Direct Admin Control Shortcut for Admins on Mobile Header */}
+            {hasAdminAccess && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                className={`lg:hidden h-9 px-2.5 rounded-lg border flex items-center gap-1 text-xs font-bold transition cursor-pointer active:scale-95 shadow-xs ${
+                  activeTab === 'admin'
+                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 font-black'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+                title="Admin Control & Merchants"
+              >
+                <AdminIcon size={14} className="text-rose-500 shrink-0" />
+                <span className="text-[11px]">Admin</span>
+              </button>
+            )}
 
             {/* User Avatar Pill - Opens Profile / Security / Settings Menu */}
             {user && (
@@ -364,6 +384,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onNavigateToSettings={() => {
             setUserMenuOpen(false)
             setActiveTab('settings')
+          }}
+          isAdmin={hasAdminAccess}
+          onNavigateToAdmin={() => {
+            setUserMenuOpen(false)
+            setActiveTab('admin')
           }}
           theme={theme}
           onToggleTheme={onToggleTheme}

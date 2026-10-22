@@ -801,7 +801,7 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-[480px] overflow-y-auto">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-[65vh] lg:max-h-[calc(100vh-240px)] overflow-y-auto">
           {filteredUsers.length === 0 ? (
             <p className="text-center text-xs py-8 text-slate-400">No merchants found.</p>
           ) : (
