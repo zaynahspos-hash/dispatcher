@@ -11,6 +11,7 @@ import { readExternalParcels, writeExternalParcels } from '../../utils/portalPar
 import { idbSaveCustomers, idbGetCustomers } from '../../utils/indexedDbStore'
 import { useWhatsAppSentTracker } from '../../hooks/useWhatsAppSentTracker'
 import { supabase } from '../../utils/supabaseClient'
+import { CustomerExportModal } from './CustomerExportModal'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -100,6 +101,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const [portalCustomers, setPortalCustomers] = useState<CustomerEntry[]>(loadCachedPortalCustomers)
   const timerRef = useRef<any>(null)
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
   const [isServerlessSyncing, setIsServerlessSyncing] = useState(false)
   const [serverlessSyncResult, setServerlessSyncResult] = useState<string | null>(null)
@@ -905,10 +907,13 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500">{filteredCustomers.length} filtered contacts will be exported</p>
                 </div>
 
-                {/* Option 1: Meta Custom Audience (Phone Number Targeting) */}
+                {/* Option 1: Meta Custom Audience Customizer */}
                 <button
                   type="button"
-                  onClick={handleExportMetaCSV}
+                  onClick={() => {
+                    setIsExportMenuOpen(false)
+                    setIsExportModalOpen(true)
+                  }}
                   className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-start gap-3 cursor-pointer group"
                 >
                   <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
@@ -918,33 +923,33 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">Meta Phone Audience</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">100% Match</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Customize Meta Audience</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">Interactive</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Clean 5-Column Format (phone, fn, ln, ct, country) • 0 Warnings in Ads Manager
+                      Edit columns, format tracking (red/green) & template presets for Meta Ads Manager
                     </p>
                   </div>
                 </button>
 
-                {/* Option 1b: Meta Value-Based Lookalike */}
+                {/* Option 1b: Quick 5-Column Meta CSV */}
                 <button
                   type="button"
-                  onClick={handleExportMetaValueCSV}
+                  onClick={handleExportMetaCSV}
                   className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-start gap-3 cursor-pointer group mt-0.5"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">Meta Value Lookalike</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded">19 Cols</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Quick Meta Phone CSV</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded">1-Click</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      With purchase value for Value-Based Lookalike Audiences
+                      Instant 5-Column download (phone, fn, ln, ct, country) • 0 Warnings
                     </p>
                   </div>
                 </button>
@@ -1527,6 +1532,13 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         pageSizeOptions={[10, 25, 50, 100, 200, 300]}
         itemLabel="customers"
         className="mt-4"
+      />
+
+      {/* Interactive Meta Export Customizer Modal */}
+      <CustomerExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        customers={filteredCustomers}
       />
     </div>
   )
