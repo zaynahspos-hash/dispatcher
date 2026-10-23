@@ -3,18 +3,26 @@ import { User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabaseClient'
 import { BookedParcel } from '../components/BookedHistory'
 import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
+import { isFakeOrDemoPhone } from '../components/history/types'
 
 const MAX_CACHED_HISTORY_PARCELS = 1500
 
+function cleanHistoryList(list: BookedParcel[]): BookedParcel[] {
+  return (list || []).filter(p => !isFakeOrDemoPhone(p.phone, p.name))
+}
+
 function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[] {
+  if (!db || db.length === 0) return []
+  const cleanDb = cleanHistoryList(db)
+  const cleanLocal = cleanHistoryList(local)
   const map = new Map<string, BookedParcel>()
   // First load local items
-  local.forEach(p => {
+  cleanLocal.forEach(p => {
     const key = p.tracking || p.id
     if (key) map.set(key, p)
   })
   // Overwrite with db items (DB is authoritative for synced statuses)
-  db.forEach(p => {
+  cleanDb.forEach(p => {
     const key = p.tracking || p.id
     if (!key) return
     const existing = map.get(key)
@@ -95,7 +103,11 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
     fetchTokenUsage()
 
     const userHistoryKey = `booked_history_${user.id}`
-    const cachedHistory = getCached<BookedParcel[]>(userHistoryKey) || []
+    const rawCached = getCached<BookedParcel[]>(userHistoryKey) || []
+    const cachedHistory = cleanHistoryList(rawCached)
+    if (cachedHistory.length !== rawCached.length) {
+      setCached(userHistoryKey, cachedHistory, getTTL('days', 30))
+    }
     setHistory(cachedHistory)
 
     // RULE D13: snake_case table 'booked_history', column 'user_id'
@@ -110,12 +122,12 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
           return
         }
         if (data && data.history) {
-          const dbHistory = data.history as unknown as BookedParcel[]
+          const dbHistory = cleanHistoryList(data.history as unknown as BookedParcel[])
           const cacheKey = `booked_history_synced_at_${user.id}`
           const lastSync = localStorage.getItem(cacheKey)
           const dbUpdated = new Date(data.updated_at || 0).getTime()
-          if (!lastSync || dbUpdated > Number(lastSync)) {
-            const merged = mergeHistory(dbHistory, cachedHistory)
+          if (!lastSync || dbUpdated > Number(lastSync) || dbHistory.length === 0) {
+            const merged = dbHistory.length === 0 ? [] : mergeHistory(dbHistory, cachedHistory)
             setHistory(merged)
             setCached(userHistoryKey, merged, getTTL('days', 30))
             localStorage.setItem(cacheKey, String(dbUpdated))

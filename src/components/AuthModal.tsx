@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { ChevronLeftIcon, WhatsAppIcon } from './Icons'
+import { checkIsAdmin } from '../utils/adminAuth'
 
 interface AuthModalProps {
   onClose: () => void
@@ -39,8 +40,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session) return
 
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'shoaibzaynah@gmail.com'
-      const role = user.email === adminEmail ? 'admin' : 'user'
+      const role = checkIsAdmin(user.email) ? 'admin' : 'user'
 
       const { data } = await supabase
         .from('users')

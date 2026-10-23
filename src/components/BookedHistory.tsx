@@ -12,7 +12,8 @@ import {
   getParcelDateStr,
   parsePortalDate,
   transformPostExOrders,
-  mergeParcelLists
+  mergeParcelLists,
+  isFakeOrDemoPhone
 } from './history/types'
 import { CustomerEntry } from './admin/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
@@ -146,10 +147,14 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     if (Array.isArray(orders) && orders.length > 0) {
       idbGetCustomers().then(cachedList => {
         const map = new Map<string, CustomerEntry>()
-        ;(cachedList || []).forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+        ;(cachedList || []).forEach(c => {
+          if (!isFakeOrDemoPhone(c.phone, c.name)) {
+            map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c)
+          }
+        })
         orders.forEach((o, idx) => {
           const rawPhone = (o.customerPhone || '').trim()
-          if (!rawPhone) return
+          if (!rawPhone || isFakeOrDemoPhone(rawPhone, o.customerName)) return
           const cleanPhone = rawPhone.replace(/\D/g, '')
           const rawDate = o.transactionDate || o.orderDate || o.bookingDate || o.createdDatetime || o.modifiedDatetime
           const validIsoDate = parsePortalDate(rawDate)

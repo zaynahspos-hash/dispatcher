@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { CustomerEntry, UserProfile } from './types'
 import { SharedPagination } from '../common/SharedPagination'
 import { usePagination } from '../../hooks/usePagination'
@@ -6,7 +6,7 @@ import { WhatsAppIcon, RefreshIcon, CalendarIcon, SearchIcon, CloseIcon, AlertIc
 import { SearchableDropdown } from '../SearchableDropdown'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 import { fetchAllMerchantOrders } from '../../utils/postexApi'
-import { transformPostExOrders, isMobileDevice, getParcelDateStr, parsePortalDate, getDatePresetsInfo, DatePresetType } from '../history/types'
+import { transformPostExOrders, isMobileDevice, getParcelDateStr, parsePortalDate, getDatePresetsInfo, DatePresetType, isFakeOrDemoPhone } from '../history/types'
 import { readExternalParcels, writeExternalParcels } from '../../utils/portalParcelStore'
 import { idbSaveCustomers, idbGetCustomers } from '../../utils/indexedDbStore'
 import { useWhatsAppSentTracker } from '../../hooks/useWhatsAppSentTracker'
@@ -23,7 +23,9 @@ const loadCachedPortalCustomers = (): CustomerEntry[] => {
     const raw = localStorage.getItem(ADMIN_PORTAL_CACHE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed
+      if (Array.isArray(parsed)) {
+        return parsed.filter(c => !isFakeOrDemoPhone(c.phone, c.name))
+      }
     }
   } catch {}
   return []
@@ -95,7 +97,24 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const [syncError, setSyncError] = useState<string | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [portalCustomers, setPortalCustomers] = useState<CustomerEntry[]>(loadCachedPortalCustomers)
-  const timerRef = React.useRef<any>(null)
+  const timerRef = useRef<any>(null)
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setIsExportMenuOpen(false)
+      }
+    }
+    if (isExportMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isExportMenuOpen])
 
   // Timer increments every second while syncing
   useEffect(() => {
@@ -123,10 +142,18 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     let isSubscribed = true
     idbGetCustomers().then(cached => {
       if (isSubscribed && cached && cached.length > 0) {
+        const cleaned = cached.filter(c => !isFakeOrDemoPhone(c.phone, c.name))
+        if (cleaned.length !== cached.length) {
+          void idbSaveCustomers(cleaned)
+        }
         setPortalCustomers(prev => {
           const map = new Map<string, CustomerEntry>()
-          prev.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
-          cached.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+          prev.forEach(c => {
+            if (!isFakeOrDemoPhone(c.phone, c.name)) {
+              map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c)
+            }
+          })
+          cleaned.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
           return Array.from(map.values())
         })
       }
@@ -139,10 +166,15 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     const handleSyncEvent = () => {
       idbGetCustomers().then(cached => {
         if (cached && cached.length > 0) {
+          const cleaned = cached.filter(c => !isFakeOrDemoPhone(c.phone, c.name))
           setPortalCustomers(prev => {
             const map = new Map<string, CustomerEntry>()
-            prev.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
-            cached.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+            prev.forEach(c => {
+              if (!isFakeOrDemoPhone(c.phone, c.name)) {
+                map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c)
+              }
+            })
+            cleaned.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
             return Array.from(map.values())
           })
         }
@@ -178,7 +210,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       if (parcels.length > 0) {
         parcels.forEach((p, idx) => {
           const rawPhone = (p.phone || '').trim()
-          if (!rawPhone) return
+          if (!rawPhone || isFakeOrDemoPhone(rawPhone, p.name)) return
           const validDate = parsePortalDate(p.bookingDate)
           cachedCustomers.push({
             id: `portal_cache_${m.id}_${p.tracking || p.id || idx}`,
@@ -199,7 +231,11 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     if (cachedCustomers.length > 0) {
       setPortalCustomers(prev => {
         const map = new Map<string, CustomerEntry>()
-        prev.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+        prev.forEach(c => {
+          if (!isFakeOrDemoPhone(c.phone, c.name)) {
+            map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c)
+          }
+        })
         cachedCustomers.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
         const merged = Array.from(map.values())
         saveCachedPortalCustomers(merged)
@@ -252,7 +288,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             // Extract customer directory entries with accurate normalized booking dates
             orders.forEach((order, idx) => {
               const rawPhone = (order.customerPhone || '').trim()
-              if (!rawPhone) return
+              if (!rawPhone || isFakeOrDemoPhone(rawPhone, order.customerName)) return
               const rawDate = order.transactionDate || order.orderDate || order.bookingDate || order.createdDatetime || order.modifiedDatetime
               const validIsoDate = parsePortalDate(rawDate)
 
@@ -277,7 +313,11 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 
       setPortalCustomers(prev => {
         const map = new Map<string, CustomerEntry>()
-        prev.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
+        prev.forEach(c => {
+          if (!isFakeOrDemoPhone(c.phone, c.name)) {
+            map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c)
+          }
+        })
         newExtracted.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
         const merged = Array.from(map.values())
         void idbSaveCustomers(merged)
@@ -296,14 +336,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   // Combine DB Customers with External Portal Customers
   const allCombinedCustomers = useMemo(() => {
     const map = new Map<string, CustomerEntry>()
-    // 1. Add DB customers first
+    // 1. Add DB customers first (skipping demo/fake numbers)
     customers.forEach(c => {
+      if (isFakeOrDemoPhone(c.phone, c.name)) return
       const cleanPhone = (c.phone || '').replace(/\D/g, '')
       const key = `${c.user_id}_${cleanPhone}`
       map.set(key, c)
     })
-    // 2. Add or merge Portal customers
+    // 2. Add or merge Portal customers (skipping demo/fake numbers)
     portalCustomers.forEach(pc => {
+      if (isFakeOrDemoPhone(pc.phone, pc.name)) return
       const cleanPhone = (pc.phone || '').replace(/\D/g, '')
       const key = `${pc.user_id}_${cleanPhone}`
       if (!map.has(key)) {
@@ -422,7 +464,112 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     setSyncError(null)
   }
 
-  const handleExportCSV = () => {
+  // 1. Meta Custom Audience Format (CSV)
+  // Headers: phone,fn,ct,country
+  // phone: 92300... (first 0 removed, 92 prepended, no +, spaces or dashes)
+  // fn: First name only, ct: City, country: PK
+  const handleExportMetaCSV = () => {
+    if (filteredCustomers.length === 0) return
+    const headers = ['phone', 'fn', 'ct', 'country']
+    const rows = filteredCustomers.map(c => {
+      let rawPhone = (c.phone || '').replace(/\D/g, '')
+      if (rawPhone.startsWith('0')) {
+        rawPhone = '92' + rawPhone.slice(1)
+      } else if (!rawPhone.startsWith('92') && rawPhone.length === 10) {
+        rawPhone = '92' + rawPhone
+      }
+
+      const rawName = (c.name || '').trim()
+      const firstName = rawName.split(/\s+/)[0] || ''
+      const safeFn = firstName.replace(/,/g, '').replace(/"/g, '""').trim()
+      const safeCity = (c.city || '').trim().replace(/,/g, '').replace(/"/g, '""')
+
+      return [
+        rawPhone,
+        `"${safeFn}"`,
+        `"${safeCity}"`,
+        'PK'
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `meta_custom_audience_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setIsExportMenuOpen(false)
+  }
+
+  // 2. Google Contacts Savable Format (CSV)
+  // Direct 1-click import into contacts.google.com and Android/iPhone devices
+  const handleExportGoogleCSV = () => {
+    if (filteredCustomers.length === 0) return
+    const headers = [
+      'Name',
+      'Given Name',
+      'Family Name',
+      'Phone 1 - Type',
+      'Phone 1 - Value',
+      'Address 1 - Type',
+      'Address 1 - Formatted',
+      'Address 1 - City',
+      'Group Membership'
+    ]
+    const rows = filteredCustomers.map(c => {
+      const rawName = (c.name || '').trim()
+      const parts = rawName.split(/\s+/)
+      const givenName = parts[0] || ''
+      const familyName = parts.slice(1).join(' ') || ''
+
+      let rawPhone = (c.phone || '').replace(/\D/g, '')
+      if (rawPhone.startsWith('0')) {
+        rawPhone = '+92' + rawPhone.slice(1)
+      } else if (!rawPhone.startsWith('92') && rawPhone.length === 10) {
+        rawPhone = '+92' + rawPhone
+      } else if (rawPhone.startsWith('92')) {
+        rawPhone = '+' + rawPhone
+      }
+
+      const safeName = `"${rawName.replace(/"/g, '""')}"`
+      const safeGiven = `"${givenName.replace(/"/g, '""')}"`
+      const safeFamily = `"${familyName.replace(/"/g, '""')}"`
+      const safePhone = `"${rawPhone}"`
+      const safeAddress = `"${(c.address || '').replace(/"/g, '""')}"`
+      const safeCity = `"${(c.city || '').replace(/"/g, '""')}"`
+
+      return [
+        safeName,
+        safeGiven,
+        safeFamily,
+        'Mobile',
+        safePhone,
+        'Home',
+        safeAddress,
+        safeCity,
+        '* myContacts'
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `google_contacts_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setIsExportMenuOpen(false)
+  }
+
+  // 3. Full CRM Format (CSV) with all internal tracking & WhatsApp links
+  const handleExportStandardCSV = () => {
     if (filteredCustomers.length === 0) return
     const headers = ['Customer Name', 'Customer Phone', 'City', 'Source', 'Date Added / Order Date', 'Merchant Store', 'WhatsApp Link']
     const isMobile = isMobileDevice()
@@ -453,6 +600,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setIsExportMenuOpen(false)
   }
 
   const isCustomFilterActive = Boolean(
@@ -487,7 +636,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           </p>
         </div>
 
-        {/* Action Buttons: Sync PostEx & Export CSV */}
+        {/* Action Buttons: Sync PostEx & Export Dropdown */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
@@ -512,17 +661,94 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            disabled={filteredCustomers.length === 0}
-            className="h-9 px-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-98 cursor-pointer"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-emerald-500">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            <span>Export CSV {filterSource !== 'all' ? `(${filterSource === 'app' ? 'App' : 'External'})` : ''}</span>
-          </button>
+          {/* Export Dropdown Menu */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsExportMenuOpen(prev => !prev)}
+              disabled={filteredCustomers.length === 0}
+              className="h-9 px-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-98 cursor-pointer"
+              aria-haspopup="true"
+              aria-expanded={isExportMenuOpen}
+              title="Choose export format: Meta Ads Audience or Google Contacts"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-emerald-500">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>Export Contacts</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`}>
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {/* Dropdown Popover */}
+            {isExportMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                  <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Select Export Format</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">{filteredCustomers.length} filtered contacts will be exported</p>
+                </div>
+
+                {/* Option 1: Meta Custom Audience */}
+                <button
+                  type="button"
+                  onClick={handleExportMetaCSV}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-start gap-3 cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Meta Custom Audience</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">FB / IG Ads</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      Format: <code className="font-mono text-[9px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-blue-400">phone,fn,ct,country</code> with 923... (No 0 or +)
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 2: Google Contacts */}
+                <button
+                  type="button"
+                  onClick={handleExportGoogleCSV}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-start gap-3 cursor-pointer group mt-0.5"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Google Contacts CSV</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded">Phone & WA</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      Savable to Google Contacts, Gmail & phone with <code className="font-mono text-[9px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-emerald-600 dark:text-emerald-400">* myContacts</code>.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 3: Full CRM Export */}
+                <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={handleExportStandardCSV}
+                    className="w-full text-left p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-center justify-between cursor-pointer group text-[11px] text-slate-600 dark:text-slate-400"
+                  >
+                    <span className="font-medium">Full CRM Export (All Fields & WhatsApp Links)</span>
+                    <svg className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -29,14 +29,9 @@ import { GlobalLoadingOverlay } from './components/layout/GlobalLoadingOverlay'
 import { InstallGuideModal } from './components/layout/InstallGuideModal'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { SuspendedMerchantScreen } from './components/common/SuspendedMerchantScreen'
+import { getAdminEmails, checkIsAdmin } from './utils/adminAuth'
 
-const ADMIN_EMAILS = [
-  'shoaibzaynah@gmail.com',
-  'zaynahspos@gmail.com',
-  'totvoguepk@gmail.com',
-  ...(import.meta.env.VITE_ADMIN_EMAILS ? import.meta.env.VITE_ADMIN_EMAILS.split(',') : []),
-  import.meta.env.VITE_ADMIN_EMAIL
-].filter(Boolean).map(e => e.toLowerCase().trim())
+const ADMIN_EMAILS = getAdminEmails()
 
 
 export default function App() {
@@ -167,7 +162,14 @@ export default function App() {
     }
   }, [settings.postex_token])
 
-  const isAdmin = !!(user && user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim()))
+  const isAdmin = checkIsAdmin(user?.email)
+
+  // Double safety guard: Never permit non-admins to stay on admin tab
+  useEffect(() => {
+    if (activeTab === 'admin' && !isAdmin) {
+      setActiveTab('paste')
+    }
+  }, [activeTab, isAdmin, setActiveTab])
 
   // Local Document Vault badges count
   const [vaultCount, setVaultCount] = useState<number>(() => {
@@ -216,11 +218,10 @@ export default function App() {
 
   const hasPostexToken = !!(settings.postex_token && settings.postex_token.trim().length > 8)
 
-  // Settings is considered configured strictly when BOTH PostEx token AND an AI key are active.
-  // If either one is missing, Setup warning badge remains visible in the header.
+  // Settings is considered configured if the merchant has configured either an AI key or PostEx token
   const isSettingsConfigured = loadingSettings
     ? true
-    : (hasPostexToken && hasAiKey)
+    : (hasPostexToken || hasAiKey)
 
   if (!initialAuthChecked) {
     return null

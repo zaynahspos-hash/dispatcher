@@ -67,6 +67,16 @@ export const isParcelWhatsAppSent = (
   return false
 }
 
+export const isFakeOrDemoPhone = (phone?: string, name?: string): boolean => {
+  const p = (phone || '').replace(/\D/g, '')
+  const n = (name || '').toLowerCase()
+  if (!p) return false
+  if (/^0+$/.test(p) || p.startsWith('03000000000') || p.startsWith('923000000000')) return true
+  if (n.includes('jjjjj') || n.includes('test demo')) return true
+  if (p === '03001234567' || p === '923001234567' || p === '03339876543' || p === '923339876543' || p === '03451234567' || p === '923451234567') return true
+  return false
+}
+
 export const getLocalTodayDate = (): string => {
   const d = new Date()
   const year = d.getFullYear()
@@ -639,15 +649,17 @@ export const parsePortalDate = (value?: string): string => {
  * parcels fill in everything that exists only on the PostEx side.
  */
 export function mergeParcelLists(base: BookedParcel[], extras: BookedParcel[]): BookedParcel[] {
-  if (!extras || extras.length === 0) return base
+  const cleanBase = (base || []).filter(p => !isFakeOrDemoPhone(p.phone, p.name))
+  const cleanExtras = (extras || []).filter(p => !isFakeOrDemoPhone(p.phone, p.name))
+  if (cleanExtras.length === 0) return cleanBase
   const merged = new Map<string, BookedParcel>()
 
-  base.forEach(parcel => {
+  cleanBase.forEach(parcel => {
     const key = (parcel.tracking || parcel.id || '').trim()
     if (key) merged.set(key, parcel)
   })
 
-  extras.forEach(parcel => {
+  cleanExtras.forEach(parcel => {
     const key = (parcel.tracking || parcel.id || '').trim()
     if (!key) return
     const existing = merged.get(key)
@@ -785,6 +797,7 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
     const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
     const rawDate = order.orderDate || order.bookingDate || order.transactionDate || order.createdDatetime || order.modifiedDatetime || order.orderDateString
     const resolvedBookingDate = parsePortalDate(rawDate) || existing?.bookingDate || ''
+    const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
 
     const parcel: BookedParcel = {
       id: ref || tracking,

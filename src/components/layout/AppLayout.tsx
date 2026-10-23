@@ -196,8 +196,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           {/* Right: Actions & User Menu */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Settings Alert if not configured */}
-            {!isSettingsConfigured && (
+            {/* Settings Alert if not configured and not on settings tab */}
+            {!isSettingsConfigured && activeTab !== 'settings' && (
               <button
                 onClick={() => setActiveTab('settings')}
                 className="h-9 px-3 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5 text-xs font-bold hover:bg-amber-500/25 transition cursor-pointer active:scale-98 shadow-xs"

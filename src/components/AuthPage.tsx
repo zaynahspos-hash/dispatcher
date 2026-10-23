@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { RefreshIcon, ChevronLeftIcon, WhatsAppIcon } from './Icons'
 import { forceAppUpdate } from '../utils/pwaReload'
+import { checkIsAdmin } from '../utils/adminAuth'
 
 interface AuthPageProps {
   onSuccess: () => void
@@ -133,8 +134,7 @@ export default function AuthPage({ onSuccess }: AuthPageProps) {
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session) return
 
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'shoaibzaynah@gmail.com'
-      const role = user.email === adminEmail ? 'admin' : 'user'
+      const role = checkIsAdmin(user.email) ? 'admin' : 'user'
 
       const { data } = await supabase
         .from('users')

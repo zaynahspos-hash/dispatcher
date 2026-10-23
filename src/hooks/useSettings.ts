@@ -437,16 +437,17 @@ export function useSettings() {
         const dbSettings = { ...(data.settings as unknown as Settings) }
 
         let needsDbRepair = false
-        // When DB has an empty/cleared secret, purge local storage & vault so it never resurrects
+        // Preserve keys: If local has a key but DB row doesn't have it yet, heal to DB (Never auto-delete keys on update)
         CRITICAL_SECRET_KEYS.forEach(secKey => {
-          if (!dbSettings[secKey]) {
-            writeLocal(currentUser.id, secKey, '', true)
+          if (!dbSettings[secKey] && localSettings[secKey]) {
+            (dbSettings as any)[secKey] = localSettings[secKey]
+            needsDbRepair = true
           }
         })
-        if (!dbSettings.gemini_api_key) {
+        if (!dbSettings.gemini_api_key && !(localSettings as any)?.gemini_api_key) {
           (dbSettings as any).gemini_api_keys = []
         }
-        if (!dbSettings.groq_api_key) {
+        if (!dbSettings.groq_api_key && !(localSettings as any)?.groq_api_key) {
           (dbSettings as any).groq_api_keys = []
         }
 
@@ -522,10 +523,13 @@ export function useSettings() {
         }
 
         const merged = { ...DEFAULTS, ...localSettings, ...dbSettings }
-        // Ensure that any secret cleared in DB is strictly cleared in merged state and local cache
+        // Ensure keys are safely retained across updates
         CRITICAL_SECRET_KEYS.forEach(secKey => {
-          if (!dbSettings[secKey]) {
-            (merged as any)[secKey] = ''
+          if (dbSettings[secKey]) {
+            (merged as any)[secKey] = dbSettings[secKey]
+          } else if (localSettings[secKey]) {
+            (merged as any)[secKey] = localSettings[secKey]
+            needsDbRepair = true
           }
         })
         if (!merged.gemini_api_key) {
