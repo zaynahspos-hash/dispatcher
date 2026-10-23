@@ -480,13 +480,20 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     setSyncError(null)
   }
 
-  // 1. Meta Custom Audience Format (CSV)
-  // Headers: phone,fn,ln,ct,country
-  // phone: 92300... (first 0 removed, 92 prepended, no +, spaces or dashes)
-  // fn: First name, ln: Last name, ct: City, country: PK
+  // 1. Meta Value-Based Custom Audience Format (CSV)
+  // Exact 100% match with Meta's official example_value_based_audience_file.csv (19 standard columns):
+  // email,email,email,phone,phone,phone,madid,fn,ln,zip,ct,st,country,dob,doby,gen,age,uid,value
   const handleExportMetaCSV = () => {
     if (filteredCustomers.length === 0) return
-    const headers = ['phone', 'fn', 'ln', 'ct', 'country']
+    const headers = [
+      'email', 'email', 'email',
+      'phone', 'phone', 'phone',
+      'madid',
+      'fn', 'ln',
+      'zip', 'ct', 'st', 'country',
+      'dob', 'doby', 'gen', 'age',
+      'uid', 'value'
+    ]
     const rows = filteredCustomers.map(c => {
       let rawPhone = (c.phone || '').replace(/\D/g, '')
       if (rawPhone.startsWith('0')) {
@@ -502,13 +509,21 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       const safeFn = firstName.replace(/,/g, '').replace(/"/g, '""').trim()
       const safeLn = lastName.replace(/,/g, '').replace(/"/g, '""').trim()
       const safeCity = (c.city || '').trim().replace(/,/g, '').replace(/"/g, '""')
+      const customerValue = (c.total_orders && c.total_orders > 0) ? c.total_orders : 1
 
       return [
-        rawPhone,
-        `"${safeFn}"`,
-        `"${safeLn}"`,
-        `"${safeCity}"`,
-        'PK'
+        '', '', '',                          // email, email, email
+        rawPhone, '', '',                    // phone, phone, phone
+        '',                                  // madid
+        safeFn ? `"${safeFn}"` : '',         // fn (First Name)
+        safeLn ? `"${safeLn}"` : '',         // ln (Last Name)
+        '',                                  // zip
+        safeCity ? `"${safeCity}"` : '',     // ct (City)
+        '',                                  // st (State/Province)
+        'PK',                                // country
+        '', '', '', '',                      // dob, doby, gen, age
+        c.id ? `"${c.id}"` : '',             // uid (Unique Customer ID)
+        customerValue                        // value (Customer Purchase Value for Lookalike Audiences)
       ]
     })
 
@@ -738,7 +753,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                       <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">FB / IG Ads</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Format: <code className="font-mono text-[9px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-blue-400">phone,fn,ln,ct,country</code> with 923... (No 0 or +)
+                      Exact 19-Column Meta Template (Value-Based Lookalike & Custom Audience)
                     </p>
                   </div>
                 </button>
