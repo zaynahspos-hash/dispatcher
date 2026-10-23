@@ -95,7 +95,6 @@ export function HistoryFilterBar({
   }
 
   const tabs = [
-    { id: 'pending_loadsheet', label: 'Pending', count: counts.pendingLoadsheet },
     { id: 'all', label: 'All', count: counts.all },
     { id: 'booked', label: 'Booked', count: counts.booked },
     { id: 'intransit', label: 'In Transit', count: counts.inTransit },
@@ -103,7 +102,8 @@ export function HistoryFilterBar({
     { id: 'action_required', label: 'Action Required', count: counts.actionRequired ?? 0, isAttention: true },
     { id: 'delivered', label: 'Delivered', count: counts.delivered },
     { id: 'returned', label: 'Returned', count: counts.returned },
-    { id: 'cancelled', label: 'Cancelled', count: counts.cancelled }
+    { id: 'cancelled', label: 'Cancelled', count: counts.cancelled },
+    { id: 'pending_loadsheet', label: 'Pending', count: counts.pendingLoadsheet }
   ] as const
 
   return (

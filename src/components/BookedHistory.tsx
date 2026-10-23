@@ -49,7 +49,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     } catch {}
   }, [])
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('pending_loadsheet')
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
   const [sourceFilter, setSourceFilter] = useState<SourceFilterType>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [fromDate, setFromDate] = useState<string>(() => getLocalTodayDate())
@@ -197,7 +197,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     setSearchQuery('')
     setFromDate(today)
     setToDate(today)
-    setStatusFilter('pending_loadsheet')
+    setStatusFilter('all')
     setStatusSelect('all')
     setPickupFilter('all')
     setWhatsappFilter('all')
@@ -221,7 +221,16 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
     handleSyncStatus, handleSyncSelected, handleSyncTracking, handleSubmitAdvice
   } = useBookedHistoryOperations({
-    settings, history: combinedHistory, onUpdateHistory: applyHistoryUpdate, filteredParcels, userId
+    settings,
+    history: combinedHistory,
+    onUpdateHistory: applyHistoryUpdate,
+    filteredParcels,
+    userId,
+    onTrackingSynced: () => {
+      // If user had 'pending_loadsheet' selected and tracking sync moved all of them to real statuses,
+      // seamlessly switch to 'all' so orders never vanish from the merchant's view!
+      setStatusFilter(prev => prev === 'pending_loadsheet' ? 'all' : prev)
+    }
   })
 
   const handleManualRefresh = async () => {

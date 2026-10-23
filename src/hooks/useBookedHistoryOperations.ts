@@ -18,6 +18,7 @@ interface UseBookedHistoryOperationsProps {
   onUpdateHistory: (updated: BookedParcel[]) => void
   filteredParcels: BookedParcel[]
   userId?: string
+  onTrackingSynced?: (updatedCount: number) => void
 }
 
 export function useBookedHistoryOperations({
@@ -25,7 +26,8 @@ export function useBookedHistoryOperations({
   history,
   onUpdateHistory,
   filteredParcels: _filteredParcels,
-  userId
+  userId,
+  onTrackingSynced
 }: UseBookedHistoryOperationsProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -319,6 +321,9 @@ export function useBookedHistoryOperations({
       type: 'success',
       message: `Successfully synchronized live tracking for ${completedCount} parcels (${updatedCount} updated with real milestones)!`
     })
+    if (onTrackingSynced) {
+      onTrackingSynced(updatedCount)
+    }
   }
 
   const handleSyncSelected = () => handleSyncTracking(selectedIds)
