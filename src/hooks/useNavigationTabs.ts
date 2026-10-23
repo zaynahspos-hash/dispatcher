@@ -14,8 +14,24 @@ function isSystemHash(hash: string): boolean {
   )
 }
 
+function getStoredAuthEmail(): string | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const val = localStorage.getItem(key)
+        if (val) {
+          const parsed = JSON.parse(val)
+          return parsed.user?.email || null
+        }
+      }
+    }
+  } catch {}
+  return null
+}
+
 export function useNavigationTabs(user: any, adminEmails: string[] = []) {
-  const isUserAdmin = checkIsAdmin(user?.email) || Boolean(
+  const isUserAdmin = checkIsAdmin(user?.email) || checkIsAdmin(getStoredAuthEmail()) || Boolean(
     user &&
     user.email &&
     adminEmails.some(e => e.toLowerCase().trim() === user.email.toLowerCase().trim())
@@ -23,31 +39,45 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
 
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     try {
-      const hash = window.location.hash.replace('#', '') as Tab
-      // Strictly prevent initial state from defaulting to 'admin' for unverified/normal users
-      if (hash === 'admin') return 'paste'
-      if (VALID_TABS.includes(hash)) return hash
-      const saved = localStorage.getItem('parcel_app_active_tab')
-      if (saved === 'admin') return 'paste'
-      return (saved as Tab) || 'paste'
+      const rawHash = (window.location.hash || '').replace('#', '')
+      const mainFromHash = rawHash.split('/')[0].split('?')[0].toLowerCase() as Tab
+      
+      const storedEmail = getStoredAuthEmail()
+      const isAdminInitial = checkIsAdmin(user?.email) || checkIsAdmin(storedEmail)
+
+      if (mainFromHash === 'admin') {
+        if (isAdminInitial) return 'admin'
+        return 'paste'
+      }
+      if (VALID_TABS.includes(mainFromHash)) return mainFromHash
+
+      const saved = localStorage.getItem('parcel_app_active_tab') as Tab
+      if (saved === 'admin') {
+        if (isAdminInitial) return 'admin'
+        return 'paste'
+      }
+      if (VALID_TABS.includes(saved)) return saved
+      return 'paste'
     } catch {
       return 'paste'
     }
   })
 
-  // If authenticated user is confirmed admin and hash is #admin, permit admin tab
+  // If authenticated user is confirmed admin and hash is #admin or #admin/*, permit admin tab
   useEffect(() => {
     const rawHash = (window.location.hash || '').replace('#', '')
-    if (rawHash === 'admin' && isUserAdmin) {
+    const mainFromHash = rawHash.split('/')[0].split('?')[0].toLowerCase()
+    if (mainFromHash === 'admin' && isUserAdmin) {
       setActiveTab('admin')
     }
   }, [isUserAdmin])
 
   // Strictly block non-admin users from staying on admin tab or having #admin in URL
   useEffect(() => {
-    if (!isUserAdmin) {
+    if (!isUserAdmin && user !== undefined) {
       const rawHash = (window.location.hash || '').replace('#', '')
-      if (activeTab === 'admin' || rawHash === 'admin') {
+      const mainFromHash = rawHash.split('/')[0].split('?')[0].toLowerCase()
+      if (activeTab === 'admin' || mainFromHash === 'admin') {
         setActiveTab('paste')
         window.location.hash = 'paste'
         try {
@@ -58,7 +88,7 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
         window.history.replaceState(null, '', '/#paste')
       }
     }
-  }, [activeTab, isUserAdmin])
+  }, [activeTab, isUserAdmin, user])
 
   // Handle direct /admin pathname routing safely
   useEffect(() => {
@@ -66,12 +96,12 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
       if (isUserAdmin) {
         window.history.replaceState(null, '', '/#admin')
         setActiveTab('admin')
-      } else {
+      } else if (user !== undefined) {
         window.history.replaceState(null, '', '/#paste')
         setActiveTab('paste')
       }
     }
-  }, [isUserAdmin])
+  }, [isUserAdmin, user])
 
   // Sync activeTab to URL hash and localStorage
   useEffect(() => {
@@ -84,7 +114,13 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
       return
     }
 
-    window.location.hash = activeTab
+    // Only update window.location.hash if main tab changed (preserves subtabs like #admin/customers)
+    const rawHash = currentHash.replace('#', '')
+    const mainFromHash = rawHash.split('/')[0].split('?')[0].toLowerCase()
+    if (mainFromHash !== activeTab) {
+      window.location.hash = activeTab
+    }
+
     try {
       localStorage.setItem('parcel_app_active_tab', activeTab)
     } catch (e) {
@@ -98,9 +134,9 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
       const rawHash = window.location.hash || ''
       if (isSystemHash(rawHash)) return
 
-      const hash = rawHash.replace('#', '') as Tab
-      if (VALID_TABS.includes(hash)) {
-        if (hash === 'admin') {
+      const cleanMain = rawHash.replace('#', '').split('/')[0].split('?')[0].toLowerCase() as Tab
+      if (VALID_TABS.includes(cleanMain)) {
+        if (cleanMain === 'admin') {
           if (isUserAdmin) {
             setActiveTab('admin')
           } else {
@@ -108,7 +144,7 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
             window.location.hash = activeTab === 'admin' ? 'paste' : activeTab
           }
         } else {
-          setActiveTab(hash)
+          setActiveTab(cleanMain)
         }
       }
     }

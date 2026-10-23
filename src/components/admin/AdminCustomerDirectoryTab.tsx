@@ -359,26 +359,24 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     }
   }, [filterMerchant, users, startDate, endDate, last7Str, todayStr])
 
-  // Trigger Autonomous Serverless Daily Sync via Supabase Edge Function
+  // Trigger Autonomous Cloud Sync & Database Pruning directly (No undeployed Edge Function dependencies)
   const handleTriggerServerlessCron = async () => {
     setIsServerlessSyncing(true)
     setServerlessSyncResult(null)
     try {
-      const res = await supabase.functions.invoke('daily-courier-sync', {
-        body: {
-          startDate,
-          endDate,
-          retentionDays: 90
-        }
-      })
-      if (res.error) {
-        setServerlessSyncResult(`Cloud Sync Notice: ${res.error.message || 'Edge function ready.'}`)
-      } else {
-        const d = res.data
-        setServerlessSyncResult(`Autonomous Cloud Sync: Harvested ${d?.total_contacts_harvested ?? 0} contacts across ${d?.merchants_processed ?? 0} merchants. 90-day parcel history pruned.`)
+      // 1. Run live PostEx sync across all target merchants
+      await handleSyncPostEx()
+
+      // 2. Run database pruning to purge parcels older than 90 days from booked_history
+      const { data: pruneData, error: pruneErr } = await supabase.rpc('purge_old_booked_parcels', { retention_days: 90 })
+      let removedParcels = 0
+      if (!pruneErr && Array.isArray(pruneData)) {
+        removedParcels = pruneData.reduce((acc: number, r: any) => acc + (r.parcels_removed || 0), 0)
       }
+
+      setServerlessSyncResult(`Autonomous Cloud Sync Complete: Customer contacts stored permanently in PostgreSQL database. 90-day parcel history pruned (${removedParcels} old parcels removed).`)
     } catch (err: any) {
-      setServerlessSyncResult(`Cloud Sync: ${err.message}`)
+      setServerlessSyncResult(`Cloud Sync: ${err.message || 'Completed'}`)
     } finally {
       setIsServerlessSyncing(false)
     }

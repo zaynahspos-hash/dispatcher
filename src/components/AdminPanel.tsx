@@ -13,8 +13,48 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  // Tab state
-  const [adminTab, setAdminTab] = useState<'merchants' | 'customers'>('merchants')
+  // Tab state: restore from URL hash or localStorage so refresh lands on the exact same tab
+  const [adminTab, setAdminTabState] = useState<'merchants' | 'customers'>(() => {
+    try {
+      const hash = (window.location.hash || '').toLowerCase()
+      if (hash.includes('customer')) return 'customers'
+      if (hash.includes('merchant')) return 'merchants'
+      const saved = localStorage.getItem('admin_active_tab')
+      if (saved === 'customers' || saved === 'merchants') return saved
+    } catch {}
+    return 'merchants'
+  })
+
+  const setAdminTab = (tab: 'merchants' | 'customers') => {
+    setAdminTabState(tab)
+    try {
+      localStorage.setItem('admin_active_tab', tab)
+      window.history.replaceState(null, '', `#admin/${tab}`)
+    } catch {}
+  }
+
+  // Sync hash changes (back/forward)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = (window.location.hash || '').toLowerCase()
+      if (hash.includes('#admin/customer') || hash.includes('#admin?tab=customer')) {
+        setAdminTabState('customers')
+      } else if (hash.includes('#admin/merchant') || hash.includes('#admin?tab=merchant')) {
+        setAdminTabState('merchants')
+      }
+    }
+    window.addEventListener('hashchange', handleHash)
+    return () => window.removeEventListener('hashchange', handleHash)
+  }, [])
+
+  // Sync URL hash on mount if currently just #admin
+  useEffect(() => {
+    const hash = (window.location.hash || '').toLowerCase()
+    if (hash === '#admin') {
+      window.history.replaceState(null, '', `#admin/${adminTab}`)
+    }
+  }, [adminTab])
+
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
 
   // Load all users and logs

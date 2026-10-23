@@ -25,7 +25,26 @@ interface SettingsPageProps {
 type SettingsTab = 'courier' | 'ai' | 'whatsapp' | 'defaults'
 
 export default function SettingsPage({ settings, updateSetting, onSave }: SettingsPageProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('courier')
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(() => {
+    try {
+      const hash = (window.location.hash || '').toLowerCase()
+      if (hash.includes('whatsapp')) return 'whatsapp'
+      if (hash.includes('ai')) return 'ai'
+      if (hash.includes('default')) return 'defaults'
+      if (hash.includes('courier') || hash.includes('postex')) return 'courier'
+      const saved = localStorage.getItem('settings_active_subtab') as SettingsTab
+      if (['courier', 'ai', 'whatsapp', 'defaults'].includes(saved)) return saved
+    } catch {}
+    return 'courier'
+  })
+
+  const setActiveTab = (tab: SettingsTab) => {
+    setActiveTabState(tab)
+    try {
+      localStorage.setItem('settings_active_subtab', tab)
+      window.history.replaceState(null, '', `#settings/${tab}`)
+    } catch {}
+  }
   const [draftSettings, setDraftSettings] = useState<Settings>(settings)
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
