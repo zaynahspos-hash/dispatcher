@@ -121,7 +121,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             />
           </div>
           <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
-            {allOptionLabel && allOptionValue !== undefined && (
+            {allOptionLabel && allOptionValue !== undefined && (!search.trim() || allOptionLabel.toLowerCase().includes(search.toLowerCase().trim())) && (
               <button
                 type="button"
                 onClick={() => handleSelect(allOptionValue)}

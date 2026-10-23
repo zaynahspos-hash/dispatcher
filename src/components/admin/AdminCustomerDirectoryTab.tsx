@@ -423,27 +423,54 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     return Array.from(citySet).sort()
   }, [allCombinedCustomers])
 
-  // Extract merchant options for searchable dropdown (supports searching by email, store name, or merchant ID)
+  // Extract merchant options for searchable dropdown (supports searching by name, user email, username, store name, city, phone, and role)
   const merchantOptions = useMemo(() => {
     return users.map(u => {
-      const rawSettings: any = u.settings
-      let storeName = ''
-      if (rawSettings) {
-        if (typeof rawSettings === 'string') {
-          try {
-            const parsed = JSON.parse(rawSettings)
-            storeName = parsed.store_name || parsed.business_name || parsed.merchant_name || parsed.pickup_city || ''
-          } catch {}
-        } else if (typeof rawSettings === 'object') {
-          storeName = rawSettings.store_name || rawSettings.business_name || rawSettings.merchant_name || rawSettings.settings?.store_name || ''
-        }
+      let rawSettings: any = u.settings
+      if (Array.isArray(rawSettings)) rawSettings = rawSettings[0]
+      if (rawSettings && rawSettings.settings) rawSettings = rawSettings.settings
+      if (typeof rawSettings === 'string') {
+        try {
+          rawSettings = JSON.parse(rawSettings)
+        } catch {}
       }
-      const email = u.email || ''
+      rawSettings = rawSettings || {}
+
+      const email = (u.email || '').trim().toLowerCase()
+      const emailLocalPart = email.split('@')[0] || ''
+      const emailDomain = email.split('@')[1] || ''
+      const emailTokens = emailLocalPart.replace(/[^a-z0-9]/g, ' ')
+
+      const storeName = (rawSettings.store_name || rawSettings.business_name || rawSettings.brand_name || rawSettings.storeName || '').trim()
+      const personName = (rawSettings.name || rawSettings.full_name || rawSettings.merchant_name || rawSettings.contact_person || rawSettings.user_name || '').trim()
+      const city = (rawSettings.pickup_city || rawSettings.postex_return_city || rawSettings.city || '').trim()
+      const phone = (rawSettings.phone || rawSettings.pickup_phone || rawSettings.contact_phone || '').trim()
+      const role = (u.role || '').trim()
+
+      const subLabels: string[] = []
+      if (storeName) subLabels.push(storeName)
+      if (personName && personName.toLowerCase() !== storeName.toLowerCase()) subLabels.push(personName)
+      if (city) subLabels.push(city)
+      if (role && role !== 'merchant') subLabels.push(role.toUpperCase())
+
+      const searchKeywords = [
+        email,
+        emailLocalPart,
+        emailTokens,
+        emailDomain,
+        storeName,
+        personName,
+        city,
+        phone,
+        role,
+        u.id
+      ].filter(Boolean).join(' ').toLowerCase()
+
       return {
         value: u.id,
-        label: email,
-        subLabel: storeName || undefined,
-        searchKeywords: `${email} ${storeName} ${u.id}`
+        label: u.email || 'Unknown User',
+        subLabel: subLabels.length > 0 ? subLabels.join(' • ') : undefined,
+        searchKeywords
       }
     })
   }, [users])
