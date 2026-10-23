@@ -81,6 +81,7 @@ export function HistoryFilterBar({
     (pickupFilter && pickupFilter !== 'all') ||
     (whatsappFilter && whatsappFilter !== 'all') ||
     (sourceFilter && sourceFilter !== 'all') ||
+    (statusFilter && statusFilter !== 'all') ||
     searchQuery
   )
 
@@ -95,15 +96,15 @@ export function HistoryFilterBar({
   }
 
   const tabs = [
-    { id: 'all', label: 'All', count: counts.all },
-    { id: 'booked', label: 'Booked', count: counts.booked },
-    { id: 'intransit', label: 'In Transit', count: counts.inTransit },
-    { id: 'out_for_delivery', label: 'Out for Delivery', count: counts.outForDelivery ?? 0, isAttention: false },
-    { id: 'action_required', label: 'Action Required', count: counts.actionRequired ?? 0, isAttention: true },
-    { id: 'delivered', label: 'Delivered', count: counts.delivered },
-    { id: 'returned', label: 'Returned', count: counts.returned },
-    { id: 'cancelled', label: 'Cancelled', count: counts.cancelled },
-    { id: 'pending_loadsheet', label: 'Pending', count: counts.pendingLoadsheet }
+    { id: 'all', label: 'All', shortLabel: 'All', count: counts.all },
+    { id: 'pending_loadsheet', label: 'Pending Loadsheet', shortLabel: 'Pending Sheet', count: counts.pendingLoadsheet },
+    { id: 'booked', label: 'Booked', shortLabel: 'Booked', count: counts.booked },
+    { id: 'intransit', label: 'In Transit', shortLabel: 'In Transit', count: counts.inTransit },
+    { id: 'out_for_delivery', label: 'Out for Delivery', shortLabel: 'Out for Del', count: counts.outForDelivery ?? 0, isAttention: false },
+    { id: 'action_required', label: 'Action Required', shortLabel: 'Action Req', count: counts.actionRequired ?? 0, isAttention: true },
+    { id: 'delivered', label: 'Delivered', shortLabel: 'Delivered', count: counts.delivered },
+    { id: 'returned', label: 'Returned', shortLabel: 'Returned', count: counts.returned },
+    { id: 'cancelled', label: 'Cancelled', shortLabel: 'Cancelled', count: counts.cancelled }
   ] as const
 
   return (
@@ -358,7 +359,10 @@ export function HistoryFilterBar({
                     : 'bg-white dark:bg-[#0c121e] hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 shadow-2xs'
               }`}
             >
-              <span>{tab.label}</span>
+              <span className="truncate">
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
+              </span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${
                 isActive
                   ? 'bg-white/20 text-white'
