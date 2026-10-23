@@ -280,9 +280,11 @@ export function HistoryFilterBar({
               className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               <option value="all">All Statuses</option>
+              <option value="pending_loadsheet">Pending Loadsheet</option>
               <option value="booked">Booked</option>
               <option value="transit">In Transit / Warehouse</option>
-              <option value="under_review">Under Review / Attempted</option>
+              <option value="out_for_delivery">Out for Delivery</option>
+              <option value="under_review">Under Review / Action Required</option>
               <option value="delivered">Delivered</option>
               <option value="returned">Returned</option>
               <option value="cancelled">Cancelled</option>

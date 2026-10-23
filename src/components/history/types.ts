@@ -206,23 +206,76 @@ export const isBookedStatus = (status: string) => {
 
 export const isDeliveredStatus = (status: string) => {
   if (!status) return false
-  const s = status.toLowerCase()
-  if (s.includes('out for delivery') || s.includes('waiting for delivery') || s.includes('pending delivery') || s.includes('attempt')) {
+  const s = status.toLowerCase().trim()
+  if (
+    s.includes('out for delivery') ||
+    s.includes('out-for-delivery') ||
+    s.includes('out_for_delivery') ||
+    s.includes('waiting for delivery') ||
+    s.includes('pending delivery') ||
+    s.includes('with rider') ||
+    s.includes('assigned to') ||
+    s.includes('attempt') ||
+    s.includes('return') ||
+    s.includes('cancel')
+  ) {
     return false
   }
-  return s.includes('delivered') || s === 'deliver'
+  return s.includes('delivered')
 }
 
 export const isOutForDelivery = (status: string) => {
   if (!status) return false
-  const s = status.toLowerCase()
-  return s.includes('out for delivery') || s.includes('waiting for delivery') || s.includes('with rider')
+  const s = status.toLowerCase().trim()
+  if (
+    s.includes('delivered') ||
+    s.includes('cancel') ||
+    s.includes('failed') ||
+    s.includes('unreachable') ||
+    s.includes('refused') ||
+    s.includes('returned') ||
+    s.includes('return to')
+  ) {
+    return false
+  }
+  return (
+    s.includes('out for delivery') ||
+    s.includes('out-for-delivery') ||
+    s.includes('out_for_delivery') ||
+    s.includes('waiting for delivery') ||
+    s.includes('with rider') ||
+    s.includes('with courier') ||
+    s.includes('assigned to rider') ||
+    s.includes('assigned to courier') ||
+    s.includes('assigned to delivery') ||
+    s.includes('assigned delivery') ||
+    s.includes('rider assigned') ||
+    s.includes('courier assigned') ||
+    s.includes('dispatched for delivery') ||
+    s.includes('on vehicle') ||
+    s.includes('runsheet') ||
+    s.includes('drs') ||
+    s === 'ofd' ||
+    s.startsWith('ofd ') ||
+    s.endsWith(' ofd') ||
+    s.includes(' ofd ')
+  )
 }
 
 export const isActionRequired = (status: string) => {
   if (!status) return false
-  const s = status.toLowerCase()
-  return s.includes('review') || s.includes('attempt') || s.includes('unreachable') || s.includes('refused') || s.includes('failed') || s.includes('hold')
+  const s = status.toLowerCase().trim()
+  return (
+    s.includes('review') ||
+    s.includes('attempt') ||
+    s.includes('unreachable') ||
+    s.includes('refused') ||
+    s.includes('failed') ||
+    s.includes('hold') ||
+    s.includes('advice') ||
+    s.includes('retry') ||
+    s.includes('reattempt')
+  )
 }
 
 export const isUnderReview = (status: string) => {
@@ -266,7 +319,7 @@ export const getLatestPostExStatus = (dist: any): string => {
       const timeB = new Date(b.modifiedDatetime || b.createdDatetime || b.datetime || 0).getTime()
       return timeB - timeA
     })
-    const msg = sorted[0]?.transactionStatusMessage || list[0]?.transactionStatusMessage
+    const msg = sorted[0]?.transactionStatusMessage || sorted[0]?.transactionStatus || sorted[0]?.status || list[0]?.transactionStatusMessage || list[0]?.transactionStatus
     if (typeof msg === 'string' && msg.trim()) {
       return msg.trim()
     }
@@ -353,8 +406,8 @@ export const determineNewStatus = (currentStatus: string, fetchedStatus: string)
 export const getStatusCategory = (status: string, _tracking?: string, hasLoadSheet?: boolean): StatusFilterType => {
   if (isCancelledStatus(status)) return 'cancelled'
   if (isDeliveredStatus(status)) return 'delivered'
-  if (isActionRequired(status)) return 'action_required'
   if (isOutForDelivery(status)) return 'out_for_delivery'
+  if (isActionRequired(status)) return 'action_required'
   
   const s = (status || '').toLowerCase().trim()
   if (s.includes('return') && !s.includes('return to sender requested')) return 'returned'
@@ -406,7 +459,10 @@ export const getStatusBadgeStyle = (status: string, tracking?: string, hasLoadSh
   if (cat === 'delivered' || cat === 'booked' || status === 'success') {
     return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-400'
   }
-  if (cat === 'intransit' || cat === 'out_for_delivery') {
+  if (cat === 'out_for_delivery') {
+    return 'bg-purple-500/10 border-purple-500/25 text-purple-700 dark:text-purple-400'
+  }
+  if (cat === 'intransit') {
     return 'bg-sky-500/10 border-sky-500/25 text-sky-700 dark:text-sky-400'
   }
   if (cat === 'cancelled' || cat === 'returned') {
@@ -633,7 +689,21 @@ const POSTEX_PORTAL_STATUS_MAP: Record<string, string> = {
   cancelled: 'Cancelled',
   canceled: 'Cancelled',
   returned: 'Returned',
-  'out for delivery': 'Out for Delivery'
+  'out for delivery': 'Out for Delivery',
+  'out-for-delivery': 'Out for Delivery',
+  'out_for_delivery': 'Out for Delivery',
+  'waiting for delivery': 'Out for Delivery',
+  'pending delivery': 'Out for Delivery',
+  'with rider': 'Out for Delivery',
+  'with courier': 'Out for Delivery',
+  'assigned to rider': 'Out for Delivery',
+  'assigned to courier': 'Out for Delivery',
+  'assigned to delivery': 'Out for Delivery',
+  'dispatched for delivery': 'Out for Delivery',
+  'rider assigned': 'Out for Delivery',
+  'courier assigned': 'Out for Delivery',
+  'on vehicle': 'Out for Delivery',
+  ofd: 'Out for Delivery'
 }
 
 export const normalizePortalStatus = (raw?: string): string => {

@@ -123,16 +123,7 @@ export function useBookedHistoryFilter({
       // 2. Status Milestone Filter
       if (statusFilter !== 'all') {
         const cat = getStatusCategory(item.status, item.tracking, Boolean(item.hasLoadSheet || (item as any).has_load_sheet))
-        if (statusFilter === 'intransit') {
-          // If viewing general in-transit, include transit and out-for-delivery unless specific tab clicked
-          if (cat !== 'intransit' && cat !== 'out_for_delivery') return false
-        } else if (statusFilter === 'out_for_delivery') {
-          if (!isOutForDelivery(item.status)) return false
-        } else if (statusFilter === 'action_required') {
-          if (!isActionRequired(item.status) && !isUnderReview(item.status)) return false
-        } else {
-          if (cat !== statusFilter) return false
-        }
+        if (cat !== statusFilter) return false
       }
 
       // 3. Search Query (Order ID, Tracking CN, Customer Name, Phone, City)
@@ -155,16 +146,17 @@ export function useBookedHistoryFilter({
 
       // 5. Select dropdown status filter
       if (statusSelect !== 'all') {
-        const sel = statusSelect.toLowerCase()
-        if (sel === 'under_review' || sel === 'action_required') {
-          if (!isActionRequired(item.status) && !isUnderReview(item.status)) return false
-        } else if (sel === 'out_for_delivery') {
-          if (!isOutForDelivery(item.status)) return false
-        } else if (sel === 'transit') {
-          if (getStatusCategory(item.status, item.tracking) !== 'intransit' && !isOutForDelivery(item.status)) return false
+        const cat = getStatusCategory(item.status, item.tracking, Boolean(item.hasLoadSheet || (item as any).has_load_sheet))
+        if (statusSelect === 'transit') {
+          if (cat !== 'intransit') return false
+        } else if (statusSelect === 'under_review' || statusSelect === 'action_required') {
+          if (cat !== 'action_required') return false
+        } else if (statusSelect === 'out_for_delivery') {
+          if (cat !== 'out_for_delivery') return false
+        } else if (statusSelect === 'pending_loadsheet') {
+          if (cat !== 'pending_loadsheet') return false
         } else {
-          const statusLower = item.status.toLowerCase()
-          if (!statusLower.includes(sel)) return false
+          if (cat !== statusSelect) return false
         }
       }
 
