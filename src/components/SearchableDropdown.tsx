@@ -1,13 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+
+export type SearchableDropdownOption = {
+  value: string
+  label: string
+  subLabel?: string
+  searchKeywords?: string
+}
+
+export type SearchableDropdownItem = string | SearchableDropdownOption
 
 interface SearchableDropdownProps {
   value: string
   onChange: (val: string) => void
-  options: string[]
+  options: SearchableDropdownItem[]
   placeholder?: string
   className?: string
   emptyLabel?: string
-  allOptionLabel?: string // Optional label for "All" option (e.g. "All Cities")
+  allOptionLabel?: string // Optional label for "All" option (e.g. "All Cities", "All Merchants")
   allOptionValue?: string // Optional value representing "All"
 }
 
@@ -35,9 +44,30 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredOptions = options.filter(option =>
-    (option || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const normalizedOptions = useMemo(() => {
+    return options.map(opt => {
+      if (typeof opt === 'string') {
+        return {
+          value: opt,
+          label: opt,
+          subLabel: undefined,
+          searchKeywords: opt.toLowerCase()
+        }
+      }
+      return {
+        value: opt.value,
+        label: opt.label,
+        subLabel: opt.subLabel,
+        searchKeywords: `${opt.label} ${opt.subLabel || ''} ${opt.searchKeywords || ''} ${opt.value}`.toLowerCase()
+      }
+    })
+  }, [options])
+
+  const filteredOptions = useMemo(() => {
+    const q = search.toLowerCase().trim()
+    if (!q) return normalizedOptions
+    return normalizedOptions.filter(opt => opt.searchKeywords.includes(q))
+  }, [normalizedOptions, search])
 
   const handleSelect = (val: string) => {
     onChange(val)
@@ -50,6 +80,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     displayValue = allOptionLabel || allOptionValue
   } else if (!value) {
     displayValue = placeholder
+  } else {
+    const matched = normalizedOptions.find(opt => opt.value === value)
+    if (matched) {
+      displayValue = matched.label
+    }
   }
 
   return (
@@ -60,7 +95,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           setIsOpen(!isOpen)
           if (!isOpen) setSearch('')
         }}
-        className="w-full border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm bg-white dark:bg-[#0c121e] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-left flex justify-between items-center cursor-pointer shadow-xs transition-colors"
+        className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-left flex justify-between items-center cursor-pointer shadow-xs transition-colors"
       >
         <span className="truncate font-medium">{displayValue}</span>
         <svg
@@ -90,13 +125,18 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelect(allOptionValue)}
-                className={`w-full text-left px-3.5 py-2 text-xs transition-colors cursor-pointer ${
+                className={`w-full text-left px-3.5 py-2 text-xs transition-colors cursor-pointer flex items-center justify-between ${
                   value === allOptionValue 
                     ? 'bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400' 
                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 }`}
               >
-                {allOptionLabel}
+                <span>{allOptionLabel}</span>
+                {value === allOptionValue && (
+                  <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
               </button>
             )}
 
@@ -107,16 +147,28 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             ) : (
               filteredOptions.map(option => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  onClick={() => handleSelect(option)}
-                  className={`w-full text-left px-3.5 py-2 text-xs transition-colors cursor-pointer ${
-                    value === option 
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full text-left px-3.5 py-2 text-xs transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                    value === option.value 
                       ? 'bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400' 
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                 >
-                  {option}
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{option.label}</span>
+                    {option.subLabel && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                        {option.subLabel}
+                      </span>
+                    )}
+                  </div>
+                  {value === option.value && (
+                    <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </button>
               ))
             )}

@@ -372,6 +372,31 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     return Array.from(citySet).sort()
   }, [allCombinedCustomers])
 
+  // Extract merchant options for searchable dropdown (supports searching by email, store name, or merchant ID)
+  const merchantOptions = useMemo(() => {
+    return users.map(u => {
+      const rawSettings: any = u.settings
+      let storeName = ''
+      if (rawSettings) {
+        if (typeof rawSettings === 'string') {
+          try {
+            const parsed = JSON.parse(rawSettings)
+            storeName = parsed.store_name || parsed.business_name || parsed.merchant_name || parsed.pickup_city || ''
+          } catch {}
+        } else if (typeof rawSettings === 'object') {
+          storeName = rawSettings.store_name || rawSettings.business_name || rawSettings.merchant_name || rawSettings.settings?.store_name || ''
+        }
+      }
+      const email = u.email || ''
+      return {
+        value: u.id,
+        label: email,
+        subLabel: storeName || undefined,
+        searchKeywords: `${email} ${storeName} ${u.id}`
+      }
+    })
+  }, [users])
+
   // STEP 1: Date and Merchant Filtered Customers
   // Uses identical string date comparison as Booked History (prevents timezone shifts and leaking other dates)
   const dateAndMerchantFiltered = useMemo(() => {
@@ -951,16 +976,15 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Merchant Store
             </label>
-            <select
+            <SearchableDropdown
               value={filterMerchant}
-              onChange={e => setFilterMerchant(e.target.value)}
-              className="w-full h-9 border border-slate-200 dark:border-slate-800 rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
-            >
-              <option value="all">All Merchants ({users.length})</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.email}</option>
-              ))}
-            </select>
+              onChange={setFilterMerchant}
+              options={merchantOptions}
+              placeholder="All Merchants"
+              allOptionLabel={`All Merchants (${users.length})`}
+              allOptionValue="all"
+              className="w-full"
+            />
           </div>
 
           <div className="flex flex-col gap-1">

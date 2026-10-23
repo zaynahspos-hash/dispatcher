@@ -35,8 +35,8 @@ Before staging and committing changes:
 
 ---
 
-## 4. Git Push & Deployment Policy — Zero Auto-Push, Complete Queue & Ask First (RULE G4)
-- **NEVER execute `git push` autonomously under any circumstances.**
-- Remote code pushes (`git push`, `git push origin main`, etc.) and deployments are **STRICTLY FORBIDDEN** unless the user explicitly commands it in chat.
-- **Check All Pending Tasks First**: Before even asking to push, the agent must verify all pending requests, questions, UI fixes, and user queue items to ensure nothing is left unaddressed.
-- **Ask Before Pushing**: Once all pending tasks are completely built, tested, and verified locally, the agent must present the summary to the user and ask for permission before any remote push or deployment is triggered.
+## 4. Git Push & Deployment Policy — Zero Auto-Push, Never Deploy Without Explicit Command (RULE G4)
+- **NEVER execute `git push` or deploy code autonomously under any circumstance.**
+- Remote code pushes (`git push`, `git push origin main`) and live deployments are **STRICTLY FORBIDDEN** unless the user explicitly commands it in that exact prompt (e.g., "push karo", "deploy kar do").
+- **Do Not Push After Task Completion — Say 'All done'**: When any bug fix, feature, or verification is completed and `npm run build` passes with 0 errors, DO NOT push. Instead, strictly respond with **"All done!"** (or "All donee") alongside a brief, clear summary of what was accomplished and wait for the user's explicit command before any remote push or deploy.
+- **Check All Pending Tasks First**: Before any push, verify all pending requests, questions, UI fixes, and user queue items to ensure nothing is left unaddressed.

@@ -57,8 +57,8 @@ These directives are permanently active on every task, prompt, refactor, and bug
 
 ## 12. Zero Auto-Push & Ask First (RULE G4)
 - **NEVER run `git push` or deploy automatically under any condition.**
+- When work is complete, strictly write **"All done!"** (or "All donee") with a clear summary. Never push unless the user explicitly commands it in that prompt.
 - Inspect and resolve all pending tasks and user questions first.
-- Only push or deploy when the user explicitly gives approval in their prompt.
 
 ## 13. Apple Modern UI/UX Standard & Zero Over-Colored Slop (RULE APPLE-UI / DS6)
 - The entire SaaS application must reflect modern Apple minimalist aesthetics: clean typography, calibrated spacing, disciplined contrast, and subtle borders.
