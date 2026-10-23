@@ -74,7 +74,7 @@ export default function AdminPanel() {
         created_at: l.created_at
       })))
 
-      // 3. Fetch all customers
+      // 3. Fetch all customers (permanent directory spanning years)
       const { data: customersData, error: customersErr } = await supabase
         .from('customers')
         .select(`
@@ -82,6 +82,8 @@ export default function AdminPanel() {
           user_id,
           phone,
           name,
+          city,
+          address,
           source,
           created_at,
           updated_at,
@@ -97,6 +99,8 @@ export default function AdminPanel() {
         user_id: c.user_id,
         phone: c.phone,
         name: c.name,
+        city: c.city || '',
+        address: c.address || '',
         source: c.source || 'app',
         created_at: c.created_at,
         updated_at: c.updated_at,

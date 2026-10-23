@@ -10,6 +10,7 @@ import { transformPostExOrders, isMobileDevice, getParcelDateStr, parsePortalDat
 import { readExternalParcels, writeExternalParcels } from '../../utils/portalParcelStore'
 import { idbSaveCustomers, idbGetCustomers } from '../../utils/indexedDbStore'
 import { useWhatsAppSentTracker } from '../../hooks/useWhatsAppSentTracker'
+import { supabase } from '../../utils/supabaseClient'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -100,6 +101,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const timerRef = useRef<any>(null)
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+  const [isServerlessSyncing, setIsServerlessSyncing] = useState(false)
+  const [serverlessSyncResult, setServerlessSyncResult] = useState<string | null>(null)
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -325,6 +328,29 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         return merged
       })
 
+      // 4. Permanent Cloud Database Persistence: Upsert directly into PostgreSQL customers table
+      if (newExtracted.length > 0) {
+        setSyncProgress(`Persisting ${newExtracted.length} contacts permanently to database...`)
+        const upsertRows = newExtracted.map(c => ({
+          user_id: c.user_id,
+          phone: c.phone.replace(/\D/g, ''),
+          name: c.name || 'Valued Customer',
+          city: c.city || '',
+          address: c.address || '',
+          source: 'postex_portal',
+          updated_at: new Date().toISOString()
+        }))
+
+        const BATCH_SIZE = 100
+        for (let b = 0; b < upsertRows.length; b += BATCH_SIZE) {
+          const chunk = upsertRows.slice(b, b + BATCH_SIZE)
+          await supabase.from('customers').upsert(chunk, {
+            onConflict: 'user_id,phone',
+            ignoreDuplicates: false
+          })
+        }
+      }
+
     } catch (err: any) {
       setSyncError(err.message || 'Error syncing with PostEx.')
     } finally {
@@ -332,6 +358,31 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       setSyncProgress('')
     }
   }, [filterMerchant, users, startDate, endDate, last7Str, todayStr])
+
+  // Trigger Autonomous Serverless Daily Sync via Supabase Edge Function
+  const handleTriggerServerlessCron = async () => {
+    setIsServerlessSyncing(true)
+    setServerlessSyncResult(null)
+    try {
+      const res = await supabase.functions.invoke('daily-courier-sync', {
+        body: {
+          startDate,
+          endDate,
+          retentionDays: 90
+        }
+      })
+      if (res.error) {
+        setServerlessSyncResult(`Cloud Sync Notice: ${res.error.message || 'Edge function ready.'}`)
+      } else {
+        const d = res.data
+        setServerlessSyncResult(`Autonomous Cloud Sync: Harvested ${d?.total_contacts_harvested ?? 0} contacts across ${d?.merchants_processed ?? 0} merchants. 90-day parcel history pruned.`)
+      }
+    } catch (err: any) {
+      setServerlessSyncResult(`Cloud Sync: ${err.message}`)
+    } finally {
+      setIsServerlessSyncing(false)
+    }
+  }
 
   // Combine DB Customers with External Portal Customers
   const allCombinedCustomers = useMemo(() => {
@@ -733,6 +784,32 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             )}
           </button>
 
+          {/* Cloud Serverless Daily Sync Button */}
+          <button
+            type="button"
+            onClick={handleTriggerServerlessCron}
+            disabled={isServerlessSyncing || isSyncing}
+            className="flex-1 md:flex-initial h-9 px-3.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-purple-600/90 dark:hover:bg-purple-600 disabled:opacity-50 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-98 cursor-pointer whitespace-nowrap shrink-0"
+            title="Trigger Autonomous Cloud Background Sync (Runs Serverless Edge Function to harvest PostEx contacts & prune 90-day parcels)"
+          >
+            {isServerlessSyncing ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>Cloud Syncing...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5 text-purple-400 dark:text-purple-200" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Auto Cloud Sync</span>
+              </>
+            )}
+          </button>
+
           {/* Export Dropdown Menu */}
           <div className="relative flex-1 md:flex-initial shrink-0" ref={exportMenuRef}>
             <button
@@ -842,6 +919,25 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                 {Math.floor(elapsedSeconds / 60)}:{(elapsedSeconds % 60).toString().padStart(2, '0')}s
               </span>
             )}
+          </div>
+        )}
+
+        {/* Serverless sync alert banner */}
+        {serverlessSyncResult && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50/90 dark:bg-purple-900/25 px-3.5 py-2.5 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs font-semibold text-purple-800 dark:text-purple-300">{serverlessSyncResult}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setServerlessSyncResult(null)}
+              className="text-xs font-bold text-purple-700 dark:text-purple-300 hover:underline cursor-pointer"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 

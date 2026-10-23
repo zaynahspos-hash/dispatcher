@@ -48,11 +48,16 @@ CREATE TABLE IF NOT EXISTS public.booked_history (
 -- Table: customers
 -- Tenant customer directory for auto-complete & delivery intelligence
 -- Scoped strictly to tenant user_id (unique per tenant + phone)
+-- Permanently preserved (2 to 5+ years) for marketing, lookalike audience & CRM
 CREATE TABLE IF NOT EXISTS public.customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   phone TEXT NOT NULL,
   name TEXT NOT NULL,
+  city TEXT,
+  address TEXT,
+  total_orders INT NOT NULL DEFAULT 1,
+  total_spend NUMERIC NOT NULL DEFAULT 0,
   source TEXT NOT NULL DEFAULT 'app',
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -63,6 +68,18 @@ DO $$
 BEGIN 
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'source') THEN 
     ALTER TABLE public.customers ADD COLUMN source TEXT NOT NULL DEFAULT 'app'; 
+  END IF; 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'city') THEN 
+    ALTER TABLE public.customers ADD COLUMN city TEXT; 
+  END IF; 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'address') THEN 
+    ALTER TABLE public.customers ADD COLUMN address TEXT; 
+  END IF; 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'total_orders') THEN 
+    ALTER TABLE public.customers ADD COLUMN total_orders INT NOT NULL DEFAULT 1; 
+  END IF; 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'total_spend') THEN 
+    ALTER TABLE public.customers ADD COLUMN total_spend NUMERIC NOT NULL DEFAULT 0; 
   END IF; 
 END $$;
 
@@ -80,6 +97,8 @@ CREATE TABLE IF NOT EXISTS public.usage_logs (
 -- 3. HIGH PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 CREATE INDEX IF NOT EXISTS idx_customers_user_phone ON public.customers(user_id, phone);
+CREATE INDEX IF NOT EXISTS idx_customers_city ON public.customers(city);
+CREATE INDEX IF NOT EXISTS idx_customers_created_at ON public.customers(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user_timestamp ON public.usage_logs(user_id, created_at DESC);
 
 -- 4. AUTO-UPDATING TIMESTAMPS TRIGGER FUNCTION
@@ -193,7 +212,7 @@ CREATE POLICY "customers_read_policy" ON public.customers
 
 DROP POLICY IF EXISTS "customers_insert_policy" ON public.customers;
 CREATE POLICY "customers_insert_policy" ON public.customers
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin());
 
 DROP POLICY IF EXISTS "customers_update_policy" ON public.customers;
 CREATE POLICY "customers_update_policy" ON public.customers
@@ -518,4 +537,53 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.admin_toggle_tenant_status(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_delete_tenant_cascade(UUID) TO authenticated;
+
+-- ==============================================================================
+-- 90-DAY PARCEL RETENTION AUTO-PRUNING (Keeps Database Ultra-Fast)
+-- Permanently preserves "customers" directory (2-5+ years),
+-- while automatically trimming raw parcel tracking JSON in "booked_history" older than 90 days.
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.purge_old_booked_parcels(retention_days INT DEFAULT 90)
+RETURNS JSONB AS $$
+DECLARE
+  v_rows_updated INT := 0;
+  v_cutoff TIMESTAMPTZ := NOW() - (retention_days || ' days')::INTERVAL;
+BEGIN
+  WITH updated AS (
+    UPDATE public.booked_history bh
+    SET history = (
+      SELECT COALESCE(
+        jsonb_agg(elem),
+        '[]'::jsonb
+      )
+      FROM jsonb_array_elements(bh.history) AS elem
+      WHERE 
+        (elem->>'bookingDate' IS NULL) OR
+        (elem->>'bookingDate' = '') OR
+        (
+          CASE 
+            WHEN elem->>'bookingDate' ~ '^\d{4}-\d{2}-\d{2}' 
+            THEN (elem->>'bookingDate')::timestamptz >= v_cutoff
+            ELSE true
+          END
+        )
+    ),
+    updated_at = timezone('utc'::text, now())
+    WHERE bh.history IS NOT NULL AND jsonb_array_length(bh.history) > 0
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_rows_updated FROM updated;
+
+  RETURN jsonb_build_object(
+    'status', 'success',
+    'retention_days', retention_days,
+    'cutoff_date', v_cutoff,
+    'tenants_pruned', v_rows_updated
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.purge_old_booked_parcels(INT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.purge_old_booked_parcels(INT) TO service_role;
+
 
