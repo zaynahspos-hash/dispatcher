@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Settings } from '../utils/aiParser'
-import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon } from './Icons'
+import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon, SyncIcon } from './Icons'
 import {
   BookedParcel,
   StatusFilterType,
@@ -214,11 +214,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const {
     selectedIds, setSelectedIds, handleSelectAll, handleSelectItem, isLoading,
     actionStatus, setActionStatus, syncingTracking,
+    isSyncingAll, syncProgress,
     isCancellingAll, cancelProgress, adviceParcel, setAdviceParcel,
     adviceStatusId, setAdviceStatusId, adviceRemarks, setAdviceRemarks,
     isSubmittingAdvice, adviceError, setAdviceError, handlePrintSelected,
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
-    handleSyncStatus, handleSyncSelected, handleSubmitAdvice
+    handleSyncStatus, handleSyncSelected, handleSyncTracking, handleSubmitAdvice
   } = useBookedHistoryOperations({
     settings, history: combinedHistory, onUpdateHistory: applyHistoryUpdate, filteredParcels, userId
   })
@@ -292,7 +293,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={handleToggleAutoExpandLines}
@@ -305,11 +306,35 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
           </button>
 
+          {/* 1-Click Real Tracking Sync for All Filtered (or Selected) Parcels */}
+          <button
+            type="button"
+            onClick={() => handleSyncTracking(selectedIds.length > 0 ? selectedIds : undefined)}
+            disabled={isSyncingAll || portalSync.isSyncing || isLoading || filteredParcels.length === 0}
+            className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap disabled:opacity-50"
+            title="1-Click Real Tracking Sync: Fetches granular live milestones (e.g. Received at LHE Warehouse, Out for Delivery) directly from PostEx tracking"
+          >
+            {isSyncingAll ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>{syncProgress || 'Syncing...'}</span>
+              </>
+            ) : (
+              <>
+                <SyncIcon size={13} className="text-sky-600 dark:text-sky-400" />
+                <span>Sync Live Status ({selectedIds.length > 0 ? selectedIds.length : filteredParcels.length})</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={handleManualRefresh}
-            disabled={portalSync.isSyncing || isLoading}
-            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+            disabled={portalSync.isSyncing || isLoading || isSyncingAll}
+            className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
             title="Fetch latest booked parcels directly from PostEx for selected date range"
           >
             {portalSync.isSyncing ? (
@@ -329,6 +354,21 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </button>
         </div>
       </div>
+
+      {/* Live Concurrent Tracking Sync Progress Banner */}
+      {isSyncingAll && (
+        <div className="mb-4 p-3 rounded-xl bg-sky-50/95 dark:bg-sky-950/40 border border-sky-500/30 flex items-center justify-between gap-2.5 animate-pulse">
+          <div className="flex items-center gap-2 min-w-0">
+            <SyncIcon size={14} className="text-sky-600 dark:text-sky-400 animate-spin shrink-0" />
+            <p className="text-xs font-bold text-sky-900 dark:text-sky-200 truncate">
+              {syncProgress || 'Synchronizing live milestones from PostEx tracking...'}
+            </p>
+          </div>
+          <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300">
+            Live Sync
+          </span>
+        </div>
+      )}
 
       {/* Advanced Filter Component (Banner renders at the top inside HistoryFilterBar, matching Admin tab exactly) */}
       <HistoryFilterBar

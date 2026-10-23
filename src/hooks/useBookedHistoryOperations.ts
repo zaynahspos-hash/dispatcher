@@ -234,8 +234,23 @@ export function useBookedHistoryOperations({
     }
   }
 
-  const handleSyncSelected = async () => {
-    if (selectedIds.length === 0) return
+  const handleSyncTracking = async (targetTrackingNumbers?: string[]) => {
+    // Determine the list of CNs to sync:
+    // If specific target provided, use that; otherwise if items selected, use selectedIds; otherwise all filtered parcels!
+    const candidateList = (targetTrackingNumbers && targetTrackingNumbers.length > 0)
+      ? targetTrackingNumbers
+      : (selectedIds.length > 0
+          ? selectedIds
+          : _filteredParcels.map(p => p.tracking).filter(Boolean)
+        )
+
+    const listToSync = Array.from(new Set(candidateList.map(cn => String(cn).trim()).filter(Boolean)))
+
+    if (listToSync.length === 0) {
+      setActionStatus({ type: 'error', message: 'No parcels with tracking numbers found to sync.' })
+      return
+    }
+
     if (!settings.postex_token) {
       setActionStatus({ type: 'error', message: 'PostEx API token is missing in Settings.' })
       return
@@ -244,58 +259,69 @@ export function useBookedHistoryOperations({
     setIsLoading(true)
     setIsSyncingAll(true)
     setActionStatus(null)
-    setSyncProgress(`Syncing ${selectedIds.length} orders...`)
+    setSyncProgress(`Starting real tracking sync for ${listToSync.length} parcels...`)
 
     let mergedHistory = [...history]
     let completedCount = 0
+    let updatedCount = 0
+    const total = listToSync.length
+    const BATCH_SIZE = 6
 
-    for (const tracking of selectedIds) {
-      try {
-        const res = await trackOrder(settings.postex_token, tracking)
-        if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
-          const rawStatus = getLatestPostExStatus(res.dist)
-          const customerName = res.dist?.customerName || ''
-          const customerPhone = res.dist?.customerPhone || ''
-          const cityName = res.dist?.cityName || ''
-          const deliveryAddress = res.dist?.deliveryAddress || ''
-          const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      const chunk = listToSync.slice(i, i + BATCH_SIZE)
+      await Promise.all(chunk.map(async tracking => {
+        try {
+          const res = await trackOrder(settings.postex_token, tracking)
+          if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200') {
+            const rawStatus = getLatestPostExStatus(res.dist)
+            const customerName = res.dist?.customerName || ''
+            const customerPhone = res.dist?.customerPhone || ''
+            const cityName = res.dist?.cityName || ''
+            const deliveryAddress = res.dist?.deliveryAddress || ''
+            const invoicePayment = Number(res.dist?.invoicePayment ?? res.dist?.orderAmount ?? res.dist?.orderDetail?.invoicePayment ?? 0) || 0
 
-          const idx = mergedHistory.findIndex(p => p.tracking === tracking)
-          if (idx !== -1) {
-            const currentItem = mergedHistory[idx]
-            const rawLower = rawStatus.toLowerCase().trim()
-            const isUnbooked = rawLower === 'unbooked'
-            const isManifested = !isUnbooked && rawLower !== 'cancelled'
-            mergedHistory[idx] = {
-              ...currentItem,
-              status: determineNewStatus(currentItem.status, rawStatus),
-              hasLoadSheet: isUnbooked ? false : (currentItem.hasLoadSheet || isManifested),
-              loadsheet_generated: isUnbooked ? false : (currentItem.loadsheet_generated || isManifested),
-              name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
-              phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
-              city: !currentItem.city && cityName ? cityName : currentItem.city,
-              address: !currentItem.address && deliveryAddress ? deliveryAddress : currentItem.address,
-              total: (!currentItem.total || currentItem.total === 0) && invoicePayment ? invoicePayment : currentItem.total
+            const idx = mergedHistory.findIndex(p => p.tracking === tracking)
+            if (idx !== -1) {
+              const currentItem = mergedHistory[idx]
+              const rawLower = rawStatus.toLowerCase().trim()
+              const isUnbooked = rawLower === 'unbooked'
+              const isManifested = !isUnbooked && rawLower !== 'cancelled'
+              mergedHistory[idx] = {
+                ...currentItem,
+                status: determineNewStatus(currentItem.status, rawStatus),
+                hasLoadSheet: isUnbooked ? false : (currentItem.hasLoadSheet || isManifested),
+                loadsheet_generated: isUnbooked ? false : (currentItem.loadsheet_generated || isManifested),
+                name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
+                phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
+                city: !currentItem.city && cityName ? cityName : currentItem.city,
+                address: !currentItem.address && deliveryAddress ? deliveryAddress : currentItem.address,
+                total: (!currentItem.total || currentItem.total === 0) && invoicePayment ? invoicePayment : currentItem.total
+              }
+              updatedCount++
             }
           }
+        } catch (err) {
+          console.error(`Error syncing CN ${tracking}:`, err)
+        } finally {
+          completedCount++
         }
-      } catch (err) {
-        console.error(`Error syncing CN ${tracking}:`, err)
-      } finally {
-        completedCount++
-        setSyncProgress(`Synced ${completedCount}/${selectedIds.length}...`)
-      }
+      }))
+
+      // Real-time incremental update so table rows change live in front of the merchant!
+      setSyncProgress(`Syncing live status: ${completedCount}/${total} (${Math.round((completedCount / total) * 100)}%)...`)
+      onUpdateHistory([...mergedHistory])
     }
 
-    onUpdateHistory(mergedHistory)
     setIsLoading(false)
     setIsSyncingAll(false)
     setSyncProgress('')
     setActionStatus({
       type: 'success',
-      message: `Successfully synchronized ${selectedIds.length} selected orders!`
+      message: `Successfully synchronized live tracking for ${completedCount} parcels (${updatedCount} updated with real milestones)!`
     })
   }
+
+  const handleSyncSelected = () => handleSyncTracking(selectedIds)
 
   const handleSubmitAdvice = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -365,6 +391,7 @@ export function useBookedHistoryOperations({
     handleCancelSingle,
     handleSyncStatus,
     handleSyncSelected,
+    handleSyncTracking,
     handleSubmitAdvice
   }
 }
