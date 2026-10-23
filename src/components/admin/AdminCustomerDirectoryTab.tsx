@@ -481,12 +481,12 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   }
 
   // 1. Meta Custom Audience Format (CSV)
-  // Headers: phone,fn,ct,country
+  // Headers: phone,fn,ln,ct,country
   // phone: 92300... (first 0 removed, 92 prepended, no +, spaces or dashes)
-  // fn: First name only, ct: City, country: PK
+  // fn: First name, ln: Last name, ct: City, country: PK
   const handleExportMetaCSV = () => {
     if (filteredCustomers.length === 0) return
-    const headers = ['phone', 'fn', 'ct', 'country']
+    const headers = ['phone', 'fn', 'ln', 'ct', 'country']
     const rows = filteredCustomers.map(c => {
       let rawPhone = (c.phone || '').replace(/\D/g, '')
       if (rawPhone.startsWith('0')) {
@@ -496,13 +496,17 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       }
 
       const rawName = (c.name || '').trim()
-      const firstName = rawName.split(/\s+/)[0] || ''
+      const parts = rawName.split(/\s+/)
+      const firstName = parts[0] || ''
+      const lastName = parts.slice(1).join(' ') || ''
       const safeFn = firstName.replace(/,/g, '').replace(/"/g, '""').trim()
+      const safeLn = lastName.replace(/,/g, '').replace(/"/g, '""').trim()
       const safeCity = (c.city || '').trim().replace(/,/g, '').replace(/"/g, '""')
 
       return [
         rawPhone,
         `"${safeFn}"`,
+        `"${safeLn}"`,
         `"${safeCity}"`,
         'PK'
       ]
@@ -734,7 +738,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                       <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded">FB / IG Ads</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Format: <code className="font-mono text-[9px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-blue-400">phone,fn,ct,country</code> with 923... (No 0 or +)
+                      Format: <code className="font-mono text-[9px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-blue-600 dark:text-blue-400">phone,fn,ln,ct,country</code> with 923... (No 0 or +)
                     </p>
                   </div>
                 </button>
