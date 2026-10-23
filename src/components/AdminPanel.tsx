@@ -189,12 +189,25 @@ export default function AdminPanel() {
     }
   }
 
-  // Deduplicate customers by phone
+  // Deduplicate combined customers (DB customers + Cached Portal customers)
   const uniqueCustomers = (() => {
     const seenPhones = new Map<string, CustomerEntry>()
     for (const c of customers) {
-      if (!seenPhones.has(c.phone)) seenPhones.set(c.phone, c)
+      const clean = (c.phone || '').replace(/\D/g, '')
+      if (clean && !seenPhones.has(clean)) seenPhones.set(clean, c)
     }
+    try {
+      const raw = localStorage.getItem('zaynah_admin_customers_portal_v2')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          for (const pc of parsed) {
+            const clean = (pc.phone || '').replace(/\D/g, '')
+            if (clean && !seenPhones.has(clean)) seenPhones.set(clean, pc)
+          }
+        }
+      }
+    } catch {}
     return Array.from(seenPhones.values())
   })()
 

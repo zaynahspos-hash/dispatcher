@@ -587,9 +587,13 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   // Clean standard format: phone,fn,ln,ct,country
   // Meta auto-maps 100% of these 5 columns with ZERO "Action needed" or empty column warnings!
   const handleExportMetaCSV = () => {
-    if (filteredCustomers.length === 0) return
+    const validCustomers = filteredCustomers.filter(c => {
+      const cleanPhone = (c.phone || '').replace(/\D/g, '')
+      return cleanPhone.length >= 10 && !isFakeOrDemoPhone(c.phone, c.name)
+    })
+    if (validCustomers.length === 0) return
     const headers = ['phone', 'fn', 'ln', 'ct', 'country']
-    const rows = filteredCustomers.map(c => {
+    const rows = validCustomers.map(c => {
       let rawPhone = (c.phone || '').replace(/\D/g, '')
       if (rawPhone.startsWith('0')) {
         rawPhone = '92' + rawPhone.slice(1)
