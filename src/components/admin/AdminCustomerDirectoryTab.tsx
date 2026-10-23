@@ -447,6 +447,22 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     })
   }, [dateAndMerchantFiltered, filterSource, filterCity, filterWhatsapp, filterCustomer, waTracker.sentSet])
 
+  // Total orders/parcels count before deduplication to show repeat orders filtered
+  const rawOrdersCount = useMemo(() => {
+    const rangeStart = startDate || todayStr
+    const rangeEnd = endDate || todayStr
+    const targetMerchants = filterMerchant === 'all'
+      ? users
+      : users.filter(u => u.id === filterMerchant)
+
+    let total = 0
+    targetMerchants.forEach(m => {
+      const parcels = readExternalParcels(m.id, rangeStart, rangeEnd)
+      total += parcels.length
+    })
+    return total
+  }, [filterMerchant, users, startDate, endDate, todayStr])
+
   // Shared Pagination
   const {
     currentPage, setCurrentPage, pageSize, setPageSize,
@@ -620,10 +636,22 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       {/* Header Bar */}
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-              Customer Database ({filteredCustomers.length})
+              Customer Database ({filteredCustomers.length.toLocaleString()})
             </h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+              100% Unique Contacts
+            </span>
+            {rawOrdersCount > filteredCustomers.length ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-mono whitespace-nowrap" title="Repeat orders from same customer merged into 1 clean contact">
+                {(rawOrdersCount - filteredCustomers.length).toLocaleString()} Repeat Duplicates Filtered
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap" title="Every customer phone number is counted only once">
+                Duplicates Never Counted Twice
+              </span>
+            )}
             {isSyncing && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
@@ -631,8 +659,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
               </span>
             )}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Globally unique customer contacts across all registered merchant stores & PostEx portal
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+            Globally unique customer directory — duplicate phone numbers & repeat orders are automatically merged into a single entry (never counted twice) for clean Meta Custom Audience & Google Contacts export.
           </p>
         </div>
 
@@ -1028,6 +1056,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
               {sourceCounts.portal}
             </span>
           </button>
+
+          {/* Deduplication & Repeat Order Badge */}
+          <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-500/25 shrink-0 select-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
+            <span>
+              {rawOrdersCount > filteredCustomers.length
+                ? `${(rawOrdersCount - filteredCustomers.length).toLocaleString()} Repeat Orders Filtered (Unique Only)`
+                : 'Duplicates Auto-Merged (1 Contact / Number)'}
+            </span>
+          </span>
         </ScrollableChipsBar>
 
         {/* WhatsApp Notification Filter Chips - Strictly Dynamic per Active Filters */}
