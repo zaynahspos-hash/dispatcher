@@ -274,6 +274,24 @@ export const getLatestPostExStatus = (dist: any): string => {
   return dist.transactionStatus || dist.orderStatus || 'Booked'
 }
 
+export const formatMilestoneTitle = (text: string): string => {
+  if (!text) return ''
+  const knownAcronyms = new Set(['LHE', 'KHI', 'ISB', 'PEW', 'MUX', 'FSD', 'RWP', 'SKT', 'HYD', 'GUJ', 'CN', 'COD', 'PK', 'AI', 'POS', 'HUB', 'WH'])
+  const lowercaseWords = new Set(['at', 'in', 'of', 'for', 'to', 'by', 'on', 'from', 'with'])
+  
+  return text
+    .split(/\s+/)
+    .map((word, idx) => {
+      const upper = word.toUpperCase()
+      if (knownAcronyms.has(upper)) return upper
+      const lower = word.toLowerCase()
+      if (lower === 'postex') return 'PostEx'
+      if (idx > 0 && lowercaseWords.has(lower)) return lower
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}
+
 export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
   if (!status) return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
   if (isCancelledStatus(status)) return 'Cancelled'
@@ -305,7 +323,7 @@ export const getDisplayStatus = (status: string, hasLoadSheet?: boolean) => {
 
   // Clean redundant "for CN ..." or "for Tracking ..." suffixes from PostEx timeline entries
   const clean = status.replace(/\s+for\s+(CN|Tracking)\s+[\w\d]+/gi, '').trim()
-  if (clean) return clean
+  if (clean) return formatMilestoneTitle(clean)
 
   return hasLoadSheet ? 'Ready for Pickup' : 'Pending Loadsheet'
 }

@@ -126,17 +126,17 @@ export function HistoryTableRow({
             minute: '2-digit'
           })}
         </td>
-        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-[11px] xl:text-xs whitespace-nowrap align-middle">
+        <td className="px-3 py-2.5 xl:py-3 min-w-0 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400 text-[11px] xl:text-xs whitespace-nowrap align-middle pr-4">
           Rs. {parcel.total.toLocaleString()}
         </td>
-        <td className="px-2 py-2.5 xl:px-3 xl:py-3 min-w-0 align-middle">
+        <td className="px-3 py-2.5 xl:py-3 min-w-0 align-middle">
           {(() => {
             const badgeColor = getStatusBadgeStyle(parcel.status, parcel.tracking, parcel.loadsheet_generated)
             const displayStatus = getDisplayStatus(parcel.status, parcel.loadsheet_generated)
 
             return (
               <span
-                className={`inline-block px-2 py-1 rounded-lg text-[9px] xl:text-[10px] font-bold uppercase tracking-normal xl:tracking-wider border text-center leading-tight whitespace-normal xl:whitespace-nowrap break-words select-none shadow-2xs max-w-full ${badgeColor}`}
+                className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] xl:text-[11px] font-semibold border text-center leading-tight whitespace-nowrap select-none shadow-2xs ${badgeColor}`}
                 title={displayStatus}
               >
                 {displayStatus}

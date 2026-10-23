@@ -142,7 +142,7 @@ export function HistoryMobileCard({
       <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
         {/* Live Status Badge */}
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border whitespace-normal max-w-full leading-tight text-center ${getStatusBadgeStyle(
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap max-w-full leading-normal text-center shadow-2xs ${getStatusBadgeStyle(
             parcel.status,
             parcel.tracking,
             parcel.loadsheet_generated

@@ -511,8 +511,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                   <th className="w-[17%] xl:w-[18%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Tracking Info</th>
                   <th className="w-[19%] xl:w-[15%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Destination</th>
                   <th className="hidden xl:table-cell xl:w-[10%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">Booking Date</th>
-                  <th className="w-[12%] xl:w-[9%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap">COD Amount</th>
-                  <th className="w-[17%] xl:w-[16%] px-2 py-2.5 xl:px-3 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Status</th>
+                  <th className="w-[12%] xl:w-[9%] px-3 py-2.5 xl:py-3 font-bold text-slate-700 dark:text-slate-200 text-right whitespace-nowrap pr-4">COD Amount</th>
+                  <th className="w-[17%] xl:w-[16%] px-3 py-2.5 xl:py-3 font-bold text-slate-700 dark:text-slate-200">Status</th>
                   <th className="w-[16%] xl:w-[14%] px-1 py-2.5 xl:px-2 xl:py-3 font-bold text-slate-700 dark:text-slate-200 text-center whitespace-nowrap" title="WhatsApp: Sky Blue = Booking Only • Amber = Status Only • Emerald = Both Sent">Action</th>
                 </tr>
               </thead>
