@@ -634,8 +634,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     <div className="bg-white dark:bg-[#0c121e] border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden w-full max-w-full min-w-0">
       
       {/* Header Bar */}
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+        <div className="min-w-0 flex-1 pr-0 md:pr-4">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-slate-900 dark:text-white text-sm">
               Customer Database ({filteredCustomers.length.toLocaleString()})
@@ -665,12 +665,12 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         </div>
 
         {/* Action Buttons: Sync PostEx & Export Dropdown */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto flex-nowrap">
           <button
             type="button"
             onClick={handleSyncPostEx}
             disabled={isSyncing}
-            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+            className="flex-1 md:flex-initial h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer whitespace-nowrap shrink-0"
             title="Fetch latest customer contacts directly from PostEx for selected merchant & date range"
           >
             {isSyncing ? (
@@ -690,28 +690,28 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           </button>
 
           {/* Export Dropdown Menu */}
-          <div className="relative" ref={exportMenuRef}>
+          <div className="relative flex-1 md:flex-initial shrink-0" ref={exportMenuRef}>
             <button
               type="button"
               onClick={() => setIsExportMenuOpen(prev => !prev)}
               disabled={filteredCustomers.length === 0}
-              className="h-9 px-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-98 cursor-pointer"
+              className="w-full md:w-auto h-9 px-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-98 cursor-pointer whitespace-nowrap"
               aria-haspopup="true"
               aria-expanded={isExportMenuOpen}
               title="Choose export format: Meta Ads Audience or Google Contacts"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-emerald-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-emerald-500 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
               <span>Export Contacts</span>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`}>
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
               </svg>
             </button>
 
             {/* Dropdown Popover */}
             {isExportMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
                   <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Select Export Format</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500">{filteredCustomers.length} filtered contacts will be exported</p>
@@ -927,7 +927,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         </div>
 
         {/* Merchant, Date, and Searchable City Filters Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isCustomFilterActive ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 items-end transition-all`}>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Merchant Store
@@ -983,8 +983,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            {isCustomFilterActive && (
+          {isCustomFilterActive && (
+            <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-1">
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -994,8 +994,8 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                 <CloseIcon size={12} />
                 <span>Reset Filters</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Source Pills (All Sources, Booked in App, External / Portal) - Strictly Dynamic per Active Filters */}
