@@ -41,6 +41,8 @@ export type StatusFilterType =
 
 export type SourceFilterType = 'all' | 'app' | 'postex_portal'
 
+export type SearchScopeType = 'all' | 'name' | 'phone' | 'reference' | 'tracking'
+
 export type WhatsAppMilestone = 'booking' | 'in_transit' | 'out_for_delivery' | 'action_required' | 'delivered'
 
 /**

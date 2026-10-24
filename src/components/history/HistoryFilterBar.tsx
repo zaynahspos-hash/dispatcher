@@ -2,11 +2,13 @@ import React from 'react'
 import { SearchIcon, RefreshIcon, AutoFitIcon, CloseIcon, CalendarIcon, WhatsAppIcon } from '../Icons'
 import { SearchableDropdown } from '../SearchableDropdown'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
-import { StatusFilterType, SourceFilterType, getLocalTodayDate, getDatePresetsInfo, DatePresetType } from './types'
+import { StatusFilterType, SourceFilterType, SearchScopeType, getLocalTodayDate, getDatePresetsInfo, DatePresetType } from './types'
 
 interface HistoryFilterBarProps {
   searchQuery: string
   setSearchQuery: (val: string) => void
+  searchScope?: SearchScopeType
+  setSearchScope?: (scope: SearchScopeType) => void
   fromDate: string
   setFromDate: (val: string) => void
   toDate: string
@@ -50,6 +52,8 @@ interface HistoryFilterBarProps {
 export function HistoryFilterBar({
   searchQuery,
   setSearchQuery,
+  searchScope = 'all',
+  setSearchScope,
   fromDate,
   setFromDate,
   toDate,
@@ -82,6 +86,7 @@ export function HistoryFilterBar({
     (whatsappFilter && whatsappFilter !== 'all') ||
     (sourceFilter && sourceFilter !== 'all') ||
     (statusFilter && statusFilter !== 'all') ||
+    (searchScope && searchScope !== 'all') ||
     searchQuery
   )
 
@@ -130,16 +135,45 @@ export function HistoryFilterBar({
           </div>
         )}
 
-        {/* Main Search Input (Full Width clean layout matching Admin) */}
-        <div className="relative flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
-          <span className="pl-3 text-slate-400 dark:text-slate-500 shrink-0">
-            <SearchIcon size={16} />
+        {/* Main Search Input with Integrated Scope Selector */}
+        <div className="relative flex items-center h-10 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/80 dark:bg-slate-900/80 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all">
+          {/* Integrated Scope Dropdown on Left */}
+          {setSearchScope && (
+            <div className="relative shrink-0 flex items-center h-full border-r border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-800/60 rounded-l-xl">
+              <select
+                value={searchScope}
+                onChange={e => setSearchScope(e.target.value as SearchScopeType)}
+                className="h-full pl-2.5 pr-6 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 bg-transparent border-0 focus:ring-0 cursor-pointer appearance-none outline-none select-none tracking-tight"
+                title="Search field filter: All, Name, Phone, Order Ref #, Tracking CN"
+              >
+                <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">All Fields</option>
+                <option value="name" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Name Only</option>
+                <option value="phone" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Phone Only</option>
+                <option value="reference" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Order Ref #</option>
+                <option value="tracking" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium">Tracking CN</option>
+              </select>
+              <span className="pointer-events-none absolute right-1.5 text-slate-400 dark:text-slate-500">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </div>
+          )}
+
+          <span className="pl-2.5 text-slate-400 dark:text-slate-500 shrink-0">
+            <SearchIcon size={15} />
           </span>
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search order #, tracking, customer, phone..."
+            placeholder={
+              searchScope === 'name' ? 'Search customer name only...' :
+              searchScope === 'phone' ? 'Search phone number only...' :
+              searchScope === 'reference' ? 'Search order reference # (e.g. AH858, #307...)' :
+              searchScope === 'tracking' ? 'Search PostEx tracking CN only...' :
+              'Search order #, tracking, customer, phone...'
+            }
             className="w-full pl-2 pr-3 py-2 text-xs sm:text-sm bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-100"
           />
           {searchQuery && (

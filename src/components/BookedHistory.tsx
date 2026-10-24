@@ -14,7 +14,8 @@ import {
   transformPostExOrders,
   mergeParcelLists,
   isFakeOrDemoPhone,
-  parseCODAmount
+  parseCODAmount,
+  SearchScopeType
 } from './history/types'
 import { CustomerEntry } from './admin/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
@@ -54,6 +55,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
   const [sourceFilter, setSourceFilter] = useState<SourceFilterType>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchScope, setSearchScope] = useState<SearchScopeType>('all')
   const [fromDate, setFromDate] = useState<string>(() => getLocalTodayDate())
   const [toDate, setToDate] = useState<string>(() => getLocalTodayDate())
   const [statusSelect, setStatusSelect] = useState('all')
@@ -198,6 +200,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const handleClearFilters = () => {
     const today = getLocalTodayDate()
     setSearchQuery('')
+    setSearchScope('all')
     setFromDate(today)
     setToDate(today)
     setStatusFilter('all')
@@ -209,7 +212,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   // Filter and dynamic counts hook
   const { counts, sourceCounts, filteredParcels } = useBookedHistoryFilter({
-    history: combinedHistory, statusFilter, sourceFilter, searchQuery, fromDate, toDate,
+    history: combinedHistory, statusFilter, sourceFilter, searchQuery, searchScope, fromDate, toDate,
     statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
@@ -319,12 +322,21 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       pills.push({ label: whatsappFilter === 'sent' ? 'WA Sent' : 'WA Pending', onClear: () => setWhatsappFilter('all') })
     }
 
+    if (searchScope && searchScope !== 'all') {
+      const scopeLabel = 
+        searchScope === 'name' ? 'Name Only' :
+        searchScope === 'phone' ? 'Phone Only' :
+        searchScope === 'reference' ? 'Ref # Only' :
+        searchScope === 'tracking' ? 'CN Only' : 'All'
+      pills.push({ label: `Field: ${scopeLabel}`, onClear: () => setSearchScope('all') })
+    }
+
     if (searchQuery) {
       pills.push({ label: `"${searchQuery.length > 12 ? searchQuery.slice(0, 12) + '…' : searchQuery}"`, onClear: () => setSearchQuery('') })
     }
 
     return pills
-  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchQuery, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchQuery])
+  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchScope, searchQuery, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchScope, setSearchQuery])
 
   const handleLoadSheetClick = () => {
     if (selectedIds.length > 0) {
@@ -515,6 +527,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       {/* Advanced Filter Component (Banner renders at the top inside HistoryFilterBar, matching Admin tab exactly) */}
       <HistoryFilterBar
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+        searchScope={searchScope} setSearchScope={setSearchScope}
         fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
         statusSelect={statusSelect} setStatusSelect={setStatusSelect}
         pickupFilter={pickupFilter} setPickupFilter={setPickupFilter}

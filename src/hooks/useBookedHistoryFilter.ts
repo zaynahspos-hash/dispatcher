@@ -3,6 +3,7 @@ import {
   BookedParcel, 
   StatusFilterType, 
   SourceFilterType, 
+  SearchScopeType,
   getStatusCategory, 
   isUnderReview,
   isOutForDelivery,
@@ -15,6 +16,7 @@ interface UseBookedHistoryFilterProps {
   statusFilter: StatusFilterType
   sourceFilter?: SourceFilterType
   searchQuery: string
+  searchScope?: SearchScopeType
   fromDate: string
   toDate: string
   statusSelect: string
@@ -28,6 +30,7 @@ export function useBookedHistoryFilter({
   statusFilter,
   sourceFilter = 'all',
   searchQuery,
+  searchScope = 'all',
   fromDate,
   toDate,
   statusSelect,
@@ -126,16 +129,32 @@ export function useBookedHistoryFilter({
         if (cat !== statusFilter) return false
       }
 
-      // 3. Search Query (Order ID, Tracking CN, Customer Name, Phone, City)
+      // 3. Search Query with Field Scope (all | name | phone | reference | tracking)
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim()
-        const matchesOrder = item.id.toLowerCase().includes(q)
-        const matchesTracking = item.tracking.toLowerCase().includes(q)
-        const matchesName = item.name.toLowerCase().includes(q)
-        const matchesPhone = item.phone.toLowerCase().includes(q)
-        const matchesCity = item.city.toLowerCase().includes(q)
-        if (!matchesOrder && !matchesTracking && !matchesName && !matchesPhone && !matchesCity) {
-          return false
+        const cleanDigits = q.replace(/\D/g, '')
+
+        if (searchScope === 'name') {
+          if (!item.name.toLowerCase().includes(q)) return false
+        } else if (searchScope === 'phone') {
+          const itemDigits = item.phone.replace(/\D/g, '')
+          const matchesRaw = item.phone.toLowerCase().includes(q)
+          const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
+          if (!matchesRaw && !matchesDigits) return false
+        } else if (searchScope === 'reference') {
+          if (!item.id.toLowerCase().includes(q)) return false
+        } else if (searchScope === 'tracking') {
+          if (!item.tracking.toLowerCase().includes(q)) return false
+        } else {
+          // 'all': Match across order id, tracking, name, phone, city
+          const matchesOrder = item.id.toLowerCase().includes(q)
+          const matchesTracking = item.tracking.toLowerCase().includes(q)
+          const matchesName = item.name.toLowerCase().includes(q)
+          const matchesPhone = item.phone.toLowerCase().includes(q)
+          const matchesCity = item.city.toLowerCase().includes(q)
+          if (!matchesOrder && !matchesTracking && !matchesName && !matchesPhone && !matchesCity) {
+            return false
+          }
         }
       }
 
@@ -174,7 +193,7 @@ export function useBookedHistoryFilter({
 
       return true
     }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
-  }, [history, statusFilter, sourceFilter, searchQuery, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
+  }, [history, statusFilter, sourceFilter, searchQuery, searchScope, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
 
   return { counts, sourceCounts, filteredParcels }
 }
