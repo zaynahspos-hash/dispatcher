@@ -12,6 +12,7 @@ import { idbSaveCustomers, idbGetCustomers } from '../../utils/indexedDbStore'
 import { useWhatsAppSentTracker } from '../../hooks/useWhatsAppSentTracker'
 import { supabase } from '../../utils/supabaseClient'
 import { CustomerExportModal } from './CustomerExportModal'
+import { executeAutonomousCloudSync } from '../../utils/cloudSyncManager'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -347,7 +348,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         newExtracted.forEach(c => map.set(`${c.user_id}_${c.phone.replace(/\D/g, '')}`, c))
         const merged = Array.from(map.values())
         void idbSaveCustomers(merged)
-        saveCachedPortalCustomers(merged.slice(0, 1000))
+        saveCachedPortalCustomers(merged.slice(0, 1500))
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('customers_synced', { detail: { count: merged.length } }))
+        }
         return merged
       })
 
@@ -361,6 +365,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
           city: c.city || '',
           address: c.address || '',
           source: 'postex_portal',
+          total_orders: 1,
           updated_at: new Date().toISOString()
         }))
 
@@ -382,26 +387,34 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     }
   }, [selectedMerchants, isAllMerchantsSelected, users, startDate, endDate, last7Str, todayStr])
 
-  // Trigger Autonomous Cloud Sync & Database Pruning directly (No undeployed Edge Function dependencies)
+  // Trigger Autonomous Cloud Sync (Bidirectional Download & Upload, PostEx Harvest & 90-Day Pruning)
   const handleTriggerServerlessCron = async () => {
     setIsServerlessSyncing(true)
     setServerlessSyncResult(null)
+    setSyncProgress('Starting bidirectional cloud sync...')
     try {
-      // 1. Run live PostEx sync across all target merchants
-      await handleSyncPostEx()
+      const report = await executeAutonomousCloudSync({
+        users,
+        selectedMerchants,
+        startDate,
+        endDate,
+        onProgress: msg => setSyncProgress(msg)
+      })
 
-      // 2. Run database pruning to purge parcels older than 90 days from booked_history
-      const { data: pruneData, error: pruneErr } = await supabase.rpc('purge_old_booked_parcels', { retention_days: 90 })
-      let removedParcels = 0
-      if (!pruneErr && Array.isArray(pruneData)) {
-        removedParcels = pruneData.reduce((acc: number, r: any) => acc + (r.parcels_removed || 0), 0)
+      // Reload portalCustomers from IndexedDB to update UI instantly
+      const refreshed = await idbGetCustomers()
+      if (Array.isArray(refreshed)) {
+        setPortalCustomers(refreshed.filter(c => !isFakeOrDemoPhone(c.phone, c.name)))
       }
 
-      setServerlessSyncResult(`Autonomous Cloud Sync Complete: Customer contacts stored permanently in PostgreSQL database. 90-day parcel history pruned (${removedParcels} old parcels removed).`)
+      setServerlessSyncResult(
+        `Autonomous Cloud Sync Complete: ${report.downloadedFromCloud} contacts downloaded from Cloud DB, ${report.uploadedToCloud} contacts uploaded to database, ${report.postExHarvested} PostEx orders harvested. 90-day parcel history pruned (${report.prunedParcels} old parcels removed). Total unique contacts: ${report.totalUniqueCustomers.toLocaleString()}.`
+      )
     } catch (err: any) {
       setServerlessSyncResult(`Cloud Sync: ${err.message || 'Completed'}`)
     } finally {
       setIsServerlessSyncing(false)
+      setSyncProgress('')
     }
   }
 

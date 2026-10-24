@@ -104,6 +104,19 @@ export function getPrintReportStyles(preset: PaperPreset, isThermal: boolean): s
 
 
 
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+      font-size: 10px;
+      page-break-inside: avoid;
+    }
+    .sig-box {
+      border-top: 1.5px dashed #0f172a;
+      padding-top: 6px;
+    }
+
     .report-footer {
       margin-top: 20px;
       padding-top: 8px;

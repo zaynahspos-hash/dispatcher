@@ -23,6 +23,7 @@ import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
 import { usePostExRangeSync } from '../hooks/usePostExRangeSync'
 import { readExternalParcels, writeExternalParcels, clearExternalParcels, loadExternalParcelsAsync } from '../utils/portalParcelStore'
 import { idbSaveCustomers, idbGetCustomers } from '../utils/indexedDbStore'
+import { supabase } from '../utils/supabaseClient'
 import { HistoryFilterBar } from './history/HistoryFilterBar'
 import { HistorySelectionBar } from './history/HistorySelectionBar'
 import { HistoryTableRow } from './history/HistoryTableRow'
@@ -179,6 +180,44 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         })
         const merged = Array.from(map.values())
         void idbSaveCustomers(merged)
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('customers_synced', { detail: { count: merged.length } }))
+        }
+
+        // Asynchronously persist new contacts to Supabase PostgreSQL DB (chunks of 100 with onConflict)
+        if (userId && userId !== 'guest' && userId !== 'default') {
+          const upsertRows = orders
+            .map(o => {
+              const rawPhone = (o.customerPhone || '').trim()
+              if (!rawPhone || isFakeOrDemoPhone(rawPhone, o.customerName)) return null
+              const clean = rawPhone.replace(/\D/g, '')
+              if (!clean) return null
+              return {
+                user_id: userId,
+                phone: clean,
+                name: o.customerName || 'Valued Customer',
+                city: o.cityName || '',
+                address: o.deliveryAddress || '',
+                source: 'postex_portal',
+                total_orders: 1,
+                updated_at: new Date().toISOString()
+              }
+            })
+            .filter(Boolean)
+
+          if (upsertRows.length > 0) {
+            void (async () => {
+              for (let b = 0; b < upsertRows.length; b += 100) {
+                const chunk = upsertRows.slice(b, b + 100)
+                await supabase.from('customers').upsert(chunk, {
+                  onConflict: 'user_id,phone',
+                  ignoreDuplicates: false
+                })
+              }
+            })()
+          }
+        }
       })
     }
   }, [userId, fromDate, toDate, settings])

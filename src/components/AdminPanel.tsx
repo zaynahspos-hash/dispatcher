@@ -5,6 +5,8 @@ import { AdminStatsBar } from './admin/AdminStatsBar'
 import { AdminMerchantsTab } from './admin/AdminMerchantsTab'
 import { AdminCustomerDirectoryTab } from './admin/AdminCustomerDirectoryTab'
 import { ScrollableChipsBar } from './common/ScrollableChipsBar'
+import { idbGetCustomers } from '../utils/indexedDbStore'
+import { isFakeOrDemoPhone } from './history/types'
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -190,25 +192,34 @@ export default function AdminPanel() {
     }
   }
 
-  // Deduplicate combined customers (DB customers + Cached Portal customers)
+  const [idbCustomers, setIdbCustomers] = useState<CustomerEntry[]>([])
+
+  useEffect(() => {
+    const loadIdb = () => {
+      idbGetCustomers().then(cached => {
+        if (Array.isArray(cached) && cached.length > 0) {
+          setIdbCustomers(cached.filter(c => !isFakeOrDemoPhone(c.phone, c.name)))
+        }
+      })
+    }
+    loadIdb()
+    window.addEventListener('customers_synced', loadIdb)
+    return () => window.removeEventListener('customers_synced', loadIdb)
+  }, [])
+
+  // Deduplicate combined customers (DB customers + Cached Portal customers from IndexedDB)
   const uniqueCustomers = (() => {
     const seenPhones = new Map<string, CustomerEntry>()
     for (const c of customers) {
+      if (isFakeOrDemoPhone(c.phone, c.name)) continue
       const clean = (c.phone || '').replace(/\D/g, '')
       if (clean && !seenPhones.has(clean)) seenPhones.set(clean, c)
     }
-    try {
-      const raw = localStorage.getItem('zaynah_admin_customers_portal_v2')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed)) {
-          for (const pc of parsed) {
-            const clean = (pc.phone || '').replace(/\D/g, '')
-            if (clean && !seenPhones.has(clean)) seenPhones.set(clean, pc)
-          }
-        }
-      }
-    } catch {}
+    for (const pc of idbCustomers) {
+      if (isFakeOrDemoPhone(pc.phone, pc.name)) continue
+      const clean = (pc.phone || '').replace(/\D/g, '')
+      if (clean && !seenPhones.has(clean)) seenPhones.set(clean, pc)
+    }
     return Array.from(seenPhones.values())
   })()
 

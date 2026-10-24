@@ -215,6 +215,21 @@ export function printExecutiveReportHTML(
         </tbody>
       </table>
 
+      <div class="signatures">
+        <div class="sig-box">
+          <strong>Merchant Dispatcher Verification:</strong>
+          <div style="color: #64748b; font-size: 9.5px; margin-top: 24px;">
+            Authorized Name & Signature: _______________________ &bull; Date: ${analytics.generatedAt.split(',')[0]}
+          </div>
+        </div>
+        <div class="sig-box">
+          <strong>Courier / Rider Receiving Verification:</strong>
+          <div style="color: #64748b; font-size: 9.5px; margin-top: 24px;">
+            PostEx Officer Name / CNIC / Sign: _______________________
+          </div>
+        </div>
+      </div>
+
       <div class="report-footer">
         <div>
           Official Logistics Engine: <a href="https://dispatcher.zaynahs.pk" class="footer-link">dispatcher.zaynahs.pk</a> &bull; PostEx V3 Logistics Architecture
