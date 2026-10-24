@@ -221,38 +221,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
             />
           </div>
 
-          {/* Anti-Ban Pacing Settings */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs flex-wrap gap-2">
-            <div>
-              <span className="font-bold text-slate-900 dark:text-white block">
-                Anti-Ban Pacing Interval
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Randomized delay range between automated messages.
-              </span>
-            </div>
-            <div className="flex items-center gap-2 font-mono">
-              <input
-                type="number"
-                min={10}
-                max={90}
-                value={settings.whatsapp_min_delay_sec || 30}
-                onChange={e => updateSetting('whatsapp_min_delay_sec', Number(e.target.value))}
-                className="w-14 h-8 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold"
-              />
-              <span className="text-slate-400">to</span>
-              <input
-                type="number"
-                min={15}
-                max={120}
-                value={settings.whatsapp_max_delay_sec || 50}
-                onChange={e => updateSetting('whatsapp_max_delay_sec', Number(e.target.value))}
-                className="w-14 h-8 text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-bold"
-              />
-              <span className="text-slate-400 text-xs">sec</span>
-            </div>
-          </div>
-
           {/* Save WhatsApp Settings Button */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
             <span className="text-[11px] text-slate-400">
@@ -300,13 +268,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 .replace(/{city}/g, 'Lahore')
                 .replace(/{items}/g, '2')
                 .replace(/{note}/g, currentNote)}
-            </p>
-          </div>
-
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 space-y-1">
-            <span className="font-bold block">0.00% WhatsApp Ban Risk</span>
-            <p className="text-[10px] opacity-90 leading-normal">
-              Uses official WhatsApp protocol with human-paced {settings.whatsapp_min_delay_sec || 30}s–{settings.whatsapp_max_delay_sec || 50}s pauses. Zero third-party robot bans.
             </p>
           </div>
         </div>
