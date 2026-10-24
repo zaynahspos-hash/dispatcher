@@ -201,3 +201,20 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
 - **Cross-Tab & Cross-View Uniformity**:
   - All tabs (`#results`, `#history`, `#settings`, `#admin`, auth modals, and system screens) MUST render the exact same authentic WhatsApp icon and brand palette (`#25D366` green, `#128C7E` dark teal).
   - Icons performing the same function must have matching visual weights, paddings, and uniform squircle geometry (`rounded-xl`, Rule DS7).
+
+---
+
+### 16. Rule DS16 — App-Fit, Aligned Native iOS Aesthetics & Responsive Non-Clipping Mandate Across All Pages (RULE HARD ALL PAGES)
+- **Universal Scope Across All Pages & Modules**:
+  - Enforced strictly on every screen: `#paste`, `#table`, `#results`, `#history`, `#vault`, `#settings`, `#admin`, all modal drawers, and sub-views.
+- **Absolute Ban on Button & Text Clipping ("Hide / Cut-Off Issue")**:
+  - Under NO circumstance may any button, action pill, counter badge, or dropdown be clipped, sliced in half by container borders, or truncated awkwardly (`Print Lab...` cutoff bug permanently forbidden).
+  - All multi-button action bars (e.g., `HistorySelectionBar`, `ResultsSelectionBar`, `ParcelSelectionBar`, staging toolbars) MUST use responsive wrapping (`flex flex-wrap items-center justify-between gap-2.5 w-full min-w-0 max-w-full`).
+  - Rigid `sm:flex-row` without wrap is strictly forbidden when combined child widths can exceed handheld, tablet, or split-desktop viewports.
+- **Small, Smart, Responsive Apple Button Sizing**:
+  - Desktop & Mobile: Compact `h-7.5` to `h-8` heights, `px-2.5` to `px-3` horizontal padding, `rounded-lg` / `rounded-xl` radiuses, crisp `text-xs font-bold` or `font-semibold`.
+  - Concise, high-signal labels: Use `Sync (N)`, `Print (N)`, `Report (N)`, `Book (N)`, `Cancel (N)` instead of verbose sentences (`Sync Status for Parcels`).
+  - Conditional Zero-Count Auto-Hiding: Non-actionable buttons with 0 items (e.g., `Load Sheet (0)`, `Cancel (0)`) MUST automatically hide to preserve valuable horizontal breathing room.
+- **Native iOS Aesthetic Alignment**:
+  - Clean card foundations with subtle border tokens (`border-slate-200/80 dark:border-slate-800`), restrained semantic colors (emerald, sky, amber, rose, slate), crisp micro-interaction haptics (`active:scale-95 transition-all`), and zero backdrop-blur thrashing (Rule M10b).
+

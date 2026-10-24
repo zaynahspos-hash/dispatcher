@@ -57,15 +57,15 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
 
   return (
     <div
-      className={`sticky top-0 z-20 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl border transition-all mb-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs ${
+      className={`sticky top-0 z-20 py-2 px-3 sm:px-4 rounded-xl border transition-all mb-3 flex flex-wrap items-center justify-between gap-2.5 shadow-xs w-full min-w-0 max-w-full ${
         selectedCount > 0
           ? 'bg-emerald-50/95 dark:bg-[#071813]/95 border-emerald-500/40 shadow-sm'
           : 'bg-white/95 dark:bg-[#0c121e]/95 border-slate-200/90 dark:border-slate-800'
       }`}
     >
       {/* Left: Checkbox, Selection Status & Live COD Amounts */}
-      <div className="flex items-center justify-between w-full sm:w-auto gap-3 flex-wrap sm:flex-nowrap">
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap min-w-0">
+        <label className="flex items-center gap-2 cursor-pointer select-none shrink-0">
           <input
             type="checkbox"
             checked={isAllSelected}
@@ -84,8 +84,8 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
             {selectedCount > 0 ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{selectedCount} of {totalCount} Selected</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>{selectedCount} Selected</span>
               </>
             ) : (
               <span>Select All ({totalCount})</span>
@@ -93,45 +93,44 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
           </span>
         </label>
 
-        {/* Filtered & Selected COD Volume Badges */}
-        <div className="flex items-center gap-2">
-          {filteredTotalCOD !== undefined && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 whitespace-nowrap">
-              <span className="text-[10px] font-sans font-semibold text-slate-400">Total COD:</span>
-              <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
-            </span>
-          )}
+        {/* Total COD Amount Badge */}
+        {filteredTotalCOD !== undefined && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 whitespace-nowrap shrink-0">
+            <span className="text-[10px] font-sans font-semibold text-slate-400">Total:</span>
+            <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
+          </span>
+        )}
 
-          {selectedCount > 0 && selectedTotalCOD !== undefined && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap animate-fade-in">
-              <span className="text-[10px] font-sans font-semibold text-emerald-600 dark:text-emerald-400">Selected:</span>
-              <span>Rs. {selectedTotalCOD.toLocaleString()}</span>
-            </span>
-          )}
-        </div>
+        {/* Selected COD Amount Badge */}
+        {selectedCount > 0 && selectedTotalCOD !== undefined && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-mono font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap shrink-0 animate-fade-in">
+            <span className="text-[10px] font-sans font-semibold text-emerald-600 dark:text-emerald-400">Sel:</span>
+            <span>Rs. {selectedTotalCOD.toLocaleString()}</span>
+          </span>
+        )}
 
         {selectedCount > 0 && (
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-semibold cursor-pointer transition px-2 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50 whitespace-nowrap"
+            className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-semibold cursor-pointer transition px-1.5 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50 whitespace-nowrap shrink-0"
           >
-            Deselect All
+            Deselect
           </button>
         )}
       </div>
 
       {/* Right: Operational Actions (Report, Sync, Print, Load Sheet, Cancel) */}
-      <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
+      <div className="flex items-center gap-1.5 flex-wrap min-w-0 max-w-full">
         {onGenerateReport && (
           <button
             type="button"
             onClick={onGenerateReport}
             disabled={isLoading || totalCount === 0}
-            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-emerald-500/30 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
+            className="shrink-0 h-8 px-2.5 sm:px-3 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-emerald-500/30 shadow-2xs cursor-pointer active:scale-95 whitespace-nowrap"
             title="Generate executive PDF/Excel/CSV audit report"
           >
-            <FileTextIcon size={13} />
+            <FileTextIcon size={12} />
             <span>Report ({selectedCount > 0 ? selectedCount : totalCount})</span>
           </button>
         )}
@@ -141,11 +140,11 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
             type="button"
             onClick={onSyncSelected}
             disabled={isLoading}
-            className="flex-1 sm:flex-initial h-9 px-3 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-sky-500/30 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap disabled:opacity-50"
+            className="shrink-0 h-8 px-2.5 sm:px-3 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-sky-500/30 shadow-2xs cursor-pointer active:scale-95 whitespace-nowrap disabled:opacity-50"
             title="Sync latest live tracking milestones directly from PostEx"
           >
-            <SyncIcon size={13} />
-            <span>Sync Status ({selectedCount > 0 ? selectedCount : totalCount})</span>
+            <SyncIcon size={12} />
+            <span>Sync ({selectedCount > 0 ? selectedCount : totalCount})</span>
           </button>
         )}
 
@@ -154,44 +153,39 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
             type="button"
             onClick={onPrintSelected}
             disabled={isLoading || selectedCount === 0}
-            className={`flex-1 sm:flex-initial h-9 px-3.5 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap ${
+            className={`shrink-0 h-8 px-2.5 sm:px-3 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
               selectedCount > 0
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-98'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
                 : 'bg-slate-200/80 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
             }`}
             title={selectedCount > 0 ? 'Print airway bills for selected parcels' : 'Select parcels to print labels'}
           >
-            <PrintIcon size={13} />
-            <span>Print Labels ({effectivePrintCount})</span>
+            <PrintIcon size={12} />
+            <span>Print ({effectivePrintCount})</span>
           </button>
         )}
 
-        {/* Load Sheet Button - Always visible and actionable */}
-        <button
-          type="button"
-          onClick={onGenerateLoadSheet}
-          disabled={isLoading || (selectedCount === 0 && effectiveLoadSheetCount === 0)}
-          className={`flex-1 sm:flex-initial h-9 px-3.5 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap border ${
-            effectiveLoadSheetCount > 0
-              ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border-emerald-500/50 hover:border-emerald-500 cursor-pointer active:scale-98 ring-1 ring-emerald-500/20'
-              : 'bg-slate-100 dark:bg-slate-900/60 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
-          }`}
-          title="Generate official PostEx Load Sheet PDF"
-        >
-          <PrintIcon size={13} className={effectiveLoadSheetCount > 0 ? 'text-emerald-500' : ''} />
-          <span>Load Sheet ({effectiveLoadSheetCount})</span>
-        </button>
+        {/* Load Sheet Button - Only show when loadsheetable orders exist */}
+        {effectiveLoadSheetCount > 0 && (
+          <button
+            type="button"
+            onClick={onGenerateLoadSheet}
+            disabled={isLoading}
+            className="shrink-0 h-8 px-2.5 sm:px-3 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border-emerald-500/50 hover:border-emerald-500 cursor-pointer active:scale-95 ring-1 ring-emerald-500/20"
+            title="Generate official PostEx Load Sheet PDF"
+          >
+            <PrintIcon size={12} className="text-emerald-500" />
+            <span>Load Sheet ({effectiveLoadSheetCount})</span>
+          </button>
+        )}
 
-        {showCancelButton && (
+        {/* Cancel Button - Only show when cancellable orders exist */}
+        {showCancelButton && effectiveCancelCount > 0 && (
           <button
             type="button"
             onClick={onCancelSelected}
             disabled={isLoading || isCancellingAll || selectedCount === 0}
-            className={`flex-1 sm:flex-initial h-9 px-3.5 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 border whitespace-nowrap ${
-              selectedCount > 0 && effectiveCancelCount > 0
-                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20 cursor-pointer active:scale-98'
-                : 'bg-slate-100 dark:bg-slate-900/60 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-50'
-            }`}
+            className="shrink-0 h-8 px-2.5 sm:px-3 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 border whitespace-nowrap bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20 cursor-pointer active:scale-95"
             title="Cancel newly booked orders before courier pickup/scan"
           >
             {isCancellingAll ? (
@@ -204,8 +198,8 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
               </>
             ) : (
               <>
-                <CancelIcon size={13} />
-                <span>Cancel Bookings ({effectiveCancelCount})</span>
+                <CancelIcon size={12} />
+                <span>Cancel ({effectiveCancelCount})</span>
               </>
             )}
           </button>

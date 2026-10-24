@@ -128,5 +128,18 @@ useEffect(() => {
 4. **Desktop Layout Invariant**:
    - Desktop spreadsheet grids (`>= 1024px`) with column resizing, drag handles, and multi-column editing must remain 100% untouched and functional whenever mobile changes are made.
 
+---
+
+## 11. RULE M15 — Universal App-Fit & Non-Clipping Responsive Layouts Across All Pages (RULE HARD ALL PAGES)
+- **Zero Truncation or Edge-Clipping on Action Buttons**:
+  - Buttons and interactive pills across all pages (`#paste`, `#table`, `#results`, `#history`, `#vault`, `#settings`, `#admin`) must never overflow their container or be clipped by parent borders (`Print Lab...` cutoff bug permanently banned).
+  - All multi-button toolbars and selection bars must declare `flex flex-wrap items-center justify-between gap-2.5 w-full min-w-0 max-w-full`.
+- **Small, Smart, Responsive Button Standard**:
+  - Compact `h-7.5` to `h-8` heights, `px-2.5` to `px-3` horizontal padding, `rounded-lg` / `rounded-xl` radiuses, crisp `text-xs font-semibold` or `font-bold`.
+  - Concise button labels (`Sync`, `Print`, `Report`, `Cancel`, `Book`) and auto-hiding of 0-count buttons (`Load Sheet (0)`, `Cancel (0)`).
+- **Smooth Viewport Adaptation**:
+  - Mobile (375px+), Tablet (640px - 1023px), and Desktop (1024px+) must maintain perfectly aligned, non-overlapping layouts without horizontal page bounce or jitter.
+
+
 
 
