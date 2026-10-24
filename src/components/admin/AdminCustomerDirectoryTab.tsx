@@ -601,12 +601,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         rawPhone = '92' + rawPhone
       }
 
-      const rawName = (c.name || '').trim()
-      const parts = rawName.split(/\s+/)
-      const firstName = parts[0] || ''
+      const cleanName = (c.name || '')
+        .replace(/[#()]/g, ' ')
+        .replace(/["',;]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      const parts = cleanName.split(/\s+/)
+      const firstName = parts[0] || 'Customer'
       const lastName = parts.slice(1).join(' ') || ''
-      const safeFn = firstName.replace(/,/g, '').replace(/"/g, '""').trim()
-      const safeLn = lastName.replace(/,/g, '').replace(/"/g, '""').trim()
+      const safeFn = firstName.replace(/"/g, '""').trim()
+      const safeLn = lastName.replace(/"/g, '""').trim()
       const safeCity = (c.city || '').trim().replace(/,/g, '').replace(/"/g, '""')
 
       return [
@@ -631,18 +635,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     setIsExportMenuOpen(false)
   }
 
-  // 1b. Meta Value-Based Lookalike Audience (Optional 19-Column Format with Purchase Value)
+  // 1b. Meta Value-Based Lookalike Audience (Streamlined 6-Column Format with Purchase Value)
   const handleExportMetaValueCSV = () => {
     if (filteredCustomers.length === 0) return
-    const headers = [
-      'email', 'email', 'email',
-      'phone', 'phone', 'phone',
-      'madid',
-      'fn', 'ln',
-      'zip', 'ct', 'st', 'country',
-      'dob', 'doby', 'gen', 'age',
-      'uid', 'value'
-    ]
+    const headers = ['phone', 'fn', 'ln', 'ct', 'country', 'value']
     const rows = filteredCustomers.map(c => {
       let rawPhone = (c.phone || '').replace(/\D/g, '')
       if (rawPhone.startsWith('0')) {
@@ -651,27 +647,25 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         rawPhone = '92' + rawPhone
       }
 
-      const rawName = (c.name || '').trim()
-      const parts = rawName.split(/\s+/)
-      const firstName = parts[0] || ''
+      const cleanName = (c.name || '')
+        .replace(/[#()]/g, ' ')
+        .replace(/["',;]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      const parts = cleanName.split(/\s+/)
+      const firstName = parts[0] || 'Customer'
       const lastName = parts.slice(1).join(' ') || ''
-      const safeFn = firstName.replace(/,/g, '').replace(/"/g, '""').trim()
-      const safeLn = lastName.replace(/,/g, '').replace(/"/g, '""').trim()
+      const safeFn = firstName.replace(/"/g, '""').trim()
+      const safeLn = lastName.replace(/"/g, '""').trim()
       const safeCity = (c.city || '').trim().replace(/,/g, '').replace(/"/g, '""')
       const customerValue = (c.total_orders && c.total_orders > 0) ? c.total_orders : 1
 
       return [
-        '', '', '',
-        rawPhone, '', '',
-        '',
+        rawPhone,
         safeFn ? `"${safeFn}"` : '',
         safeLn ? `"${safeLn}"` : '',
-        '',
         safeCity ? `"${safeCity}"` : '',
-        '',
         'PK',
-        '', '', '', '',
-        '',
         customerValue
       ]
     })
@@ -805,8 +799,13 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
         <div className="min-w-0 flex-1 pr-0 md:pr-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-              Customer Database ({filteredCustomers.length.toLocaleString()})
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5 flex-wrap">
+              <span>Customer Database ({filteredCustomers.length.toLocaleString()})</span>
+              {filteredCustomers.length !== allCombinedCustomers.length && (
+                <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                  of {allCombinedCustomers.length.toLocaleString()} total
+                </span>
+              )}
             </h3>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
               100% Unique Contacts
@@ -1094,6 +1093,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                 {activePreset === 'thisMonth' && 'This Month'}
                 {activePreset === 'last3Months' && 'Last 3 Months'}
               </span>
+            ) : (!startDate && !endDate) ? (
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                All Time (Lifetime)
+              </span>
             ) : (
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 px-2 py-0.5 rounded-full">
                 Custom Range
@@ -1160,6 +1163,20 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
               }`}
             >
               Last 3 Months
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStartDate('')
+                setEndDate('')
+              }}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                !startDate && !endDate
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              All Time
             </button>
           </ScrollableChipsBar>
         </div>

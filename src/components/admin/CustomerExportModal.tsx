@@ -71,9 +71,13 @@ export const CustomerExportModal: React.FC<CustomerExportModalProps> = ({
     return clean
   }
 
-  // Split Name into First and Last
+  // Split Name into First and Last, cleaning symbols for Meta Ads matching
   const splitName = (fullName: string) => {
-    const raw = (fullName || '').trim()
+    const raw = (fullName || '')
+      .replace(/[#()]/g, ' ')
+      .replace(/["',;]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
     const parts = raw.split(/\s+/)
     const fn = parts[0] || 'Customer'
     const ln = parts.slice(1).join(' ') || ''
