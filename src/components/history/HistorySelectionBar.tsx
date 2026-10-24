@@ -1,5 +1,5 @@
 import React from 'react'
-import { PrintIcon, CancelIcon, SyncIcon } from '../Icons'
+import { PrintIcon, CancelIcon, SyncIcon, FileTextIcon } from '../Icons'
 
 interface HistorySelectionBarProps {
   selectedCount: number
@@ -15,6 +15,7 @@ interface HistorySelectionBarProps {
   onGenerateLoadSheet: () => void
   onCancelSelected: () => void
   onSyncSelected?: () => void
+  onGenerateReport?: () => void
   isLoading: boolean
   isCancellingAll: boolean
   cancelProgress: string
@@ -34,6 +35,7 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
   onGenerateLoadSheet,
   onCancelSelected,
   onSyncSelected,
+  onGenerateReport,
   isLoading,
   isCancellingAll,
   cancelProgress
@@ -119,8 +121,21 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
         )}
       </div>
 
-      {/* Right: Operational Actions (Load Sheet, Print, Sync, Cancel) */}
+      {/* Right: Operational Actions (Report, Sync, Print, Load Sheet, Cancel) */}
       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {onGenerateReport && (
+          <button
+            type="button"
+            onClick={onGenerateReport}
+            disabled={isLoading || totalCount === 0}
+            className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-emerald-500/30 shadow-xs cursor-pointer active:scale-98 whitespace-nowrap"
+            title="Generate executive PDF/Excel/CSV audit report"
+          >
+            <FileTextIcon size={13} />
+            <span>Report ({selectedCount > 0 ? selectedCount : totalCount})</span>
+          </button>
+        )}
+
         {onSyncSelected && (
           <button
             type="button"

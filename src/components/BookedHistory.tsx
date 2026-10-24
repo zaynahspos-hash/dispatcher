@@ -29,6 +29,7 @@ import { HistoryMobileCardList } from './history/HistoryMobileCardList'
 import { ShipperAdviceModal } from './history/ShipperAdviceModal'
 import { WhatsAppSelectModal } from './history/WhatsAppSelectModal'
 import { LoadSheetConfirmModal } from './history/LoadSheetConfirmModal'
+import { ExecutiveReportModal } from './history/ExecutiveReportModal'
 import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
@@ -60,6 +61,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'pending' | 'sent'>('all')
   const [whatsAppModalParcel, setWhatsAppModalParcel] = useState<BookedParcel | null>(null)
   const [isLoadSheetConfirmOpen, setIsLoadSheetConfirmOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
   // External / Portal parcels live in their own state so database sync,
   // realtime echoes or auth refreshes can never wipe them.
@@ -601,6 +603,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         onGenerateLoadSheet={handleLoadSheetClick}
         onCancelSelected={handleCancelSelected}
         onSyncSelected={handleSyncSelected}
+        onGenerateReport={() => setIsReportModalOpen(true)}
         isLoading={isLoading}
         isCancellingAll={isCancellingAll}
         cancelProgress={cancelProgress}
@@ -763,6 +766,27 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           setSelectedIds(prev => prev.filter(id => !invalidSet.has(id)))
         }}
       />
+
+      {/* Executive Logistics Audit & Operations Report Modal */}
+      {isReportModalOpen && (
+        <ExecutiveReportModal
+          parcels={
+            selectedIds.length > 0
+              ? combinedHistory.filter(p => selectedIds.includes(p.tracking))
+              : filteredParcels
+          }
+          activeFilters={{
+            fromDate,
+            toDate,
+            statusFilter,
+            cityFilter: 'all',
+            sourceFilter,
+            searchQuery
+          }}
+          storeName={settings.store_name || 'Zaynahs POS'}
+          onClose={() => setIsReportModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

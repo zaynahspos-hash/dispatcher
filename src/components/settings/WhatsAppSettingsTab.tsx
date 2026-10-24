@@ -123,56 +123,6 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 </label>
               )
             })()}
-
-            {/* Order Booked Toggle */}
-            {(() => {
-              const isEnabled = Boolean(settings.whatsapp_enable_booking_alert)
-              return (
-                <label className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
-                  isEnabled 
-                    ? 'border-emerald-500/30 dark:border-emerald-500/25 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.02]' 
-                    : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 opacity-75'
-                }`}>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Order Booked</span>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Confirms dispatch & provides live tracking number.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={e => updateSetting('whatsapp_enable_booking_alert', e.target.checked)}
-                    className="w-4.5 h-4.5 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 accent-emerald-600 cursor-pointer"
-                  />
-                </label>
-              )
-            })()}
-
-            {/* Delivered Toggle */}
-            {(() => {
-              const isEnabled = Boolean(settings.whatsapp_enable_delivered_alert)
-              return (
-                <label className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
-                  isEnabled 
-                    ? 'border-emerald-500/30 dark:border-emerald-500/25 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.02]' 
-                    : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 opacity-75'
-                }`}>
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Delivered Thank-You</span>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Thanks customer & requests reviews for brand loyalty.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={e => updateSetting('whatsapp_enable_delivered_alert', e.target.checked)}
-                    className="w-4.5 h-4.5 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 accent-emerald-600 cursor-pointer"
-                  />
-                </label>
-              )
-            })()}
           </div>
         </div>
 
@@ -202,9 +152,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
           >
             {[
               { id: 'out_for_delivery', label: 'Out for Delivery' },
-              { id: 'action_required', label: 'Action Required' },
-              { id: 'booking', label: 'Order Booked' },
-              { id: 'delivered', label: 'Delivered' }
+              { id: 'action_required', label: 'Action Required' }
             ].map(tab => (
               <button
                 key={tab.id}

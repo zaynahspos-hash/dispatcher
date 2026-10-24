@@ -88,10 +88,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const [startDate, setStartDate] = useState(todayStr)
   const [endDate, setEndDate] = useState(todayStr)
   const [filterCustomer, setFilterCustomer] = useState('')
-  const [filterMerchant, setFilterMerchant] = useState('all')
+  const [selectedMerchants, setSelectedMerchants] = useState<string[]>(['all'])
   const [filterCity, setFilterCity] = useState('all')
   const [filterSource, setFilterSource] = useState<'all' | 'app' | 'postex_portal'>('all')
   const [filterWhatsapp, setFilterWhatsapp] = useState<'all' | 'pending' | 'sent'>('all')
+
+  const isAllMerchantsSelected = useMemo(() => {
+    return selectedMerchants.length === 0 || 
+           selectedMerchants.includes('all') || 
+           selectedMerchants.length === users.length
+  }, [selectedMerchants, users.length])
 
   // Live PostEx Sync state with matching elapsed seconds timer
   const [isSyncing, setIsSyncing] = useState(false)
@@ -205,9 +211,9 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     const rangeStart = startDate || todayStr
     const rangeEnd = endDate || todayStr
 
-    const targetMerchants = filterMerchant === 'all'
+    const targetMerchants = isAllMerchantsSelected
       ? users
-      : users.filter(u => u.id === filterMerchant)
+      : users.filter(u => selectedMerchants.includes(u.id))
 
     const cachedCustomers: CustomerEntry[] = []
     targetMerchants.forEach(m => {
@@ -247,18 +253,22 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
         return merged
       })
     }
-  }, [filterMerchant, startDate, endDate, users, last7Str, todayStr])
+  }, [selectedMerchants, isAllMerchantsSelected, startDate, endDate, users, last7Str, todayStr])
 
   // PostEx Live Sync handler (called strictly on manual button click to prevent infinite re-render loops)
   const handleSyncPostEx = useCallback(async () => {
-    const targetMerchants: UserProfile[] = filterMerchant === 'all'
+    const targetMerchants: UserProfile[] = isAllMerchantsSelected
       ? users.filter(u => !!getMerchantPostExToken(u))
-      : users.filter(u => u.id === filterMerchant && !!getMerchantPostExToken(u))
+      : users.filter(u => selectedMerchants.includes(u.id) && !!getMerchantPostExToken(u))
 
     if (targetMerchants.length === 0) {
-      if (filterMerchant !== 'all') {
-        const u = users.find(user => user.id === filterMerchant)
-        setSyncError(`Merchant ${u?.email || 'selected'} has no PostEx API token configured.`)
+      if (!isAllMerchantsSelected) {
+        if (selectedMerchants.length === 1) {
+          const u = users.find(user => user.id === selectedMerchants[0])
+          setSyncError(`Merchant ${u?.email || 'selected'} has no PostEx API token configured.`)
+        } else {
+          setSyncError('None of the selected merchants have a PostEx API token configured.')
+        }
       } else {
         setSyncError('No registered merchants currently have a PostEx API token configured.')
       }
@@ -370,7 +380,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       setIsSyncing(false)
       setSyncProgress('')
     }
-  }, [filterMerchant, users, startDate, endDate, last7Str, todayStr])
+  }, [selectedMerchants, isAllMerchantsSelected, users, startDate, endDate, last7Str, todayStr])
 
   // Trigger Autonomous Cloud Sync & Database Pruning directly (No undeployed Edge Function dependencies)
   const handleTriggerServerlessCron = async () => {
@@ -403,7 +413,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     customers.forEach(c => {
       if (isFakeOrDemoPhone(c.phone, c.name)) return
       const cleanPhone = (c.phone || '').replace(/\D/g, '')
-      const key = filterMerchant === 'all' ? cleanPhone : `${c.user_id}_${cleanPhone}`
+      const key = isAllMerchantsSelected ? cleanPhone : `${c.user_id}_${cleanPhone}`
       if (!map.has(key)) {
         map.set(key, c)
       }
@@ -412,7 +422,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     portalCustomers.forEach(pc => {
       if (isFakeOrDemoPhone(pc.phone, pc.name)) return
       const cleanPhone = (pc.phone || '').replace(/\D/g, '')
-      const key = filterMerchant === 'all' ? cleanPhone : `${pc.user_id}_${cleanPhone}`
+      const key = isAllMerchantsSelected ? cleanPhone : `${pc.user_id}_${cleanPhone}`
       if (!map.has(key)) {
         map.set(key, pc)
       } else {
@@ -424,7 +434,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       }
     })
     return Array.from(map.values())
-  }, [customers, portalCustomers, filterMerchant])
+  }, [customers, portalCustomers, isAllMerchantsSelected])
 
   // Extract unique cities (cleaned and uppercase for unified searchable dropdown)
   const uniqueCities = useMemo(() => {
@@ -494,7 +504,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const dateAndMerchantFiltered = useMemo(() => {
     return allCombinedCustomers.filter(c => {
       // 1. Merchant Filter
-      if (filterMerchant !== 'all' && c.user_id !== filterMerchant) {
+      if (!isAllMerchantsSelected && !selectedMerchants.includes(c.user_id)) {
         return false
       }
 
@@ -507,7 +517,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
 
       return true
     })
-  }, [allCombinedCustomers, filterMerchant, startDate, endDate])
+  }, [allCombinedCustomers, selectedMerchants, isAllMerchantsSelected, startDate, endDate])
 
   // STEP 2: Dynamic Source Counts strictly matching the active Date & Merchant filters
   const sourceCounts = useMemo(() => {
@@ -568,9 +578,9 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   const rawOrdersCount = useMemo(() => {
     const rangeStart = startDate || todayStr
     const rangeEnd = endDate || todayStr
-    const targetMerchants = filterMerchant === 'all'
+    const targetMerchants = isAllMerchantsSelected
       ? users
-      : users.filter(u => u.id === filterMerchant)
+      : users.filter(u => selectedMerchants.includes(u.id))
 
     let total = 0
     targetMerchants.forEach(m => {
@@ -578,7 +588,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       total += parcels.length
     })
     return total
-  }, [filterMerchant, users, startDate, endDate, todayStr])
+  }, [selectedMerchants, isAllMerchantsSelected, users, startDate, endDate, todayStr])
 
   // Shared Pagination
   const {
@@ -587,7 +597,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   } = usePagination({ items: filteredCustomers, initialPageSize: 25, storageKey: 'admin_customers' })
 
   const handleClearFilters = () => {
-    setFilterMerchant('all')
+    setSelectedMerchants(['all'])
     setFilterCity('all')
     setFilterSource('all')
     setFilterWhatsapp('all')
@@ -797,7 +807,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   }
 
   const isCustomFilterActive = Boolean(
-    filterMerchant !== 'all' ||
+    !isAllMerchantsSelected ||
     filterCity !== 'all' ||
     filterSource !== 'all' ||
     filterWhatsapp !== 'all' ||
@@ -1202,12 +1212,14 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
               Merchant Store
             </label>
             <SearchableDropdown
-              value={filterMerchant}
-              onChange={setFilterMerchant}
+              isMulti={true}
+              values={selectedMerchants}
+              onMultiChange={setSelectedMerchants}
               options={merchantOptions}
               placeholder="All Merchants"
               allOptionLabel={`All Merchants (${users.length})`}
               allOptionValue="all"
+              multiLabelFormatter={(count, total) => `${count} Merchants Selected`}
               className="w-full"
             />
           </div>
