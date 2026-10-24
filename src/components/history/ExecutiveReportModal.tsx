@@ -269,49 +269,37 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             />
           )}
 
-          {/* Signatures & Footer Anchor */}
-          <div className="p-4 bg-white dark:bg-[#0c121e] rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-700 pt-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Merchant Dispatcher Signatory:</span>
-                <p className="text-[11px] text-slate-400 mt-2">
-                  Name: __________________________ &bull; Date: {analytics.generatedAt.split(',')[0]}
-                </p>
-              </div>
-
-              <div className="border-t-2 border-dashed border-slate-200 dark:border-slate-700 pt-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Courier / PostEx Rider Signatory:</span>
-                <p className="text-[11px] text-slate-400 mt-2">
-                  Officer Name & CNIC: __________________________
-                </p>
-              </div>
+          {/* Executive Audit Footer Card - Small, Smart, Clean & Responsive */}
+          <div className="p-3 sm:p-3.5 bg-slate-50 dark:bg-[#0c121e] rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-[11px] text-slate-500">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Verified Audit Record
+              </span>
+              <span>&bull;</span>
+              <span>Engine:</span>
+              <a
+                href="https://dispatcher.zaynahs.pk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                dispatcher.zaynahs.pk
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="px-1.5 py-0.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded transition cursor-pointer text-[10px] text-slate-400 font-semibold"
+                title="Copy link"
+              >
+                {copiedLink ? <CheckIcon size={11} className="text-emerald-500" /> : 'copy'}
+              </button>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span>Official Logistics Engine:</span>
-                <a
-                  href="https://dispatcher.zaynahs.pk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  dispatcher.zaynahs.pk
-                </a>
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition cursor-pointer"
-                  title="Copy link"
-                >
-                  {copiedLink ? <CheckIcon size={12} className="text-emerald-500" /> : <span className="text-[10px] text-slate-400">copy</span>}
-                </button>
-                <span>&bull; PostEx V3 Logistics Architecture</span>
-              </div>
-
-              <div className="text-slate-400">
-                &copy; 2026 Zaynahs POS Logistics Ecosystem. All rights reserved.
-              </div>
+            <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+              <span>PostEx V3 Logistics Architecture</span>
+              <span>&bull;</span>
+              <span>&copy; 2026 Zaynahs POS</span>
             </div>
           </div>
 

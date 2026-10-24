@@ -378,25 +378,16 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             </h2>
 
             {/* Filtered Total COD Value Badge */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs sm:text-sm font-mono font-black bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total COD:</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shadow-2xs">
+              <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total COD:</span>
               <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
             </span>
 
             {/* Average COD per parcel */}
             {filteredParcels.length > 0 && (
-              <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+              <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-[10px] font-sans text-slate-400 uppercase tracking-wider">Avg:</span>
                 <span>Rs. {Math.round(filteredTotalCOD / (filteredParcels.length || 1)).toLocaleString()}</span>
-              </span>
-            )}
-
-            {/* Selected Parcels Count & Amount Badge (when checked) */}
-            {selectedIds.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-amber-500/10 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 animate-fade-in shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Selected:</span>
-                <span>{selectedIds.length} (Rs. {selectedTotalCOD.toLocaleString()})</span>
               </span>
             )}
 
@@ -431,64 +422,26 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+        {/* Header Action Controls (Streamlined: Expand All + Sync PostEx) */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleToggleAutoExpandLines}
-            className={`flex-1 sm:flex-initial h-9 px-2.5 sm:px-3 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap ${
+            className={`h-8 px-2.5 sm:px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 ${
               autoExpandLines
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
+            title="Expand or collapse row heights across all records"
           >
             <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
-          </button>
-
-          {/* Load Sheet Quick Action in Header */}
-          <button
-            type="button"
-            onClick={handleLoadSheetClick}
-            disabled={isLoading || (selectedIds.length === 0 && pendingLoadsheetParcels.length === 0 && paginatedParcels.length === 0)}
-            className={`flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer active:scale-95 ${
-              (selectedIds.length > 0 || pendingLoadsheetParcels.length > 0)
-                ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border-emerald-500/50 hover:border-emerald-500 ring-1 ring-emerald-500/20'
-                : 'bg-slate-100 dark:bg-slate-900/60 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
-            }`}
-            title="Generate official PostEx Load Sheet PDF"
-          >
-            <PrintIcon size={13} className={(selectedIds.length > 0 || pendingLoadsheetParcels.length > 0) ? 'text-emerald-500' : ''} />
-            <span>Load Sheet ({selectedIds.length > 0 ? selectedIds.length : pendingLoadsheetParcels.length})</span>
-          </button>
-
-          {/* 1-Click Real Tracking Sync for All Filtered (or Selected) Parcels */}
-          <button
-            type="button"
-            onClick={() => handleSyncTracking(selectedIds.length > 0 ? selectedIds : undefined)}
-            disabled={isSyncingAll || portalSync.isSyncing || isLoading || filteredParcels.length === 0}
-            className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap disabled:opacity-50"
-            title="1-Click Real Tracking Sync: Fetches granular live milestones directly from PostEx tracking"
-          >
-            {isSyncingAll ? (
-              <>
-                <svg className="animate-spin h-3.5 w-3.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span>{syncProgress || 'Syncing...'}</span>
-              </>
-            ) : (
-              <>
-                <SyncIcon size={13} className="text-sky-600 dark:text-sky-400" />
-                <span>Sync Live Status ({selectedIds.length > 0 ? selectedIds.length : filteredParcels.length})</span>
-              </>
-            )}
           </button>
 
           <button
             type="button"
             onClick={handleManualRefresh}
             disabled={portalSync.isSyncing || isLoading || isSyncingAll}
-            className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
             title="Fetch latest booked parcels directly from PostEx for selected date range"
           >
             {portalSync.isSyncing ? (

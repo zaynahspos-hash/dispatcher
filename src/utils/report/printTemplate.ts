@@ -214,35 +214,14 @@ export function printExecutiveReportHTML(
         </tbody>
       </table>
 
-      <div class="signatures">
-        <div class="sig-box">
-          <strong>Merchant Dispatcher Verification:</strong>
-          <div style="color: #64748b; font-size: 9.5px; margin-top: 25px;">
-            Authorized Name & Signature: _______________________ &bull; Date: ${analytics.generatedAt.split(',')[0]}
-          </div>
-        </div>
-        <div class="sig-box">
-          <strong>Courier / Rider Receiving Verification:</strong>
-          <div style="color: #64748b; font-size: 9.5px; margin-top: 25px;">
-            PostEx Officer Name / CNIC / Sign: _______________________
-          </div>
-        </div>
-      </div>
-
       <div class="report-footer">
         <div>
-          Official SaaS Engine: <a href="https://dispatcher.zaynahs.pk" class="footer-link">dispatcher.zaynahs.pk</a> &bull; PostEx V3 Logistics Architecture
+          Official Logistics Engine: <a href="https://dispatcher.zaynahs.pk" class="footer-link">dispatcher.zaynahs.pk</a> &bull; PostEx V3 Logistics Architecture
         </div>
         <div>
-          &copy; 2026 Zaynahs POS Logistics Ecosystem. Confidential Audit Record.
+          &copy; 2026 Zaynahs POS Logistics Ecosystem. Confidential Executive Audit Record.
         </div>
       </div>
-
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 400);
-        };
-      </script>
     </body>
     </html>
   `
@@ -254,6 +233,7 @@ export function printExecutiveReportHTML(
   iframe.style.width = '0'
   iframe.style.height = '0'
   iframe.style.border = '0'
+  iframe.style.visibility = 'hidden'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document
@@ -261,16 +241,18 @@ export function printExecutiveReportHTML(
     doc.open()
     doc.write(html)
     doc.close()
-    iframe.contentWindow?.focus()
+
+    // Trigger single print cleanly once content is parsed
     setTimeout(() => {
       try {
+        iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch {}
       setTimeout(() => {
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe)
         }
-      }, 2000)
-    }, 450)
+      }, 1500)
+    }, 350)
   }
 }
