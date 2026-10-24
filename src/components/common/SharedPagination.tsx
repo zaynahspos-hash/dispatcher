@@ -5,6 +5,7 @@ export interface SharedPaginationProps {
   onPageChange: (newPage: number) => void
   onPageSizeChange?: (newSize: number) => void
   pageSizeOptions?: number[]
+  showAllOption?: boolean
   itemLabel?: string
   className?: string
 }
@@ -16,16 +17,19 @@ export function SharedPagination({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100, 200, 300],
+  showAllOption = true,
   itemLabel = 'records',
   className = ''
 }: SharedPaginationProps) {
   if (totalItems <= 0) return null
 
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const isAll = pageSize === -1
+  const effectivePageSize = isAll ? totalItems : pageSize
+  const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize))
   const safePage = Math.min(Math.max(1, currentPage), totalPages)
 
-  const fromIndex = (safePage - 1) * pageSize + 1
-  const toIndex = Math.min(safePage * pageSize, totalItems)
+  const fromIndex = isAll ? 1 : (safePage - 1) * pageSize + 1
+  const toIndex = isAll ? totalItems : Math.min(safePage * pageSize, totalItems)
 
   const handlePageClick = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== safePage) {
@@ -67,11 +71,11 @@ export function SharedPagination({
       {/* Left: Entries Counter & Page Size Selector */}
       <div className="flex flex-wrap items-center justify-between w-full sm:w-auto gap-3">
         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          Showing <strong className="font-mono text-slate-800 dark:text-slate-100">{fromIndex}</strong>
+          Showing <strong className="font-mono text-slate-800 dark:text-slate-100">{fromIndex.toLocaleString()}</strong>
           {' '}&ndash;{' '}
-          <strong className="font-mono text-slate-800 dark:text-slate-100">{toIndex}</strong>
+          <strong className="font-mono text-slate-800 dark:text-slate-100">{toIndex.toLocaleString()}</strong>
           {' '}of{' '}
-          <strong className="font-mono text-slate-900 dark:text-white">{totalItems}</strong>
+          <strong className="font-mono text-slate-900 dark:text-white">{totalItems.toLocaleString()}</strong>
           {' '}{itemLabel}
         </span>
 
@@ -79,7 +83,7 @@ export function SharedPagination({
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <span className="hidden xs:inline text-[11px] font-medium">Rows:</span>
             <select
-              value={pageSize}
+              value={isAll ? -1 : pageSize}
               onChange={e => {
                 const newSize = Number(e.target.value)
                 onPageSizeChange(newSize)
@@ -92,6 +96,11 @@ export function SharedPagination({
                   {opt} / page
                 </option>
               ))}
+              {showAllOption && (
+                <option value={-1}>
+                  All ({totalItems.toLocaleString()}) / page
+                </option>
+              )}
             </select>
           </div>
         )}

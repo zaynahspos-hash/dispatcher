@@ -38,7 +38,8 @@ Performance rules for managing large volumes of booked parcels and customer dire
   - Page navigation (`Prev`, `Next`, `1`, `2`, `10/25/50/100`) MUST execute in-memory over the cached array.
   - Never issue a Supabase REST query on page-switch. This eliminates edge rate limiting, prevents DB crashes, and keeps the UI at instant 0ms latency.
 - **Apple Minimalist UI**:
-  - Displays `Showing {from} - {to} of {total} {items}`.
-  - Compact page size selector (`10`, `25`, `50`, `100` rows per page with localStorage memory).
+  - Displays `Showing {from} - {to} of {total} {items}` with proper number localization.
+  - Compact page size selector (`10`, `25`, `50`, `100`, `200`, `300`, and dynamic `All ({filteredCount}) / page` matching the active search & filters with localStorage persistence).
+  - Selecting `All` sets `pageSize = -1`, rendering all filtered items on a single page and allowing bulk select/actions across all matching records.
   - Numeric buttons with smart ellipsis windowing and disabled boundary controls (`«`, `‹`, `›`, `»`).
 
