@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { BookedParcel, parseCODAmount, getParcelDateStr } from '../../components/history/types'
 import { ExecutiveReportAnalytics, ReportActiveFilters } from './types'
+import { formatDaysCount } from './analytics'
 
 /**
  * Generates and downloads a multi-sheet Excel (.xlsx) file containing both
@@ -13,6 +14,7 @@ export function exportExecutiveReportToExcel(
   storeName: string = 'Zaynahs POS'
 ) {
   const wb = XLSX.utils.book_new()
+  const daysText = formatDaysCount(filters.fromDate, filters.toDate)
 
   // 1. Executive Summary Sheet
   const summaryRows = [
@@ -21,7 +23,7 @@ export function exportExecutiveReportToExcel(
     [`Report ID: ${analytics.reportId}`, `Generated On: ${analytics.generatedAt}`],
     [],
     ['--- ACTIVE REPORT FILTERS ---'],
-    ['Date Range', `${filters.fromDate || 'All'} to ${filters.toDate || 'All'} (${filters.presetName || 'Custom'})`],
+    ['Date Range', `${filters.fromDate || 'All'} to ${filters.toDate || 'All'} (${daysText ? `${daysText} • ` : ''}${filters.presetName || 'Custom'})`],
     ['Status Filter', filters.statusFilter || 'All Statuses'],
     ['City Filter', filters.cityFilter || 'All Cities'],
     ['Source Filter', filters.sourceFilter || 'All Sources'],

@@ -272,3 +272,26 @@ export function computeExecutiveAnalytics(
     topPrefixes
   }
 }
+
+/**
+ * Calculates the inclusive number of calendar days between two dates (YYYY-MM-DD).
+ * e.g., 2026-10-01 to 2026-10-23 = 23 days.
+ * 2026-10-23 to 2026-10-23 = 1 day.
+ */
+export function calculateDaysCount(fromDate?: string, toDate?: string): number | null {
+  if (!fromDate || !toDate) return null
+  const d1 = new Date(fromDate + 'T00:00:00')
+  const d2 = new Date(toDate + 'T00:00:00')
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null
+  const diffTime = Math.abs(d2.getTime() - d1.getTime())
+  return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1
+}
+
+/**
+ * Returns formatted human-readable string: e.g. "23 Days" or "1 Day".
+ */
+export function formatDaysCount(fromDate?: string, toDate?: string): string {
+  const count = calculateDaysCount(fromDate, toDate)
+  if (!count) return ''
+  return `${count} ${count === 1 ? 'Day' : 'Days'}`
+}

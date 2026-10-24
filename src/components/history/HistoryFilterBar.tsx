@@ -3,6 +3,7 @@ import { SearchIcon, RefreshIcon, AutoFitIcon, CloseIcon, CalendarIcon, WhatsApp
 import { SearchableDropdown } from '../SearchableDropdown'
 import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 import { StatusFilterType, SourceFilterType, SearchScopeType, getLocalTodayDate, getDatePresetsInfo, DatePresetType } from './types'
+import { formatDaysCount } from '../../utils/report/analytics'
 
 interface HistoryFilterBarProps {
   searchQuery: string
@@ -93,6 +94,7 @@ export function HistoryFilterBar({
   // Apple iOS Segmented Date Presets Boundaries (Shared Single Source of Truth)
   const presetsInfo = getDatePresetsInfo()
   const activePreset = presetsInfo.detectPreset(fromDate, toDate)
+  const daysText = formatDaysCount(fromDate, toDate)
 
   const handleQuickDate = (type: DatePresetType) => {
     const range = presetsInfo.getRangeForPreset(type)
@@ -207,6 +209,11 @@ export function HistoryFilterBar({
                 Custom Range
               </span>
             )}
+            {daysText && (
+              <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-full">
+                {daysText}
+              </span>
+            )}
           </div>
 
           {/* Apple iOS Segmented Control */}
@@ -280,9 +287,16 @@ export function HistoryFilterBar({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           {/* From Date */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              From Date
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                From Date
+              </label>
+              {daysText && (
+                <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  {daysText}
+                </span>
+              )}
+            </div>
             <input
               type="date"
               value={fromDate}

@@ -7,6 +7,7 @@ import {
 } from './types'
 
 import { getPrintReportStyles } from './printStyles'
+import { formatDaysCount } from './analytics'
 
 /**
  * Prints the executive report formatted for the exact paper size (A4 Portrait, A4 Landscape, A5, Thermal 80mm).
@@ -95,7 +96,7 @@ export function printExecutiveReportHTML(
       <div class="filter-strip">
         <div class="filter-item">
           <span class="filter-label">Date Scope</span>
-          <span class="filter-val">${filters.fromDate || 'All'} → ${filters.toDate || 'All'}</span>
+          <span class="filter-val">${filters.fromDate || 'All'} → ${filters.toDate || 'All'}${formatDaysCount(filters.fromDate, filters.toDate) ? ` (${formatDaysCount(filters.fromDate, filters.toDate)})` : ''}</span>
         </div>
         <div class="filter-item">
           <span class="filter-label">Status Scope</span>

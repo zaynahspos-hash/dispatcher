@@ -49,17 +49,17 @@ export const ReportLedgerTable: React.FC<ReportLedgerTableProps> = ({
       </div>
 
       <div className="max-h-96 overflow-y-auto">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-100/70 dark:bg-slate-900/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase sticky top-0 z-10 backdrop-none bg-slate-100 dark:bg-slate-900">
-            <tr>
-              <th className="px-3 py-2 text-center w-10">#</th>
-              <th className="px-3 py-2">Tracking CN</th>
-              <th className="px-3 py-2">Order Ref</th>
-              <th className="px-3 py-2">Customer</th>
-              <th className="px-3 py-2">Phone</th>
-              <th className="px-3 py-2">Destination</th>
-              <th className="px-3 py-2 text-right">COD (Rs.)</th>
-              <th className="px-3 py-2 text-center">Status</th>
+        <table className="w-full text-left text-xs border-collapse">
+          <thead className="sticky top-0 z-20 shadow-xs">
+            <tr className="bg-slate-100 dark:bg-[#0c121e]">
+              <th className="px-3 py-2 text-center w-10 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">#</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">Tracking CN</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">Order Ref</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">Customer</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">Phone</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase">Destination</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase text-right">COD (Rs.)</th>
+              <th className="px-3 py-2 bg-slate-100 dark:bg-[#0c121e] text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase text-center">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">

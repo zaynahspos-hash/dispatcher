@@ -271,13 +271,43 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   })
 
   const uniqueCities = useMemo(() => {
-    const citiesSet = new Set(combinedHistory.map(item => item.city.toUpperCase().trim()))
-    return Array.from(citiesSet).filter(Boolean).sort()
-  }, [combinedHistory])
+    const baseList = combinedHistory.filter(h => {
+      const itemDate = getParcelDateStr(h.bookingDate)
+      if (fromDate && (!itemDate || itemDate < fromDate)) return false
+      if (toDate && (!itemDate || itemDate > toDate)) return false
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase().trim()
+        if (searchScope === 'name') {
+          if (!h.name.toLowerCase().includes(q)) return false
+        } else if (searchScope === 'phone') {
+          const itemDigits = h.phone.replace(/\D/g, '')
+          const cleanDigits = q.replace(/\D/g, '')
+          const matchesRaw = h.phone.toLowerCase().includes(q)
+          const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
+          if (!matchesRaw && !matchesDigits) return false
+        } else if (searchScope === 'reference') {
+          if (!h.id.toLowerCase().includes(q)) return false
+        } else if (searchScope === 'tracking') {
+          if (!h.tracking.toLowerCase().includes(q)) return false
+        } else {
+          if (
+            !h.id.toLowerCase().includes(q) &&
+            !h.tracking.toLowerCase().includes(q) &&
+            !h.name.toLowerCase().includes(q) &&
+            !h.phone.toLowerCase().includes(q) &&
+            !h.city.toLowerCase().includes(q)
+          ) return false
+        }
+      }
+      return true
+    })
+    const citiesSet = new Set(baseList.map(item => item.city?.toUpperCase().trim()).filter(Boolean))
+    return Array.from(citiesSet).sort()
+  }, [combinedHistory, fromDate, toDate, searchQuery, searchScope])
 
   const pendingLoadsheetParcels = useMemo(() => {
-    return combinedHistory.filter(p => getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet')
-  }, [combinedHistory])
+    return filteredParcels.filter(p => getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet')
+  }, [filteredParcels])
 
   // Filtered & Selected Total COD Value (Reactive to all active filters)
   const filteredTotalCOD = useMemo(() => {

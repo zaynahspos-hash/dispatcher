@@ -25,6 +25,73 @@ interface UseBookedHistoryFilterProps {
   isWhatsAppSent?: (tracking: string, id?: string) => boolean
 }
 
+// Reusable scope predicates
+function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType = 'all'): boolean {
+  if (!query) return true
+  const q = query.toLowerCase().trim()
+  if (!q) return true
+  const cleanDigits = q.replace(/\D/g, '')
+
+  if (scope === 'name') {
+    return (item.name || '').toLowerCase().includes(q)
+  } else if (scope === 'phone') {
+    const itemDigits = (item.phone || '').replace(/\D/g, '')
+    const matchesRaw = (item.phone || '').toLowerCase().includes(q)
+    const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
+    return matchesRaw || matchesDigits
+  } else if (scope === 'reference') {
+    return (item.id || '').toLowerCase().includes(q)
+  } else if (scope === 'tracking') {
+    return (item.tracking || '').toLowerCase().includes(q)
+  } else {
+    // 'all': match order id, tracking, customer name, phone, or destination city
+    return (
+      (item.id || '').toLowerCase().includes(q) ||
+      (item.tracking || '').toLowerCase().includes(q) ||
+      (item.name || '').toLowerCase().includes(q) ||
+      (item.phone || '').toLowerCase().includes(q) ||
+      (item.city || '').toLowerCase().includes(q)
+    )
+  }
+}
+
+function matchesDateRange(bookingDate?: string, fromDate?: string, toDate?: string): boolean {
+  if (!fromDate && !toDate) return true
+  const itemDate = getParcelDateStr(bookingDate)
+  if (fromDate && (!itemDate || itemDate < fromDate)) return false
+  if (toDate && (!itemDate || itemDate > toDate)) return false
+  return true
+}
+
+function matchesCity(city?: string, pickupFilter?: string): boolean {
+  if (!pickupFilter || pickupFilter === 'all') return true
+  return (city || '').toUpperCase().trim() === pickupFilter.toUpperCase().trim()
+}
+
+function matchesSource(source?: string, sourceFilter?: SourceFilterType): boolean {
+  if (!sourceFilter || sourceFilter === 'all') return true
+  const itemSource = source || 'app'
+  return itemSource === sourceFilter
+}
+
+function matchesSelectStatus(status: string, tracking: string, hasLoadSheet: boolean, statusSelect?: string): boolean {
+  if (!statusSelect || statusSelect === 'all') return true
+  const cat = getStatusCategory(status, tracking, hasLoadSheet)
+  if (statusSelect === 'transit') return cat === 'intransit'
+  if (statusSelect === 'under_review' || statusSelect === 'action_required') return cat === 'action_required'
+  if (statusSelect === 'out_for_delivery') return cat === 'out_for_delivery'
+  if (statusSelect === 'pending_loadsheet') return cat === 'pending_loadsheet'
+  return cat === statusSelect
+}
+
+function matchesWhatsApp(h: BookedParcel, whatsappFilter?: 'all' | 'pending' | 'sent', isWhatsAppSent?: (tracking: string, id?: string) => boolean): boolean {
+  if (!whatsappFilter || whatsappFilter === 'all') return true
+  const sent = Boolean(h.whatsapp_sent || h.whatsappSent || (isWhatsAppSent && isWhatsAppSent(h.tracking, h.id)))
+  if (whatsappFilter === 'sent' && !sent) return false
+  if (whatsappFilter === 'pending' && sent) return false
+  return true
+}
+
 export function useBookedHistoryFilter({
   history,
   statusFilter,
@@ -38,18 +105,20 @@ export function useBookedHistoryFilter({
   whatsappFilter = 'all',
   isWhatsAppSent
 }: UseBookedHistoryFilterProps) {
-  // Dynamic counts for status tabs and sources based on history and active date range
+  // Dynamic counts for status tabs, source origins, and WhatsApp alerts
+  // Fully reactive to the active search query, date scope, pickup city, and peer filters
   const { counts, sourceCounts } = useMemo(() => {
-    // If a date range is active, calculate counts within that date range so the pills match reality
-    const dateFilteredHistory = history.filter(h => {
-      if (!fromDate && !toDate) return true
-      const itemDate = getParcelDateStr(h.bookingDate)
-      if (fromDate && (!itemDate || itemDate < fromDate)) return false
-      if (toDate && (!itemDate || itemDate > toDate)) return false
+    // 1. Status Tabs Scope: Filtered by date range, search query/scope, city, source, and WhatsApp
+    const statusScopedHistory = history.filter(h => {
+      if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope)) return false
+      if (!matchesCity(h.city, pickupFilter)) return false
+      if (!matchesSource(h.source, sourceFilter)) return false
+      if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
       return true
     })
 
-    const all = dateFilteredHistory.length
+    const all = statusScopedHistory.length
     let pendingLoadsheet = 0
     let booked = 0
     let inTransit = 0
@@ -61,18 +130,7 @@ export function useBookedHistoryFilter({
     let waSent = 0
     let waPending = 0
 
-    let srcApp = 0
-    let srcPortal = 0
-
-    dateFilteredHistory.forEach(h => {
-      // Source counts
-      const src = h.source || 'app'
-      if (src === 'postex_portal') {
-        srcPortal++
-      } else {
-        srcApp++
-      }
-
+    statusScopedHistory.forEach(h => {
       const cat = getStatusCategory(h.status, h.tracking, Boolean(h.hasLoadSheet || (h as any).has_load_sheet))
       if (cat === 'pending_loadsheet') pendingLoadsheet++
       else if (cat === 'booked') booked++
@@ -91,6 +149,32 @@ export function useBookedHistoryFilter({
       }
     })
 
+    // 2. Source Counts Scope: Filtered by date range, search query/scope, city, status, and WhatsApp
+    const sourceScopedHistory = history.filter(h => {
+      if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope)) return false
+      if (!matchesCity(h.city, pickupFilter)) return false
+      if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
+
+      if (statusFilter !== 'all') {
+        const cat = getStatusCategory(h.status, h.tracking, Boolean(h.hasLoadSheet || (h as any).has_load_sheet))
+        if (cat !== statusFilter) return false
+      }
+      if (!matchesSelectStatus(h.status, h.tracking, Boolean(h.hasLoadSheet || (h as any).has_load_sheet), statusSelect)) return false
+      return true
+    })
+
+    let srcApp = 0
+    let srcPortal = 0
+    sourceScopedHistory.forEach(h => {
+      const src = h.source || 'app'
+      if (src === 'postex_portal') {
+        srcPortal++
+      } else {
+        srcApp++
+      }
+    })
+
     return { 
       counts: { 
         all, 
@@ -106,22 +190,18 @@ export function useBookedHistoryFilter({
         waPending 
       },
       sourceCounts: {
-        all,
+        all: sourceScopedHistory.length,
         app: srcApp,
         portal: srcPortal
       }
     }
-  }, [history, isWhatsAppSent, fromDate, toDate])
+  }, [history, fromDate, toDate, searchQuery, searchScope, pickupFilter, sourceFilter, statusFilter, statusSelect, whatsappFilter, isWhatsAppSent])
 
-  // Filter and sort logic
+  // Filter and sort logic for displayed parcels manifest
   const filteredParcels = useMemo(() => {
     return history.filter(item => {
       // 1. Source Origin Filter
-      if (sourceFilter !== 'all') {
-        const itemSource = item.source || 'app'
-        if (sourceFilter === 'app' && itemSource !== 'app') return false
-        if (sourceFilter === 'postex_portal' && itemSource !== 'postex_portal') return false
-      }
+      if (!matchesSource(item.source, sourceFilter)) return false
 
       // 2. Status Milestone Filter
       if (statusFilter !== 'all') {
@@ -130,66 +210,19 @@ export function useBookedHistoryFilter({
       }
 
       // 3. Search Query with Field Scope (all | name | phone | reference | tracking)
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase().trim()
-        const cleanDigits = q.replace(/\D/g, '')
-
-        if (searchScope === 'name') {
-          if (!item.name.toLowerCase().includes(q)) return false
-        } else if (searchScope === 'phone') {
-          const itemDigits = item.phone.replace(/\D/g, '')
-          const matchesRaw = item.phone.toLowerCase().includes(q)
-          const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
-          if (!matchesRaw && !matchesDigits) return false
-        } else if (searchScope === 'reference') {
-          if (!item.id.toLowerCase().includes(q)) return false
-        } else if (searchScope === 'tracking') {
-          if (!item.tracking.toLowerCase().includes(q)) return false
-        } else {
-          // 'all': Match across order id, tracking, name, phone, city
-          const matchesOrder = item.id.toLowerCase().includes(q)
-          const matchesTracking = item.tracking.toLowerCase().includes(q)
-          const matchesName = item.name.toLowerCase().includes(q)
-          const matchesPhone = item.phone.toLowerCase().includes(q)
-          const matchesCity = item.city.toLowerCase().includes(q)
-          if (!matchesOrder && !matchesTracking && !matchesName && !matchesPhone && !matchesCity) {
-            return false
-          }
-        }
-      }
+      if (!matchesSearchCriteria(item, searchQuery, searchScope)) return false
 
       // 4. Date Range Filter
-      const itemDate = getParcelDateStr(item.bookingDate)
-      if (fromDate && (!itemDate || itemDate < fromDate)) return false
-      if (toDate && (!itemDate || itemDate > toDate)) return false
+      if (!matchesDateRange(item.bookingDate, fromDate, toDate)) return false
 
       // 5. Select dropdown status filter
-      if (statusSelect !== 'all') {
-        const cat = getStatusCategory(item.status, item.tracking, Boolean(item.hasLoadSheet || (item as any).has_load_sheet))
-        if (statusSelect === 'transit') {
-          if (cat !== 'intransit') return false
-        } else if (statusSelect === 'under_review' || statusSelect === 'action_required') {
-          if (cat !== 'action_required') return false
-        } else if (statusSelect === 'out_for_delivery') {
-          if (cat !== 'out_for_delivery') return false
-        } else if (statusSelect === 'pending_loadsheet') {
-          if (cat !== 'pending_loadsheet') return false
-        } else {
-          if (cat !== statusSelect) return false
-        }
-      }
+      if (!matchesSelectStatus(item.status, item.tracking, Boolean(item.hasLoadSheet || (item as any).has_load_sheet), statusSelect)) return false
 
       // 6. City / Pickup Filter
-      if (pickupFilter !== 'all') {
-        if (item.city.toUpperCase() !== pickupFilter.toUpperCase()) return false
-      }
+      if (!matchesCity(item.city, pickupFilter)) return false
 
       // 7. WhatsApp Alert Sent / Pending Filter
-      if (whatsappFilter && whatsappFilter !== 'all') {
-        const sent = Boolean(item.whatsapp_sent || item.whatsappSent || (isWhatsAppSent && isWhatsAppSent(item.tracking, item.id)))
-        if (whatsappFilter === 'sent' && !sent) return false
-        if (whatsappFilter === 'pending' && sent) return false
-      }
+      if (!matchesWhatsApp(item, whatsappFilter, isWhatsAppSent)) return false
 
       return true
     }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())

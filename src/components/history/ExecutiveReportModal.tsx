@@ -6,6 +6,7 @@ import {
   PAPER_PRESETS,
   ReportActiveFilters,
   computeExecutiveAnalytics,
+  formatDaysCount,
   exportExecutiveReportToExcel,
   exportExecutiveReportToCSV,
   printExecutiveReportHTML
@@ -36,6 +37,7 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false)
 
   const analytics = useMemo(() => computeExecutiveAnalytics(parcels), [parcels])
+  const daysText = useMemo(() => formatDaysCount(activeFilters.fromDate, activeFilters.toDate), [activeFilters.fromDate, activeFilters.toDate])
 
   const previewParcels = useMemo(() => {
     return parcels.filter(p => {
@@ -201,8 +203,15 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">Date Range</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">
+                <div className="flex items-center justify-between gap-1 mb-0.5">
+                  <span className="text-[10px] text-slate-500 font-medium">Date Range</span>
+                  {daysText && (
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                      {daysText}
+                    </span>
+                  )}
+                </div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-xs">
                   {activeFilters.fromDate || 'All'} &rarr; {activeFilters.toDate || 'All'}
                 </span>
               </div>
