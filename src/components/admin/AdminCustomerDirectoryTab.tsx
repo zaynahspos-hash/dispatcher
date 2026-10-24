@@ -265,6 +265,17 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       return
     }
 
+    // Deduplicate merchants sharing the exact same PostEx token to prevent duplicate API calls and duplicate contacts
+    const seenTokens = new Set<string>()
+    const uniqueMerchants: UserProfile[] = []
+    for (const m of targetMerchants) {
+      const tok = getMerchantPostExToken(m)
+      if (tok && !seenTokens.has(tok)) {
+        seenTokens.add(tok)
+        uniqueMerchants.push(m)
+      }
+    }
+
     const rangeStart = startDate || todayStr
     const rangeEnd = endDate || todayStr
 
@@ -275,10 +286,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
     const newExtracted: CustomerEntry[] = []
 
     try {
-      for (let i = 0; i < targetMerchants.length; i++) {
-        const merchant = targetMerchants[i]
+      for (let i = 0; i < uniqueMerchants.length; i++) {
+        const merchant = uniqueMerchants[i]
         const token = getMerchantPostExToken(merchant)
-        setSyncProgress(`Fetching PostEx orders for ${merchant.email} (${i + 1}/${targetMerchants.length})...`)
+        setSyncProgress(`Fetching PostEx orders for ${merchant.email} (${i + 1}/${uniqueMerchants.length})...`)
 
         try {
           const orders = await fetchAllMerchantOrders(token, rangeStart, rangeEnd, {
@@ -385,20 +396,23 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
   }
 
   // Combine DB Customers with External Portal Customers
+  // When All Merchants is selected, strictly deduplicates by phone number so shared token / shared customer numbers are NEVER counted twice
   const allCombinedCustomers = useMemo(() => {
     const map = new Map<string, CustomerEntry>()
     // 1. Add DB customers first (skipping demo/fake numbers)
     customers.forEach(c => {
       if (isFakeOrDemoPhone(c.phone, c.name)) return
       const cleanPhone = (c.phone || '').replace(/\D/g, '')
-      const key = `${c.user_id}_${cleanPhone}`
-      map.set(key, c)
+      const key = filterMerchant === 'all' ? cleanPhone : `${c.user_id}_${cleanPhone}`
+      if (!map.has(key)) {
+        map.set(key, c)
+      }
     })
     // 2. Add or merge Portal customers (skipping demo/fake numbers)
     portalCustomers.forEach(pc => {
       if (isFakeOrDemoPhone(pc.phone, pc.name)) return
       const cleanPhone = (pc.phone || '').replace(/\D/g, '')
-      const key = `${pc.user_id}_${cleanPhone}`
+      const key = filterMerchant === 'all' ? cleanPhone : `${pc.user_id}_${cleanPhone}`
       if (!map.has(key)) {
         map.set(key, pc)
       } else {
@@ -410,7 +424,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
       }
     })
     return Array.from(map.values())
-  }, [customers, portalCustomers])
+  }, [customers, portalCustomers, filterMerchant])
 
   // Extract unique cities (cleaned and uppercase for unified searchable dropdown)
   const uniqueCities = useMemo(() => {
