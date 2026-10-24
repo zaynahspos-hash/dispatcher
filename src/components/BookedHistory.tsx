@@ -354,8 +354,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   return (
     <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
-      {/* Sticky Top Header with Filtered Parcels Count & Total COD Amount Value */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#0c121e]/95 backdrop-none py-2.5 sm:py-3 px-3 sm:px-4 -mx-1 sm:-mx-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+      {/* Top Header with Filtered Parcels Count & Total COD Amount Value */}
+      <div className="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">

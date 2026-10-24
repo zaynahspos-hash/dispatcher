@@ -57,10 +57,10 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
 
   return (
     <div
-      className={`sticky top-[58px] sm:top-[64px] z-20 p-2.5 sm:p-3 rounded-2xl border transition-all mb-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs ${
+      className={`sticky top-0 z-20 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl border transition-all mb-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs ${
         selectedCount > 0
           ? 'bg-emerald-50/95 dark:bg-[#071813]/95 border-emerald-500/40 shadow-sm'
-          : 'bg-slate-50/95 dark:bg-[#0c121e]/95 border-slate-200/90 dark:border-slate-800'
+          : 'bg-white/95 dark:bg-[#0c121e]/95 border-slate-200/90 dark:border-slate-800'
       }`}
     >
       {/* Left: Checkbox, Selection Status & Live COD Amounts */}
@@ -122,7 +122,7 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
       </div>
 
       {/* Right: Operational Actions (Report, Sync, Print, Load Sheet, Cancel) */}
-      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+      <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
         {onGenerateReport && (
           <button
             type="button"
