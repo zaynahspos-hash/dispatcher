@@ -4,6 +4,8 @@ import { PrintIcon, CancelIcon, SyncIcon } from '../Icons'
 interface HistorySelectionBarProps {
   selectedCount: number
   totalCount: number
+  filteredTotalCOD?: number
+  selectedTotalCOD?: number
   cancellableCount?: number
   printableCount?: number
   loadsheetableCount?: number
@@ -21,6 +23,8 @@ interface HistorySelectionBarProps {
 export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
   selectedCount,
   totalCount,
+  filteredTotalCOD,
+  selectedTotalCOD,
   cancellableCount,
   printableCount,
   loadsheetableCount,
@@ -51,14 +55,14 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
 
   return (
     <div
-      className={`sticky top-0 z-30 p-2.5 sm:p-3 rounded-2xl border transition-all mb-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs ${
+      className={`sticky top-[58px] sm:top-[64px] z-20 p-2.5 sm:p-3 rounded-2xl border transition-all mb-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow-xs ${
         selectedCount > 0
           ? 'bg-emerald-50/95 dark:bg-[#071813]/95 border-emerald-500/40 shadow-sm'
           : 'bg-slate-50/95 dark:bg-[#0c121e]/95 border-slate-200/90 dark:border-slate-800'
       }`}
     >
-      {/* Left: Checkbox & Selection Status */}
-      <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+      {/* Left: Checkbox, Selection Status & Live COD Amounts */}
+      <div className="flex items-center justify-between w-full sm:w-auto gap-3 flex-wrap sm:flex-nowrap">
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -75,7 +79,7 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
             }}
             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
           />
-          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
             {selectedCount > 0 ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -87,11 +91,28 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
           </span>
         </label>
 
+        {/* Filtered & Selected COD Volume Badges */}
+        <div className="flex items-center gap-2">
+          {filteredTotalCOD !== undefined && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 whitespace-nowrap">
+              <span className="text-[10px] font-sans font-semibold text-slate-400">Total COD:</span>
+              <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
+            </span>
+          )}
+
+          {selectedCount > 0 && selectedTotalCOD !== undefined && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-mono font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 whitespace-nowrap animate-fade-in">
+              <span className="text-[10px] font-sans font-semibold text-emerald-600 dark:text-emerald-400">Selected:</span>
+              <span>Rs. {selectedTotalCOD.toLocaleString()}</span>
+            </span>
+          )}
+        </div>
+
         {selectedCount > 0 && (
           <button
             type="button"
             onClick={onDeselectAll}
-            className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-semibold cursor-pointer transition px-2 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50"
+            className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-semibold cursor-pointer transition px-2 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50 whitespace-nowrap"
           >
             Deselect All
           </button>

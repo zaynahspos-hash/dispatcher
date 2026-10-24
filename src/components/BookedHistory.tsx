@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Settings } from '../utils/aiParser'
-import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon, SyncIcon } from './Icons'
+import { RefreshIcon, CheckIcon, AlertIcon, CloseIcon, HistoryIcon, SyncIcon, PrintIcon } from './Icons'
 import {
   BookedParcel,
   StatusFilterType,
@@ -273,6 +273,18 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     return combinedHistory.filter(p => getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet')
   }, [combinedHistory])
 
+  // Filtered & Selected Total COD Value (Reactive to all active filters)
+  const filteredTotalCOD = useMemo(() => {
+    return filteredParcels.reduce((sum, p) => sum + (Number(p.total) || 0), 0)
+  }, [filteredParcels])
+
+  const selectedTotalCOD = useMemo(() => {
+    if (selectedIds.length === 0) return 0
+    return combinedHistory
+      .filter(p => selectedIds.includes(p.tracking))
+      .reduce((sum, p) => sum + (Number(p.total) || 0), 0)
+  }, [combinedHistory, selectedIds])
+
   const handleLoadSheetClick = () => {
     if (selectedIds.length > 0) {
       setIsLoadSheetConfirmOpen(true)
@@ -301,16 +313,40 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   return (
     <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
-      {/* Header and Sync Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+      {/* Sticky Top Header with Filtered Parcels Count & Total COD Amount Value */}
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#0c121e]/95 backdrop-none py-2.5 sm:py-3 px-3 sm:px-4 -mx-1 sm:-mx-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
         <div className="flex items-center justify-between w-full sm:w-auto">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <span>Booked History</span>
-              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                {filteredParcels.length}
+              <span className="text-xs font-mono font-black px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                {filteredParcels.length} {filteredParcels.length === 1 ? 'Parcel' : 'Parcels'}
               </span>
             </h2>
+
+            {/* Filtered Total COD Value Badge */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs sm:text-sm font-mono font-black bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs">
+              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total COD:</span>
+              <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
+            </span>
+
+            {/* Average COD per parcel */}
+            {filteredParcels.length > 0 && (
+              <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-[10px] font-sans text-slate-400 uppercase tracking-wider">Avg:</span>
+                <span>Rs. {Math.round(filteredTotalCOD / (filteredParcels.length || 1)).toLocaleString()}</span>
+              </span>
+            )}
+
+            {/* Selected Parcels Count & Amount Badge (when checked) */}
+            {selectedIds.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-amber-500/10 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 animate-fade-in shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Selected:</span>
+                <span>{selectedIds.length} (Rs. {selectedTotalCOD.toLocaleString()})</span>
+              </span>
+            )}
+
             {portalSync.isSyncing && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
@@ -333,13 +369,29 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
           </button>
 
+          {/* Load Sheet Quick Action in Header */}
+          <button
+            type="button"
+            onClick={handleLoadSheetClick}
+            disabled={isLoading || (selectedIds.length === 0 && pendingLoadsheetParcels.length === 0 && paginatedParcels.length === 0)}
+            className={`flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer active:scale-95 ${
+              (selectedIds.length > 0 || pendingLoadsheetParcels.length > 0)
+                ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border-emerald-500/50 hover:border-emerald-500 ring-1 ring-emerald-500/20'
+                : 'bg-slate-100 dark:bg-slate-900/60 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+            }`}
+            title="Generate official PostEx Load Sheet PDF"
+          >
+            <PrintIcon size={13} className={(selectedIds.length > 0 || pendingLoadsheetParcels.length > 0) ? 'text-emerald-500' : ''} />
+            <span>Load Sheet ({selectedIds.length > 0 ? selectedIds.length : pendingLoadsheetParcels.length})</span>
+          </button>
+
           {/* 1-Click Real Tracking Sync for All Filtered (or Selected) Parcels */}
           <button
             type="button"
             onClick={() => handleSyncTracking(selectedIds.length > 0 ? selectedIds : undefined)}
             disabled={isSyncingAll || portalSync.isSyncing || isLoading || filteredParcels.length === 0}
             className="flex-1 sm:flex-initial h-9 px-3 sm:px-3.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap disabled:opacity-50"
-            title="1-Click Real Tracking Sync: Fetches granular live milestones (e.g. Received at LHE Warehouse, Out for Delivery) directly from PostEx tracking"
+            title="1-Click Real Tracking Sync: Fetches granular live milestones directly from PostEx tracking"
           >
             {isSyncingAll ? (
               <>
@@ -366,7 +418,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           >
             {portalSync.isSyncing ? (
               <>
-                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -473,6 +525,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       <HistorySelectionBar
         selectedCount={selectedIds.length}
         totalCount={paginatedParcels.length}
+        filteredTotalCOD={filteredTotalCOD}
+        selectedTotalCOD={selectedTotalCOD}
         cancellableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
         printableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && !isCancelledStatus(p.status) && getStatusCategory(p.status, p.tracking) !== 'returned').length}
         loadsheetableCount={
