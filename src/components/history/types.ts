@@ -856,6 +856,18 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
 }
 
 /**
+ * Single source of truth helper to parse any COD amount into a clean integer/float.
+ * Handles numbers, string numbers, currency prefixes ("Rs. 1,949"), commas, and nulls.
+ */
+export function parseCODAmount(val: any): number {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val
+  if (!val) return 0
+  const cleaned = String(val).replace(/[^0-9.-]/g, '')
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? 0 : Math.round(num)
+}
+
+/**
  * Transforms raw PostEx API orders into BookedParcel objects for a specific date range.
  * Retains existing local metadata (like whatsapp_sent) from previous parcels of that tracking,
  * but only includes parcels present in postExOrders so old dates never leak into the active view.
@@ -893,7 +905,7 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
       phone: order.customerPhone || existing?.phone || '',
       city: order.cityName || existing?.city || '',
       address: order.deliveryAddress || existing?.address || '',
-      total: Number(order.invoicePayment || existing?.total || 0),
+      total: parseCODAmount(order.invoicePayment || order.orderAmount || order.orderDetail?.invoicePayment || existing?.total || 0),
       items: Number(order.items || existing?.items || 1) || 1,
       weight: declaredWeight > 0 ? declaredWeight : (existing?.weight || 0.5),
       detail: order.orderDetail || existing?.detail || 'Kids Clothes',

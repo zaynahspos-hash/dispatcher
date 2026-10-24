@@ -13,7 +13,8 @@ import {
   parsePortalDate,
   transformPostExOrders,
   mergeParcelLists,
-  isFakeOrDemoPhone
+  isFakeOrDemoPhone,
+  parseCODAmount
 } from './history/types'
 import { CustomerEntry } from './admin/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
@@ -275,15 +276,53 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   // Filtered & Selected Total COD Value (Reactive to all active filters)
   const filteredTotalCOD = useMemo(() => {
-    return filteredParcels.reduce((sum, p) => sum + (Number(p.total) || 0), 0)
+    return filteredParcels.reduce((sum, p) => sum + parseCODAmount(p.total), 0)
   }, [filteredParcels])
 
   const selectedTotalCOD = useMemo(() => {
     if (selectedIds.length === 0) return 0
     return combinedHistory
       .filter(p => selectedIds.includes(p.tracking))
-      .reduce((sum, p) => sum + (Number(p.total) || 0), 0)
+      .reduce((sum, p) => sum + parseCODAmount(p.total), 0)
   }, [combinedHistory, selectedIds])
+
+  // Active filter indicators for sticky header when operator scrolls down
+  const today = getLocalTodayDate()
+  const activeFilterPills = useMemo(() => {
+    const pills: { label: string; onClear: () => void }[] = []
+    
+    if (statusFilter !== 'all') {
+      const labelMap: Record<string, string> = {
+        pending_loadsheet: 'Pending Sheet',
+        booked: 'Booked',
+        intransit: 'In Transit',
+        out_for_delivery: 'Out for Delivery',
+        action_required: 'Action Required',
+        delivered: 'Delivered',
+        returned: 'Returned',
+        cancelled: 'Cancelled'
+      }
+      pills.push({ label: labelMap[statusFilter] || statusFilter, onClear: () => setStatusFilter('all') })
+    }
+
+    if (pickupFilter && pickupFilter !== 'all') {
+      pills.push({ label: `City: ${pickupFilter}`, onClear: () => setPickupFilter('all') })
+    }
+
+    if (sourceFilter && sourceFilter !== 'all') {
+      pills.push({ label: sourceFilter === 'postex_portal' ? 'Portal' : 'App', onClear: () => setSourceFilter('all') })
+    }
+
+    if (whatsappFilter && whatsappFilter !== 'all') {
+      pills.push({ label: whatsappFilter === 'sent' ? 'WA Sent' : 'WA Pending', onClear: () => setWhatsappFilter('all') })
+    }
+
+    if (searchQuery) {
+      pills.push({ label: `"${searchQuery.length > 12 ? searchQuery.slice(0, 12) + '…' : searchQuery}"`, onClear: () => setSearchQuery('') })
+    }
+
+    return pills
+  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchQuery, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchQuery])
 
   const handleLoadSheetClick = () => {
     if (selectedIds.length > 0) {
@@ -345,6 +384,28 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                 <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Selected:</span>
                 <span>{selectedIds.length} (Rs. {selectedTotalCOD.toLocaleString()})</span>
               </span>
+            )}
+
+            {/* Active Filter Pills (scrolling indicator) */}
+            {activeFilterPills.length > 0 && (
+              <div className="hidden lg:flex items-center gap-1.5">
+                {activeFilterPills.map((pill, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
+                  >
+                    <span>{pill.label}</span>
+                    <button
+                      type="button"
+                      onClick={pill.onClear}
+                      className="hover:text-rose-600 dark:hover:text-rose-400 font-bold ml-0.5 cursor-pointer"
+                      title="Clear filter"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
 
             {portalSync.isSyncing && (
