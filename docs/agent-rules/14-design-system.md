@@ -218,3 +218,22 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
 - **Native iOS Aesthetic Alignment**:
   - Clean card foundations with subtle border tokens (`border-slate-200/80 dark:border-slate-800`), restrained semantic colors (emerald, sky, amber, rose, slate), crisp micro-interaction haptics (`active:scale-95 transition-all`), and zero backdrop-blur thrashing (Rule M10b).
 
+---
+
+### 17. Rule DS17 — Anti-AI Clutter & Disciplined Apple Enterprise Software Buttons (RULE ANTI-AI-BUTTONS)
+- **Permanent Ban on Bloated Candy Pills**:
+  - Over-sized, wide, bloated action buttons (`h-10`, `px-4`, `px-5`, `rounded-full` puffy pills) are permanently banned across all pages.
+  - Pastel candy backgrounds (`bg-sky-100`, `bg-emerald-100`, `bg-sky-500/15` bubbles) are banned on standard toolbars.
+- **Strict Prohibition on Zero-Count (0) Buttons**:
+  - Rendering disabled action buttons with 0 count (e.g., `Load Sheet (0)`, `Cancel (0)`) is strictly forbidden. If a conditional action has 0 applicable items, it MUST be completely hidden from the UI.
+- **Disciplined Enterprise Software Sizing**:
+  - All action bars, toolbars, and selection strips must use disciplined Apple macOS / iOS micro-sizing:
+    - Height: `h-7.5` (30px)
+    - Padding: `px-2.5`
+    - Typography: `text-[11px]` to `text-xs font-semibold`
+    - Radiuses: `rounded-lg`
+    - Secondary buttons: elevated crisp white/slate (`bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800`)
+    - Primary button: Solid emerald (`bg-emerald-600 hover:bg-emerald-500 text-white font-bold`)
+    - Micro-haptics: `active:scale-95 transition-all`
+
+
