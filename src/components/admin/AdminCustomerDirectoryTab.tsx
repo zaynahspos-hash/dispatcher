@@ -950,10 +950,10 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-slate-900 dark:text-white">Quick Meta Phone CSV</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded">1-Click</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded font-bold">{filteredCustomers.length} Numbers</span>
                     </div>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                      Instant 5-Column download (phone, fn, ln, ct, country) • 0 Warnings
+                      Download all {filteredCustomers.length} customer numbers with names & cities • 100% Meta match
                     </p>
                   </div>
                 </button>
