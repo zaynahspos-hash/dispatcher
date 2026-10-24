@@ -269,6 +269,24 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     return Array.from(citiesSet).filter(Boolean).sort()
   }, [combinedHistory])
 
+  const pendingLoadsheetParcels = useMemo(() => {
+    return combinedHistory.filter(p => getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet')
+  }, [combinedHistory])
+
+  const handleLoadSheetClick = () => {
+    if (selectedIds.length > 0) {
+      setIsLoadSheetConfirmOpen(true)
+    } else {
+      if (pendingLoadsheetParcels.length > 0) {
+        setSelectedIds(pendingLoadsheetParcels.map(p => p.tracking))
+        setIsLoadSheetConfirmOpen(true)
+      } else if (paginatedParcels.length > 0) {
+        setSelectedIds(paginatedParcels.map(p => p.tracking))
+        setIsLoadSheetConfirmOpen(true)
+      }
+    }
+  }
+
   const [autoExpandLines, setAutoExpandLines] = useState<boolean>(() => {
     return localStorage.getItem('zaynah_history_auto_expand_lines') === 'true'
   })
@@ -457,10 +475,15 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         totalCount={paginatedParcels.length}
         cancellableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
         printableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && !isCancelledStatus(p.status) && getStatusCategory(p.status, p.tracking) !== 'returned').length}
-        loadsheetableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length}
+        loadsheetableCount={
+          selectedIds.length > 0
+            ? combinedHistory.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length
+            : pendingLoadsheetParcels.length
+        }
+        onSelectAll={() => handleSelectAll(true, paginatedParcels.map(p => p.tracking))}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
-        onGenerateLoadSheet={() => setIsLoadSheetConfirmOpen(true)}
+        onGenerateLoadSheet={handleLoadSheetClick}
         onCancelSelected={handleCancelSelected}
         onSyncSelected={handleSyncSelected}
         isLoading={isLoading}

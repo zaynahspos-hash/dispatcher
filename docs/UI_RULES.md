@@ -41,3 +41,10 @@
 - **Zero Backdrop-Blur**: Never use `backdrop-blur-*` on overlays or sticky bars. Use `bg-black/60` or `bg-white/95` (prevents GPU repaint lag).
 - **Mobile Drawer**: Slide up from bottom with `overscroll-contain` and drag handle.
 - **Scroll Lock**: Lock body scroll cleanly on mount, restore to `''` on cleanup (RULE M8).
+
+---
+
+## 5. Active Tab Restoration & Sticky Operational Actions (RULE NAV-RESTORE & DS-STICKY)
+- **Same Place Tab Landing**: On any page refresh (F5, Cmd+R, mobile pull-to-refresh, PWA update button), the application **MUST land on the exact same active tab** (`#history`, `#admin/customers`, `#vault`, `#settings`, etc.). Never reset or fall back to `#paste`.
+- **Sticky Actions Continuity**: In `BookedHistory`, the operations bar (`HistorySelectionBar` with `Load Sheet`, `Print Labels`, `Sync Status`, `Cancel Bookings`, `Select All`) must be `sticky top-0 z-30` so key merchant actions remain visible at all times while scrolling.
+- **Always Visible**: Action buttons must never disappear when 0 orders are selected. Load Sheet supports 1-click generation by auto-detecting all pending loadsheet parcels.

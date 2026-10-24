@@ -16,13 +16,16 @@ function isSystemHash(hash: string): boolean {
 
 function getStoredAuthEmail(): string | null {
   try {
+    const direct = localStorage.getItem('zaynah_active_user_email')
+    if (direct) return direct
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      if (key && (key.includes('auth-token') || key.startsWith('sb-'))) {
         const val = localStorage.getItem(key)
         if (val) {
           const parsed = JSON.parse(val)
-          return parsed.user?.email || null
+          const email = parsed.user?.email || parsed.currentSession?.user?.email || parsed.session?.user?.email
+          if (email) return email
         }
       }
     }
@@ -56,7 +59,12 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
         if (isAdminInitial) return 'admin'
         return 'paste'
       }
-      if (VALID_TABS.includes(saved)) return saved
+      if (VALID_TABS.includes(saved)) {
+        if (!window.location.hash) {
+          window.location.hash = saved
+        }
+        return saved
+      }
       return 'paste'
     } catch {
       return 'paste'
@@ -73,8 +81,9 @@ export function useNavigationTabs(user: any, adminEmails: string[] = []) {
   }, [isUserAdmin])
 
   // Strictly block non-admin users from staying on admin tab or having #admin in URL
+  // Only execute once auth is confirmed and user is actually loaded (user !== null)
   useEffect(() => {
-    if (!isUserAdmin && user !== undefined) {
+    if (!isUserAdmin && user !== undefined && user !== null) {
       const rawHash = (window.location.hash || '').replace('#', '')
       const mainFromHash = rawHash.split('/')[0].split('?')[0].toLowerCase()
       if (activeTab === 'admin' || mainFromHash === 'admin') {

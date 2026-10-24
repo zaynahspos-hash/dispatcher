@@ -164,12 +164,12 @@ export default function App() {
 
   const isAdmin = checkIsAdmin(user?.email)
 
-  // Double safety guard: Never permit non-admins to stay on admin tab
+  // Double safety guard: Never permit non-admins to stay on admin tab once auth is resolved
   useEffect(() => {
-    if (activeTab === 'admin' && !isAdmin) {
+    if (initialAuthChecked && user && !isAdmin && activeTab === 'admin') {
       setActiveTab('paste')
     }
-  }, [activeTab, isAdmin, setActiveTab])
+  }, [activeTab, isAdmin, user, initialAuthChecked, setActiveTab])
 
   // Local Document Vault badges count
   const [vaultCount, setVaultCount] = useState<number>(() => {

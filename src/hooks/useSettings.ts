@@ -373,7 +373,10 @@ export function useSettings() {
       const u = session?.user ?? null
       setUser(u)
       if (u?.id) {
-        try { localStorage.setItem('zaynah_active_user_id', u.id) } catch {}
+        try {
+          localStorage.setItem('zaynah_active_user_id', u.id)
+          if (u.email) localStorage.setItem('zaynah_active_user_email', u.email)
+        } catch {}
       }
       setInitialAuthChecked(true)
     })
@@ -381,9 +384,15 @@ export function useSettings() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null
       if (newUser?.id) {
-        try { localStorage.setItem('zaynah_active_user_id', newUser.id) } catch {}
+        try {
+          localStorage.setItem('zaynah_active_user_id', newUser.id)
+          if (newUser.email) localStorage.setItem('zaynah_active_user_email', newUser.email)
+        } catch {}
       } else {
-        try { localStorage.removeItem('zaynah_active_user_id') } catch {}
+        try {
+          localStorage.removeItem('zaynah_active_user_id')
+          localStorage.removeItem('zaynah_active_user_email')
+        } catch {}
       }
       setUser((prev: any) => {
         // ONLY reset settings if an actual previous user was logged in and switched to a DIFFERENT account

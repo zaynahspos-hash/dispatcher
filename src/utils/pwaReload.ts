@@ -34,10 +34,13 @@ export async function forceAppUpdate(): Promise<void> {
   } catch (err) {
     console.warn('[PWA] App update execution error:', err)
   } finally {
-    // 3. Force cache-busting reload
+    // 3. Force cache-busting reload while strictly preserving active tab hash
     try {
+      const currentTab = localStorage.getItem('parcel_app_active_tab') || 'paste'
+      const hash = window.location.hash || ('#' + currentTab)
       const currentUrl = new URL(window.location.href)
       currentUrl.searchParams.set('_ts', Date.now().toString())
+      currentUrl.hash = hash
       window.location.replace(currentUrl.toString())
     } catch {
       window.location.reload()
