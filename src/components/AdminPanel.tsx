@@ -130,6 +130,7 @@ export default function AdminPanel() {
           user:users (email)
         `)
         .order('updated_at', { ascending: false })
+        .limit(25000)
 
       if (customersErr) {
         console.error('Error fetching customers:', customersErr)
