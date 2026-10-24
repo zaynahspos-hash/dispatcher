@@ -15,20 +15,21 @@ export function usePagination<T>({
     if (storageKey) {
       const saved = localStorage.getItem(`pagination_size_${storageKey}`)
       if (saved) {
-        if (saved === 'all' || saved === '-1') return -1
+        if (saved === 'all' || saved === '-1') {
+          try { localStorage.setItem(`pagination_size_${storageKey}`, '25') } catch {}
+          return 25
+        }
         const num = Number(saved)
-        if (!isNaN(num) && (num > 0 || num === -1)) return num
+        if (!isNaN(num) && num > 0) return Math.min(500, num)
       }
     }
-    return initialPageSize
+    return Math.min(500, initialPageSize)
   })
 
   const [currentPage, setCurrentPage] = useState<number>(1)
 
   const totalItems = items.length
-  // When pageSize is -1 (meaning "All"), all items are on 1 page
-  const effectivePageSize = pageSize === -1 ? Math.max(1, totalItems) : pageSize
-  const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize))
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
 
   // If items change (e.g., search filter reduces totalItems) and currentPage is out of bounds, reset safely
   useEffect(() => {
@@ -38,17 +39,15 @@ export function usePagination<T>({
   }, [totalPages, currentPage])
 
   const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize)
+    const safeSize = Math.max(1, Math.min(500, newSize))
+    setPageSize(safeSize)
     setCurrentPage(1)
     if (storageKey) {
-      localStorage.setItem(`pagination_size_${storageKey}`, String(newSize))
+      localStorage.setItem(`pagination_size_${storageKey}`, String(safeSize))
     }
   }
 
   const paginatedItems = useMemo(() => {
-    if (pageSize === -1) {
-      return items
-    }
     const start = (currentPage - 1) * pageSize
     return items.slice(start, start + pageSize)
   }, [items, currentPage, pageSize])

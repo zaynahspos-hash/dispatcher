@@ -5,7 +5,6 @@ export interface SharedPaginationProps {
   onPageChange: (newPage: number) => void
   onPageSizeChange?: (newSize: number) => void
   pageSizeOptions?: number[]
-  showAllOption?: boolean
   itemLabel?: string
   className?: string
 }
@@ -16,20 +15,17 @@ export function SharedPagination({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100, 200, 300],
-  showAllOption = true,
+  pageSizeOptions = [10, 25, 50, 100, 200, 300, 500],
   itemLabel = 'records',
   className = ''
 }: SharedPaginationProps) {
   if (totalItems <= 0) return null
 
-  const isAll = pageSize === -1
-  const effectivePageSize = isAll ? totalItems : pageSize
-  const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize))
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const safePage = Math.min(Math.max(1, currentPage), totalPages)
 
-  const fromIndex = isAll ? 1 : (safePage - 1) * pageSize + 1
-  const toIndex = isAll ? totalItems : Math.min(safePage * pageSize, totalItems)
+  const fromIndex = (safePage - 1) * pageSize + 1
+  const toIndex = Math.min(safePage * pageSize, totalItems)
 
   const handlePageClick = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== safePage) {
@@ -83,7 +79,7 @@ export function SharedPagination({
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <span className="hidden xs:inline text-[11px] font-medium">Rows:</span>
             <select
-              value={isAll ? -1 : pageSize}
+              value={pageSize}
               onChange={e => {
                 const newSize = Number(e.target.value)
                 onPageSizeChange(newSize)
@@ -96,11 +92,6 @@ export function SharedPagination({
                   {opt} / page
                 </option>
               ))}
-              {showAllOption && (
-                <option value={-1}>
-                  All ({totalItems.toLocaleString()}) / page
-                </option>
-              )}
             </select>
           </div>
         )}

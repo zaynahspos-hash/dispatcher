@@ -396,7 +396,7 @@ export default function BookingResults({
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100, 200, 300]}
+            pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
             itemLabel="results"
             className="mt-2"
           />

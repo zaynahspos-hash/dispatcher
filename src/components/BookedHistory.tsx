@@ -622,7 +622,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       {/* Selection Action Bar (Anchored directly above table & cards) */}
       <HistorySelectionBar
         selectedCount={selectedIds.length}
-        totalCount={paginatedParcels.length}
+        totalCount={filteredParcels.length}
         filteredTotalCOD={filteredTotalCOD}
         selectedTotalCOD={selectedTotalCOD}
         cancellableCount={combinedHistory.filter(p => selectedIds.includes(p.tracking) && isCancellable(p.status, p.loadsheet_generated, p.tracking)).length}
@@ -632,7 +632,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             ? combinedHistory.filter(p => selectedIds.includes(p.tracking) && getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet').length
             : pendingLoadsheetParcels.length
         }
-        onSelectAll={() => handleSelectAll(true, paginatedParcels.map(p => p.tracking))}
+        onSelectAll={() => handleSelectAll(true, filteredParcels.map(p => p.tracking))}
         onDeselectAll={() => setSelectedIds([])}
         onPrintSelected={handlePrintSelected}
         onGenerateLoadSheet={handleLoadSheetClick}
@@ -747,7 +747,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100, 200, 300]}
+            pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
             itemLabel="booked parcels"
             className="mt-4"
           />

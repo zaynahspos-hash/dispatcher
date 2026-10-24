@@ -39,7 +39,19 @@ Performance rules for managing large volumes of booked parcels and customer dire
   - Never issue a Supabase REST query on page-switch. This eliminates edge rate limiting, prevents DB crashes, and keeps the UI at instant 0ms latency.
 - **Apple Minimalist UI**:
   - Displays `Showing {from} - {to} of {total} {items}` with proper number localization.
-  - Compact page size selector (`10`, `25`, `50`, `100`, `200`, `300`, and dynamic `All ({filteredCount}) / page` matching the active search & filters with localStorage persistence).
-  - Selecting `All` sets `pageSize = -1`, rendering all filtered items on a single page and allowing bulk select/actions across all matching records.
+  - Compact page size selector (`10`, `25`, `50`, `100`, `200`, `300`, `500` rows per page with localStorage persistence).
   - Numeric buttons with smart ellipsis windowing and disabled boundary controls (`«`, `‹`, `›`, `»`).
+
+---
+
+## 4. Hard 500 Limit & DOM Stability (RULE PAG-MAX500)
+- **Hard 500-Row Viewport Cap**: Pagination options MUST strictly cap at 500 (`[10, 25, 50, 100, 200, 300, 500]`).
+- **Ban on "All" in DOM Pagination**: An "All" page size option in interactive DOM tables is strictly banned. Rendering thousands of heavy interactive rows (with tooltips, action dropdowns, WhatsApp buttons, and event handlers) freezes browser threads and crashes mobile/desktop tabs.
+
+---
+
+## 5. Reporting Decoupled from Pagination (RULE REP-FILTER-SSOT)
+- **100% Filter-Driven Reporting**: Executive and logistics reporting (`ExecutiveReportModal`, PDF manifest, Thermal bills, Excel/CSV exports) is **strictly decoupled** from pagination page limits.
+- When no manual rows are checked, clicking `Report ({count})` always processes 100% of all filtered parcels (`filteredParcels`), even if the user is viewing only 10, 25, or 50 items on screen.
+- Pagination is purely a rendering viewport to ensure smooth 60fps scrolling; it must NEVER restrict or truncate data reporting.
 
