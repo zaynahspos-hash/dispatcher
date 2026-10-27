@@ -9,129 +9,25 @@
 
 import { BookedParcel } from '../components/history/types'
 
-// Common Pakistani unisex names (can be male or female)
-const UNISEX_NAMES = new Set([
-  'noor', 'dua', 'naseem', 'nasim', 'afreen', 'shams', 'qamar', 'kiran', 'parveen'
-])
-
-// Common Pakistani female names for smart respectful greeting detection
-const FEMALE_NAMES = new Set([
-  'ayesha', 'aisha', 'fatima', 'javeria', 'sana', 'maryam', 'marium', 'amna',
-  'rabia', 'zainab', 'hira', 'sidra', 'iqra', 'nimra', 'anila', 'kiran',
-  'bushra', 'asma', 'shazia', 'sadia', 'mehwish', 'uzma', 'samina', 'tahira',
-  'naila', 'lubna', 'zoya', 'anum', 'fizza', 'alina', 'areeba', 'komal',
-  'maria', 'bisma', 'kinza', 'mahnoor', 'laiba', 'minahil', 'huma',
-  'faiza', 'khadija', 'hafsa', 'sara', 'sarah', 'aliza', 'hina',
-  'saima', 'nadia', 'farah', 'rukhsar', 'anaya', 'zara', 'aroosa', 'arooj',
-  'aiman', 'eman', 'emaan', 'iman', 'mahira', 'mehreen', 'maham', 'mishal',
-  'neha', 'nida', 'nargis', 'nazia', 'nosheen', 'palwasha', 'pari', 'rida',
-  'rubina', 'rukhsana', 'sabahat', 'sadaf', 'saba', 'sabrina', 'safia',
-  'shaista', 'shabnam', 'shagufta', 'shama', 'shumaila', 'sobia', 'sumaira',
-  'sumbul', 'tabassum', 'tehreem', 'tooba', 'urooj', 'warda', 'yasmeen',
-  'zahra', 'zarish', 'zubaida', 'ghazala', 'farzana', 'fouzia', 'gulnaz',
-  'humaira', 'irum', 'jannat', 'kainat', 'kanwal', 'laraib', 'madiha',
-  'mahrukh', 'mariam', 'memona', 'misbah', 'mubashra', 'naheed',
-  'rimsha', 'rafia', 'ramsha', 'sahar', 'sakina', 'saira', 'sumera',
-  'wajiha', 'zunaira', 'amber', 'anam', 'bakhtawar', 'beenish',
-  'esha', 'fiza', 'hajra', 'hoorain', 'inaya', 'insha', 'kashaf', 'maira',
-  'nayab', 'nimrah', 'rameen', 'sehrish', 'tania', 'zoha'
-])
-
-// Common Pakistani male names for smart respectful greeting detection
-const MALE_NAMES = new Set([
-  'muhammad', 'mohammad', 'mohammed', 'ahmed', 'ahmad', 'ali', 'bilal', 'hamza',
-  'usman', 'uthman', 'danish', 'shoaib', 'omer', 'umar', 'umair', 'hassan',
-  'hussain', 'husnain', 'abdullah', 'abdul', 'saad', 'waqas', 'kamran', 'adnan',
-  'asif', 'shahid', 'tariq', 'rashid', 'nadeem', 'faisal', 'rizwan', 'arslan',
-  'salman', 'imran', 'zubair', 'kashif', 'noman', 'irfan', 'farhan', 'shahzaib',
-  'naveed', 'waqar', 'tayyab', 'rehan', 'haris', 'ibrahim', 'zain', 'fahad',
-  'asad', 'talha', 'haider', 'adeel', 'junaid', 'ayaan', 'ayan', 'daniyal',
-  'ehsan', 'ihsan', 'fawad', 'furqan', 'ghulam', 'hammad', 'hanzala', 'huzaifa',
-  'ismail', 'jawad', 'khalid', 'luqman', 'mubashir', 'mudassir', 'mustafa',
-  'nabeel', 'nasir', 'naseer', 'owais', 'qasim', 'rafay', 'rehman', 'saif',
-  'sajjad', 'sameer', 'shahbaz', 'shakeel', 'sheraz', 'sohail', 'sulaiman',
-  'taimoor', 'talal', 'touseef', 'uzair', 'wahab', 'waleed', 'yasir', 'yousaf',
-  'yousuf', 'zaheer', 'zahid', 'zeeshan', 'zohaib', 'zulfiqar', 'aamir', 'abbas',
-  'afzal', 'akbar', 'akram', 'amjad', 'anas', 'arif', 'atif', 'azhar', 'babar',
-  'basit', 'burhan', 'faizan', 'faraz', 'fayyaz', 'ghazanfar', 'hashim',
-  'hasnain', 'iftikhar', 'ijaz', 'jahanzaib', 'javed', 'kabir', 'karim',
-  'mansoor', 'maaz', 'moiz', 'mohsin', 'mujtaba', 'murtaza', 'musa', 'nauman',
-  'qadir', 'raheel', 'rameez', 'sabir', 'sadiq', 'shafiq', 'shan',
-  'sharjeel', 'tahir', 'tanveer', 'tauseef', 'umer', 'wasim', 'zafar', 'zia'
-])
-
 export interface RespectfulGreetingInfo {
-  honorific: 'Sir' | 'Ma\'am' | 'Janab' | 'Customer'
+  honorific: string
   salutation: string
   fullNameWithHonorific: string
-  confidence: 'high' | 'medium' | 'universal'
+  confidence: 'universal'
 }
 
 /**
- * Intelligently extracts customer name without appending awkward titles.
- * If customer is "Mrs Toseef", keeps "Mrs Toseef".
- * If name is unmatched/unknown, keeps raw clean name without guessing.
+ * Clean customer name extraction.
+ * Preserves the merchant's exact customer name (e.g. "Toseef", "Ahmed", "Mrs Toseef")
+ * without artificial title appendages or inaccurate gender guessing.
  */
 export function getRespectfulGreeting(rawName?: string): RespectfulGreetingInfo {
   const name = (rawName || '').trim()
-  if (!name || name.toLowerCase() === 'customer' || name.toLowerCase() === 'valued customer') {
-    return {
-      honorific: 'Customer',
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: '',
-      confidence: 'universal'
-    }
-  }
-
-  const lower = name.toLowerCase()
-  const parts = lower.split(/[\s._-]+/).filter(Boolean)
-
-  // 1. Explicit title prefix in the raw name (keep original name as is, never append!)
-  if (lower.startsWith('mrs') || lower.startsWith('miss') || lower.startsWith('ms.') || lower.startsWith('ms ') || lower.startsWith('madam')) {
-    return {
-      honorific: "Ma'am",
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: name,
-      confidence: 'high'
-    }
-  }
-
-  if (lower.startsWith('mr.') || lower.startsWith('mr ') || lower.startsWith('mister')) {
-    return {
-      honorific: 'Sir',
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: name,
-      confidence: 'high'
-    }
-  }
-
-  // 2. Verified name list check
-  const isFemale = parts.some(p => FEMALE_NAMES.has(p))
-  const isMale = parts.some(p => MALE_NAMES.has(p))
-
-  if (isFemale && !isMale) {
-    return {
-      honorific: "Ma'am",
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: name,
-      confidence: 'high'
-    }
-  }
-
-  if (isMale && !isFemale) {
-    return {
-      honorific: 'Sir',
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: name,
-      confidence: 'high'
-    }
-  }
-
-  // 3. Universal / Unmatched: Keep clean original customer name without awkward appendages
+  const isGeneric = !name || name.toLowerCase() === 'customer' || name.toLowerCase() === 'valued customer'
   return {
     honorific: 'Customer',
     salutation: 'Assalam o Alaikum',
-    fullNameWithHonorific: name,
+    fullNameWithHonorific: isGeneric ? '' : name,
     confidence: 'universal'
   }
 }
