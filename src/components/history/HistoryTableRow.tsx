@@ -105,12 +105,17 @@ export function HistoryTableRow({
           </a>
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5 min-w-0">
             <span className="text-[10px] xl:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">Ref: {parcel.id}</span>
-            {parcel.source === 'postex_portal' && (
+            {parcel.source === 'app' ? (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shrink-0 whitespace-nowrap">
+                <span className="hidden xl:inline">Booked in App</span>
+                <span className="xl:hidden">App</span>
+              </span>
+            ) : parcel.source === 'postex_portal' ? (
               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 shrink-0 whitespace-nowrap">
                 <span className="hidden xl:inline">Portal / External</span>
                 <span className="xl:hidden">Portal</span>
               </span>
-            )}
+            ) : null}
           </div>
         </td>
 

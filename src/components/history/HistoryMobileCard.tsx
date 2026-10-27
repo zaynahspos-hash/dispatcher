@@ -163,11 +163,15 @@ export function HistoryMobileCard({
           </span>
         )}
 
-        {parcel.source === 'postex_portal' && (
+        {parcel.source === 'app' ? (
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+            App
+          </span>
+        ) : parcel.source === 'postex_portal' ? (
           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25">
             Portal
           </span>
-        )}
+        ) : null}
 
         {parcel.bookingDate && (
           <span className="text-[10px] text-slate-400 font-medium ml-auto">

@@ -1,3 +1,5 @@
+import { isAppBookedCn, registerAppBookedCn } from '../../utils/appBookedRegistry'
+
 export interface BookedParcel {
   id: string
   name: string
@@ -745,32 +747,64 @@ export function mergeParcelLists(base: BookedParcel[], extras: BookedParcel[]): 
   const merged = new Map<string, BookedParcel>()
 
   cleanBase.forEach(parcel => {
-    const key = (parcel.tracking || parcel.id || '').trim()
-    if (key) merged.set(key, parcel)
+    // If parcel is in base (DB history) and not explicitly portal, it is an in-app booking
+    if (parcel.source !== 'postex_portal') {
+      parcel.source = 'app'
+      registerAppBookedCn(parcel.tracking, parcel.id)
+    }
+    const trackKey = (parcel.tracking || '').trim().toLowerCase()
+    const idKey = (parcel.id || '').trim().toLowerCase()
+    if (trackKey) merged.set(trackKey, parcel)
+    if (idKey && !merged.has(idKey)) merged.set(idKey, parcel)
   })
 
   cleanExtras.forEach(parcel => {
-    const key = (parcel.tracking || parcel.id || '').trim()
-    if (!key) return
-    const existing = merged.get(key)
+    const trackKey = (parcel.tracking || '').trim().toLowerCase()
+    const idKey = (parcel.id || '').trim().toLowerCase()
+    if (!trackKey && !idKey) return
+
+    const existing = (trackKey && merged.get(trackKey)) || (idKey && merged.get(idKey))
     if (!existing) {
-      merged.set(key, parcel)
+      const isApp = isAppBookedCn(parcel.tracking) || isAppBookedCn(parcel.id) || parcel.source === 'app'
+      const p: BookedParcel = {
+        ...parcel,
+        source: isApp ? 'app' : (parcel.source || 'postex_portal')
+      }
+      if (trackKey) merged.set(trackKey, p)
+      if (idKey) merged.set(idKey, p)
       return
     }
+
     const bookingSent = Boolean(existing.whatsapp_booking_sent || parcel.whatsapp_booking_sent)
     const statusSent = Boolean(existing.whatsapp_status_sent || parcel.whatsapp_status_sent)
-    merged.set(key, {
+    const isApp = existing.source === 'app' || parcel.source === 'app' || isAppBookedCn(trackKey) || isAppBookedCn(idKey) || isAppBookedCn(parcel.tracking) || isAppBookedCn(parcel.id) || isAppBookedCn(existing.tracking) || isAppBookedCn(existing.id)
+
+    const updated: BookedParcel = {
       ...parcel,
       ...existing,
+      source: isApp ? 'app' : (existing.source || parcel.source || 'postex_portal'),
+      status: determineNewStatus(existing.status, parcel.status),
       whatsapp_booking_sent: bookingSent,
       whatsapp_status_sent: statusSent,
       whatsapp_sent: Boolean(existing.whatsapp_sent || existing.whatsappSent || parcel.whatsapp_sent || parcel.whatsappSent),
       whatsappSent: Boolean(existing.whatsapp_sent || existing.whatsappSent || parcel.whatsapp_sent || parcel.whatsappSent),
       whatsapp_sent_at: existing.whatsapp_sent_at || parcel.whatsapp_sent_at
-    })
+    }
+
+    if (trackKey) merged.set(trackKey, updated)
+    if (idKey) merged.set(idKey, updated)
   })
 
-  return Array.from(merged.values())
+  // Return unique parcels sorted by bookingDate desc
+  const uniqueParcels = new Map<string, BookedParcel>()
+  merged.forEach(parcel => {
+    const canonicalKey = (parcel.tracking || parcel.id || '').trim().toLowerCase()
+    if (canonicalKey && !uniqueParcels.has(canonicalKey)) {
+      uniqueParcels.set(canonicalKey, parcel)
+    }
+  })
+
+  return Array.from(uniqueParcels.values())
     .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
 }
 
@@ -780,6 +814,10 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
 
   // 1. Index existing history
   history.forEach(p => {
+    if (p.source !== 'postex_portal') {
+      p.source = 'app'
+      registerAppBookedCn(p.tracking, p.id)
+    }
     const trackKey = (p.tracking || '').trim().toLowerCase()
     const idKey = (p.id || '').trim().toLowerCase()
     if (trackKey) map.set(trackKey, p)
@@ -795,17 +833,41 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
 
     const existing = (trackKey && map.get(trackKey)) || (refKey && map.get(refKey))
     const rawOrderStatus = normalizePortalStatus(order.transactionStatus || order.orderStatus)
-    const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
-    const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
+    const rawLower = rawOrderStatus.toLowerCase().trim()
+    const isUnbooked = rawLower === 'unbooked'
+    const hasCourierMovement = Boolean(
+      rawLower.includes('picked by postex') ||
+      rawLower.includes('picked up') ||
+      rawLower.includes('in transit') ||
+      rawLower.includes('en route') ||
+      rawLower.includes('dispatched') ||
+      rawLower.includes('depart') ||
+      rawLower.includes('postex warehouse') ||
+      rawLower.includes('hub') ||
+      rawLower.includes('received at') ||
+      rawLower.includes('out for delivery') ||
+      rawLower.includes('delivered')
+    )
+    const orderHasManifest = Boolean(
+      order.isManifested ||
+      order.manifestNumber ||
+      order.loadSheetNumber ||
+      order.loadSheetId ||
+      rawLower.includes('manifest') ||
+      rawLower.includes('loadsheet') ||
+      hasCourierMovement
+    )
 
     if (existing) {
       const rawStatus = rawOrderStatus || existing.status
       const updatedStatus = isUnbooked ? 'UNBOOKED' : determineNewStatus(existing.status, rawStatus)
-      const effectiveHasLoadSheet = isUnbooked ? false : (Boolean(existing.hasLoadSheet) || hasLoadSheet)
+      const effectiveHasLoadSheet = isUnbooked ? false : (Boolean(existing.hasLoadSheet || existing.loadsheet_generated) || orderHasManifest)
+      const isApp = existing.source === 'app' || isAppBookedCn(tracking) || isAppBookedCn(ref)
       const merged: BookedParcel = {
         ...existing,
         tracking: tracking || existing.tracking,
         status: updatedStatus,
+        source: isApp ? 'app' : (existing.source || 'postex_portal'),
         hasLoadSheet: effectiveHasLoadSheet,
         loadsheet_generated: effectiveHasLoadSheet,
         name: isPlaceholder(existing.name) && order.customerName ? order.customerName : existing.name,
@@ -818,6 +880,7 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
       if (refKey) map.set(refKey, merged)
     } else if (tracking) {
       const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
+      const isApp = isAppBookedCn(tracking) || isAppBookedCn(ref)
       const newParcel: BookedParcel = {
         id: ref || tracking,
         name: order.customerName || 'Customer',
@@ -833,7 +896,7 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
         bookingDate: parsePortalDate(order.orderDate || order.bookingDate || order.transactionDate || order.createdDatetime || order.modifiedDatetime || order.orderDateString),
         status: rawOrderStatus,
         orderType: 'Normal',
-        source: 'postex_portal',
+        source: isApp ? 'app' : 'postex_portal',
         hasLoadSheet,
         loadsheet_generated: hasLoadSheet,
         whatsapp_sent: false,
@@ -872,7 +935,7 @@ export function parseCODAmount(val: any): number {
 /**
  * Transforms raw PostEx API orders into BookedParcel objects for a specific date range.
  * Retains existing local metadata (like whatsapp_sent) from previous parcels of that tracking,
- * but only includes parcels present in postExOrders so old dates never leak into the active view.
+ * and detects in-app bookings through App Booked CN Registry.
  */
 export function transformPostExOrders(postExOrders: any[], existingParcels: BookedParcel[] = []): BookedParcel[] {
   if (!postExOrders || !Array.isArray(postExOrders) || postExOrders.length === 0) return []
@@ -895,11 +958,36 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
 
     const existing = (trackKey && existingMap.get(trackKey)) || (refKey && existingMap.get(refKey))
     const rawOrderStatus = normalizePortalStatus(order.transactionStatus || order.orderStatus)
-    const isUnbooked = rawOrderStatus.toLowerCase() === 'unbooked'
-    const hasLoadSheet = !isUnbooked && rawOrderStatus.toLowerCase() !== 'cancelled'
+    const rawLower = rawOrderStatus.toLowerCase().trim()
+    const isUnbooked = rawLower === 'unbooked'
+    const hasCourierMovement = Boolean(
+      rawLower.includes('picked by postex') ||
+      rawLower.includes('picked up') ||
+      rawLower.includes('in transit') ||
+      rawLower.includes('en route') ||
+      rawLower.includes('dispatched') ||
+      rawLower.includes('depart') ||
+      rawLower.includes('postex warehouse') ||
+      rawLower.includes('hub') ||
+      rawLower.includes('received at') ||
+      rawLower.includes('out for delivery') ||
+      rawLower.includes('delivered')
+    )
+    const orderHasManifest = Boolean(
+      order.isManifested ||
+      order.manifestNumber ||
+      order.loadSheetNumber ||
+      order.loadSheetId ||
+      rawLower.includes('manifest') ||
+      rawLower.includes('loadsheet') ||
+      hasCourierMovement
+    )
     const rawDate = order.orderDate || order.bookingDate || order.transactionDate || order.createdDatetime || order.modifiedDatetime || order.orderDateString
     const resolvedBookingDate = parsePortalDate(rawDate) || existing?.bookingDate || ''
     const declaredWeight = Number(order.bookingWeight || order.actualWeight || 0)
+
+    const isApp = (existing?.source === 'app') || isAppBookedCn(tracking) || isAppBookedCn(ref)
+    const effectiveHasLoadSheet = isUnbooked ? false : (Boolean(existing?.hasLoadSheet || existing?.loadsheet_generated) || orderHasManifest)
 
     const parcel: BookedParcel = {
       id: ref || tracking,
@@ -916,9 +1004,9 @@ export function transformPostExOrders(postExOrders: any[], existingParcels: Book
       bookingDate: resolvedBookingDate,
       status: isUnbooked ? 'UNBOOKED' : (existing ? determineNewStatus(existing.status, rawOrderStatus) : rawOrderStatus),
       orderType: 'Normal',
-      source: 'postex_portal',
-      hasLoadSheet: isUnbooked ? false : (Boolean(existing?.hasLoadSheet) || hasLoadSheet),
-      loadsheet_generated: isUnbooked ? false : (Boolean(existing?.loadsheet_generated) || hasLoadSheet),
+      source: isApp ? 'app' : 'postex_portal',
+      hasLoadSheet: effectiveHasLoadSheet,
+      loadsheet_generated: effectiveHasLoadSheet,
       whatsapp_sent: Boolean(existing?.whatsapp_sent || existing?.whatsappSent),
       whatsappSent: Boolean(existing?.whatsapp_sent || existing?.whatsappSent),
       whatsapp_booking_sent: Boolean(existing?.whatsapp_booking_sent),

@@ -10,6 +10,8 @@ interface HistoryFilterBarProps {
   setSearchQuery: (val: string) => void
   searchScope?: SearchScopeType
   setSearchScope?: (scope: SearchScopeType) => void
+  searchExclude?: boolean
+  setSearchExclude?: (val: boolean) => void
   fromDate: string
   setFromDate: (val: string) => void
   toDate: string
@@ -48,6 +50,8 @@ interface HistoryFilterBarProps {
     app: number
     portal: number
   }
+  autoExpandLines?: boolean
+  onToggleAutoExpandLines?: () => void
 }
 
 export function HistoryFilterBar({
@@ -55,6 +59,8 @@ export function HistoryFilterBar({
   setSearchQuery,
   searchScope = 'all',
   setSearchScope,
+  searchExclude = false,
+  setSearchExclude,
   fromDate,
   setFromDate,
   toDate,
@@ -72,6 +78,8 @@ export function HistoryFilterBar({
   whatsappFilter = 'all',
   setWhatsappFilter,
   onAutoFitColumns,
+  autoExpandLines,
+  onToggleAutoExpandLines,
   isSyncing = false,
   syncProgress = '',
   syncElapsedSeconds = 0,
@@ -88,6 +96,7 @@ export function HistoryFilterBar({
     (sourceFilter && sourceFilter !== 'all') ||
     (statusFilter && statusFilter !== 'all') ||
     (searchScope && searchScope !== 'all') ||
+    (searchQuery && searchExclude) ||
     searchQuery
   )
 
@@ -170,23 +179,52 @@ export function HistoryFilterBar({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={
-              searchScope === 'name' ? 'Search customer name only...' :
-              searchScope === 'phone' ? 'Search phone number only...' :
-              searchScope === 'reference' ? 'Search order reference # (e.g. AH858, #307...)' :
-              searchScope === 'tracking' ? 'Search PostEx tracking CN only...' :
-              'Search order #, tracking, customer, phone...'
+              searchExclude
+                ? (searchScope === 'name' ? 'Exclude customer name...' : searchScope === 'phone' ? 'Exclude phone number...' : searchScope === 'reference' ? 'Exclude order ref # (e.g. 307)...' : searchScope === 'tracking' ? 'Exclude PostEx tracking CN...' : 'Exclude order #, tracking, phone, city...')
+                : (
+                    searchScope === 'name' ? 'Search customer name only...' :
+                    searchScope === 'phone' ? 'Search phone number only...' :
+                    searchScope === 'reference' ? 'Search order reference # (e.g. AH858, #307...)' :
+                    searchScope === 'tracking' ? 'Search PostEx tracking CN only...' :
+                    'Search order #, tracking, customer, phone...'
+                  )
             }
-            className="w-full pl-2 pr-3 py-2 text-xs sm:text-sm bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-100"
+            className="w-full pl-2 pr-2 py-2 text-xs sm:text-sm bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-100 min-w-0"
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer"
-            >
-              <CloseIcon size={12} />
-            </button>
-          )}
+
+          {/* Right Action Controls: Clear Button + Apple Native Exclude Toggle Pill */}
+          <div className="flex items-center gap-1.5 pr-2 shrink-0">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer transition active:scale-90"
+                title="Clear search query"
+              >
+                <CloseIcon size={12} />
+              </button>
+            )}
+
+            {setSearchExclude && (
+              <button
+                type="button"
+                onClick={() => setSearchExclude(!searchExclude)}
+                title={
+                  searchExclude
+                    ? 'Exclude Mode Active: Showing parcels that do NOT match query'
+                    : 'Enable Exclude Mode (Filter out matching parcels)'
+                }
+                className={`h-7 px-2 sm:px-2.5 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 select-none active:scale-95 ${
+                  searchExclude
+                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/35 shadow-2xs ring-1 ring-rose-500/20'
+                    : 'bg-slate-200/60 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300/60 dark:border-slate-700/60'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${searchExclude ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`} />
+                <span>Exclude</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Native Apple iOS Segmented Date Presets (Matching Admin exactly) */}
@@ -472,51 +510,68 @@ export function HistoryFilterBar({
           </div>
         )}
 
-        {/* WhatsApp Sent / Pending Status Filter Chips */}
-        {setWhatsappFilter && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-              <WhatsAppIcon size={12} className="text-emerald-500" />
-              <span>WA:</span>
-            </span>
+        {/* WhatsApp Sent / Pending Status Filter Chips with Expand / Collapse on Left */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap ml-auto">
+          {onToggleAutoExpandLines && (
             <button
               type="button"
-              onClick={() => setWhatsappFilter('all')}
-              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                whatsappFilter === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
-                  : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+              onClick={onToggleAutoExpandLines}
+              className={`h-7 px-2.5 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 ${
+                autoExpandLines
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
+              title="Expand or collapse row heights across all records"
             >
-              <span>All</span>
-              <span className="text-[10px] font-mono opacity-80">{counts.all}</span>
+              <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setWhatsappFilter('pending')}
-              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                whatsappFilter === 'pending'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
-              }`}
-            >
-              <span>Pending</span>
-              <span className="text-[10px] font-mono opacity-90">{counts.waPending ?? 0}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setWhatsappFilter('sent')}
-              className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                whatsappFilter === 'sent'
-                  ? 'bg-emerald-600 text-white font-bold'
-                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
-              }`}
-            >
-              <span>Sent</span>
-              <span className="text-[10px] font-mono opacity-90">{counts.waSent ?? 0}</span>
-            </button>
-          </div>
-        )}
+          )}
+
+          {setWhatsappFilter && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
+                <WhatsAppIcon size={12} className="text-emerald-500" />
+                <span>WA:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setWhatsappFilter('all')}
+                className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  whatsappFilter === 'all'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>All</span>
+                <span className="text-[10px] font-mono opacity-80">{counts.all}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWhatsappFilter('pending')}
+                className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  whatsappFilter === 'pending'
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                }`}
+              >
+                <span>Pending</span>
+                <span className="text-[10px] font-mono opacity-90">{counts.waPending ?? 0}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWhatsappFilter('sent')}
+                className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  whatsappFilter === 'sent'
+                    ? 'bg-emerald-600 text-white font-bold'
+                    : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                }`}
+              >
+                <span>Sent</span>
+                <span className="text-[10px] font-mono opacity-90">{counts.waSent ?? 0}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

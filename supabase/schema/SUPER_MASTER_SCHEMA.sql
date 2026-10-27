@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS public.booked_history (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.booked_history ADD COLUMN IF NOT EXISTS app_cns JSONB NOT NULL DEFAULT '[]'::jsonb;
+
 -- Table: customers
 -- Tenant customer directory for auto-complete & delivery intelligence
 -- Scoped strictly to tenant user_id (unique per tenant + phone)

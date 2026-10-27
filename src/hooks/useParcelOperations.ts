@@ -7,6 +7,7 @@ import { logUsage, supabase } from '../utils/supabaseClient'
 import { LoadingProgress } from '../components/layout/GlobalLoadingOverlay'
 import { buildHistoryIdSet, getNextAvailableSerial, cleanSerialId, isDuplicateRefError } from '../utils/orderSerialHelper'
 import { useToast } from '../components/common/Toast'
+import { registerAppBookedCn, registerAppBookedCns } from '../utils/appBookedRegistry'
 
 export function cleanPhoneNumber(phone: string): string {
   if (!phone) return ''
@@ -433,6 +434,7 @@ export function useParcelOperations({
           })
           if (res.dist?.trackingNumber) {
             successTrackings.push(res.dist.trackingNumber)
+            registerAppBookedCn(res.dist.trackingNumber, effectiveParcel.id, user?.id)
             newBookings.push({
               id: effectiveParcel.id,
               name: effectiveParcel.name,
@@ -448,6 +450,7 @@ export function useParcelOperations({
               tracking: res.dist.trackingNumber,
               bookingDate: new Date().toISOString(),
               status: 'UNBOOKED',
+              source: 'app',
               whatsapp_sent: false,
               whatsappSent: false
             })
@@ -483,6 +486,7 @@ export function useParcelOperations({
               })
               if (retryRes.dist?.trackingNumber) {
                 successTrackings.push(retryRes.dist.trackingNumber)
+                registerAppBookedCn(retryRes.dist.trackingNumber, effectiveParcel.id, user?.id)
                 newBookings.push({
                   id: effectiveParcel.id,
                   name: effectiveParcel.name,
@@ -498,6 +502,7 @@ export function useParcelOperations({
                   tracking: retryRes.dist.trackingNumber,
                   bookingDate: new Date().toISOString(),
                   status: 'UNBOOKED',
+                  source: 'app',
                   whatsapp_sent: false,
                   whatsappSent: false
                 })
@@ -536,6 +541,7 @@ export function useParcelOperations({
     })
 
     if (newBookings.length > 0) {
+      registerAppBookedCns(newBookings, user?.id)
       updateHistory([...newBookings, ...history])
       
       if (user) {
@@ -713,6 +719,7 @@ export function useParcelOperations({
 
         // Update history
         if (res.dist?.trackingNumber) {
+          registerAppBookedCn(res.dist.trackingNumber, parcelToBook.id, user?.id)
           const newHistoryItem: BookedParcel = {
             id: parcelToBook.id,
             name: parcelToBook.name,
@@ -727,6 +734,7 @@ export function useParcelOperations({
             tracking: res.dist.trackingNumber,
             bookingDate: new Date().toISOString(),
             status: 'UNBOOKED',
+            source: 'app',
             whatsapp_sent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent),
             whatsappSent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent)
           }
@@ -804,6 +812,7 @@ export function useParcelOperations({
             }
             setResults(prev => prev.map(r => r.id === originalParcelId ? updatedResult : r))
             if (retryRes.dist?.trackingNumber) {
+              registerAppBookedCn(retryRes.dist.trackingNumber, parcelToBook.id, user?.id)
               const newHistoryItem: BookedParcel = {
                 id: parcelToBook.id,
                 name: parcelToBook.name,
@@ -818,6 +827,7 @@ export function useParcelOperations({
                 tracking: retryRes.dist.trackingNumber,
                 bookingDate: new Date().toISOString(),
                 status: 'UNBOOKED',
+                source: 'app',
                 whatsapp_sent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent),
                 whatsappSent: Boolean(parcelToBook.whatsapp_sent || parcelToBook.whatsappSent)
               }

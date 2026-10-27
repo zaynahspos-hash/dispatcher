@@ -57,6 +57,16 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [sourceFilter, setSourceFilter] = useState<SourceFilterType>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchScope, setSearchScope] = useState<SearchScopeType>('all')
+  const [searchExclude, setSearchExclude] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && localStorage.getItem('zaynah_history_search_exclude') === 'true'
+  })
+
+  const handleToggleSearchExclude = (val: boolean) => {
+    setSearchExclude(val)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zaynah_history_search_exclude', String(val))
+    }
+  }
   const [fromDate, setFromDate] = useState<string>(() => getLocalTodayDate())
   const [toDate, setToDate] = useState<string>(() => getLocalTodayDate())
   const [statusSelect, setStatusSelect] = useState('all')
@@ -144,7 +154,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const applyPortalOrders = useCallback((orders: any[], range: string) => {
     // Ignore a response that belongs to a date range the merchant already left.
     if (range !== activeRangeRef.current) return
-    const transformed = transformPostExOrders(orders, externalParcelsRef.current)
+    const transformed = transformPostExOrders(orders, [...externalParcelsRef.current, ...history])
     externalParcelsRef.current = transformed
     writeExternalParcels(userId, fromDate, toDate, transformed)
     setExternalParcels(transformed)
@@ -251,7 +261,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   // Filter and dynamic counts hook
   const { counts, sourceCounts, filteredParcels } = useBookedHistoryFilter({
-    history: combinedHistory, statusFilter, sourceFilter, searchQuery, searchScope, fromDate, toDate,
+    history: combinedHistory, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude, fromDate, toDate,
     statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
@@ -401,11 +411,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     }
 
     if (searchQuery) {
-      pills.push({ label: `"${searchQuery.length > 12 ? searchQuery.slice(0, 12) + '…' : searchQuery}"`, onClear: () => setSearchQuery('') })
+      const prefix = searchExclude ? 'Exclude: ' : ''
+      pills.push({ label: `${prefix}"${searchQuery.length > 12 ? searchQuery.slice(0, 12) + '…' : searchQuery}"`, onClear: () => setSearchQuery('') })
     }
 
     return pills
-  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchScope, searchQuery, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchScope, setSearchQuery])
+  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchScope, searchQuery, searchExclude, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchScope, setSearchQuery])
 
   const handleLoadSheetClick = () => {
     if (selectedIds.length > 0) {
@@ -491,27 +502,14 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
           </div>
         </div>
 
-        {/* Header Action Controls (Streamlined: Expand All + Sync PostEx) */}
+        {/* Header Action Control (Check Status) */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleToggleAutoExpandLines}
-            className={`h-8 px-2.5 sm:px-3 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 ${
-              autoExpandLines
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-            }`}
-            title="Expand or collapse row heights across all records"
-          >
-            <span>{autoExpandLines ? 'Collapse All' : 'Expand All'}</span>
-          </button>
-
           <button
             type="button"
             onClick={handleManualRefresh}
             disabled={portalSync.isSyncing || isLoading || isSyncingAll}
-            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
-            title="Fetch latest booked parcels directly from PostEx for selected date range"
+            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
+            title="Fetch latest booked parcels and check live tracking directly from PostEx for selected date range"
           >
             {portalSync.isSyncing ? (
               <>
@@ -519,12 +517,12 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span>Syncing...</span>
+                <span>Checking Status...</span>
               </>
             ) : (
               <>
                 <RefreshIcon size={13} />
-                <span>Sync PostEx</span>
+                <span>Check Status</span>
               </>
             )}
           </button>
@@ -550,6 +548,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       <HistoryFilterBar
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         searchScope={searchScope} setSearchScope={setSearchScope}
+        searchExclude={searchExclude} setSearchExclude={handleToggleSearchExclude}
         fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
         statusSelect={statusSelect} setStatusSelect={setStatusSelect}
         pickupFilter={pickupFilter} setPickupFilter={setPickupFilter}
@@ -562,6 +561,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         syncElapsedSeconds={portalSync.elapsedSeconds}
         counts={counts}
         sourceCounts={sourceCounts}
+        autoExpandLines={autoExpandLines}
+        onToggleAutoExpandLines={handleToggleAutoExpandLines}
       />
 
       {portalSync.error && !portalSync.isSyncing && (
@@ -763,18 +764,23 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         onSubmit={handleSubmitAdvice} isSubmitting={isSubmittingAdvice} error={adviceError}
       />
 
-      {/* Manual WhatsApp Select Modal (2 Clean Options) */}
+      {/* WhatsApp Anti-Ban Multi-Variant Dispatch Modal (3 Apple-Grade Options) */}
       <WhatsAppSelectModal
         parcel={whatsAppModalParcel}
         onClose={() => setWhatsAppModalParcel(null)}
         whatsappNote={settings.whatsapp_note}
         whatsappTemplate={settings.whatsapp_template_booking || settings.whatsapp_template}
+        whatsappTemplateGreeting={settings.whatsapp_template_greeting}
+        whatsappGreetingVariants={settings.whatsapp_greeting_variants}
+        whatsappBookingVariants={settings.whatsapp_booking_variants}
+        whatsappStatusVariants={settings.whatsapp_status_variants}
         whatsappTemplateOutForDelivery={settings.whatsapp_template_out_for_delivery}
         whatsappTemplateActionRequired={settings.whatsapp_template_action_required}
         whatsappTemplateDelivered={settings.whatsapp_template_delivered}
+        antibanDelaySec={settings.whatsapp_antiban_delay_sec || 120}
         isBookingSent={waTracker.isBookingSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
         isStatusSent={waTracker.isStatusSent(whatsAppModalParcel?.tracking, whatsAppModalParcel?.id)}
-        onMarkSent={(tracking, id, type) => waTracker.markSent(tracking, type, id)}
+        onMarkSent={(tracking, id, type) => waTracker.markSent(tracking, type === 'greeting' ? 'booking' : type, id)}
       />
 
       {/* Load Sheet Alert Confirmation Modal */}

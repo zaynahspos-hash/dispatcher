@@ -4,6 +4,7 @@ import { supabase } from '../utils/supabaseClient'
 import { BookedParcel } from '../components/BookedHistory'
 import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
 import { isFakeOrDemoPhone } from '../components/history/types'
+import { initAppBookedRegistry, syncAppBookedCnsFromHistory } from '../utils/appBookedRegistry'
 
 const MAX_CACHED_HISTORY_PARCELS = 1500
 
@@ -19,15 +20,16 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
   // First load local items
   cleanLocal.forEach(p => {
     const key = p.tracking || p.id
-    if (key) map.set(key, p)
+    if (key) map.set(key, { ...p, source: p.source !== 'postex_portal' ? 'app' : p.source })
   })
   // Overwrite with db items (DB is authoritative for synced statuses)
   cleanDb.forEach(p => {
     const key = p.tracking || p.id
     if (!key) return
     const existing = map.get(key)
+    const isApp = (existing && existing.source === 'app') || p.source !== 'postex_portal'
     if (!existing) {
-      map.set(key, p)
+      map.set(key, { ...p, source: isApp ? 'app' : p.source })
     } else {
       const wasSent = Boolean(existing.whatsapp_sent || existing.whatsappSent || p.whatsapp_sent || p.whatsappSent)
       const bookingSent = Boolean(existing.whatsapp_booking_sent || p.whatsapp_booking_sent)
@@ -35,6 +37,7 @@ function mergeHistory(db: BookedParcel[], local: BookedParcel[]): BookedParcel[]
       map.set(key, {
         ...existing,
         ...p, // DB status and details take priority
+        source: isApp ? 'app' : (existing.source || p.source),
         whatsapp_sent: wasSent,
         whatsappSent: wasSent,
         whatsapp_booking_sent: bookingSent,
@@ -101,10 +104,15 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
     }
 
     fetchTokenUsage()
+    initAppBookedRegistry(user.id)
 
     const userHistoryKey = `booked_history_${user.id}`
     const rawCached = getCached<BookedParcel[]>(userHistoryKey) || []
-    const cachedHistory = cleanHistoryList(rawCached)
+    const cachedHistory = cleanHistoryList(rawCached).map(p => ({
+      ...p,
+      source: p.source !== 'postex_portal' ? ('app' as const) : p.source
+    }))
+    syncAppBookedCnsFromHistory(cachedHistory, user.id)
     if (cachedHistory.length !== rawCached.length) {
       setCached(userHistoryKey, cachedHistory, getTTL('days', 30))
     }
@@ -122,7 +130,12 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
           return
         }
         if (data && data.history) {
-          const dbHistory = cleanHistoryList(data.history as unknown as BookedParcel[])
+          const rawDbHistory = cleanHistoryList(data.history as unknown as BookedParcel[])
+          const dbHistory = rawDbHistory.map(p => ({
+            ...p,
+            source: p.source !== 'postex_portal' ? ('app' as const) : p.source
+          }))
+          syncAppBookedCnsFromHistory(dbHistory, user.id)
           const cacheKey = `booked_history_synced_at_${user.id}`
           const lastSync = localStorage.getItem(cacheKey)
           const dbUpdated = new Date(data.updated_at || 0).getTime()
@@ -217,8 +230,11 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
 
   const updateHistory = (updated: BookedParcel[]) => {
     // Only persist database orders (plus external orders that have merchant WhatsApp actions)
-    const toPersist = updated.filter(p => p.source !== 'postex_portal' || p.whatsapp_booking_sent || p.whatsapp_status_sent || p.whatsapp_sent)
+    const toPersist = updated
+      .filter(p => p.source !== 'postex_portal' || p.whatsapp_booking_sent || p.whatsapp_status_sent || p.whatsapp_sent)
+      .map(p => (p.source !== 'postex_portal' ? { ...p, source: 'app' as const } : p))
     setHistory(toPersist)
+    syncAppBookedCnsFromHistory(toPersist, user?.id)
 
     if (user) {
       const userHistoryKey = `booked_history_${user.id}`

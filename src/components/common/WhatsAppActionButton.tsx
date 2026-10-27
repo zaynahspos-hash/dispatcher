@@ -1,5 +1,6 @@
 import React from 'react'
 import { WhatsAppIcon } from '../Icons'
+import { useWhatsAppCooldown } from '../../utils/whatsappAntiBanTimer'
 
 export interface WhatsAppActionButtonProps {
   isSent: boolean
@@ -30,7 +31,7 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   onClick,
   disabled = false,
   href,
-  target = '_blank',
+  target = 'whatsapp_web',
   rel = 'noopener noreferrer',
   variant = 'squircle',
   label,
@@ -38,14 +39,19 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   className = ''
 }) => {
   const isChip = variant === 'chip'
+  const cooldown = useWhatsAppCooldown()
 
-  const resolvedTitle = title || (
+  const rawTitle = title || (
     disabled
       ? 'WhatsApp disabled for cancelled orders'
       : isSent
         ? 'WhatsApp Sent • Click to Re-send (Alt+Click to unmark)'
         : 'Send WhatsApp Notification (Pending)'
   )
+
+  const resolvedTitle = cooldown.isCooling && !disabled
+    ? `Anti-Ban Safe Delay: ${cooldown.formattedTime} remaining • ${rawTitle}`
+    : rawTitle
 
   const resolvedLabel = label !== undefined ? label : (isSent ? 'Sent' : 'WhatsApp')
 
@@ -78,16 +84,42 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
           aria-hidden="true"
         />
       )}
+      {cooldown.isCooling && !disabled && (
+        <span
+          className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-white dark:border-slate-900 ring-1 ring-amber-400 animate-pulse"
+          aria-hidden="true"
+        />
+      )}
     </>
   )
 
   if (href && !disabled) {
+    const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (onClick) onClick(e)
+      if (e.defaultPrevented) return
+
+      // If native desktop app protocol, let browser trigger the registered app
+      if (href.startsWith('whatsapp://')) {
+        return
+      }
+
+      // Re-use named 'whatsapp_web' tab/window so browser navigates the existing
+      // WhatsApp Web session instead of spawning a new tab every click (which causes
+      // "WhatsApp is open in another window. Click Use here to use WhatsApp in this window").
+      e.preventDefault()
+      const targetWindow = target || 'whatsapp_web'
+      const win = window.open(href, targetWindow)
+      if (win) {
+        try { win.focus() } catch (_) {}
+      }
+    }
+
     return (
       <a
         href={href}
-        target={target}
+        target={target || 'whatsapp_web'}
         rel={rel}
-        onClick={onClick}
+        onClick={handleAnchorClick}
         className={baseClasses}
         title={resolvedTitle}
         aria-label={resolvedTitle}

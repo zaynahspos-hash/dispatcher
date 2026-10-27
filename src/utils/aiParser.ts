@@ -72,8 +72,14 @@ export interface Settings {
   whatsapp_template_out_for_delivery?: string
   whatsapp_template_action_required?: string
   whatsapp_template_delivered?: string
+  whatsapp_template_greeting?: string
+  whatsapp_greeting_variants?: string[]
+  whatsapp_booking_variants?: string[]
+  whatsapp_status_variants?: string[]
+  whatsapp_antiban_delay_sec?: number
   whatsapp_min_delay_sec?: number
   whatsapp_max_delay_sec?: number
+  whatsapp_client_target?: 'auto' | 'web' | 'app'
   postex_token_updated_at?: string
   gemini_key_updated_at?: string
   groq_key_updated_at?: string

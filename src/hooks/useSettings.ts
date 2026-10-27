@@ -3,6 +3,7 @@ import { Settings, ApiHistoryItem } from '../utils/aiParser'
 import { supabase } from '../utils/supabaseClient'
 import { clearCachedAvatar } from '../utils/avatarCache'
 import { DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../components/history/types'
+import { DEFAULT_WHATSAPP_VARIANTS } from '../utils/whatsappTemplates'
 import { getMerchantAddresses } from '../utils/postexApi'
 
 // Automatically purge corrupted emoji keys from localStorage
@@ -68,8 +69,14 @@ const DEFAULTS: Settings = {
   whatsapp_template_out_for_delivery: DEFAULT_MILESTONE_TEMPLATES.out_for_delivery,
   whatsapp_template_action_required: DEFAULT_MILESTONE_TEMPLATES.action_required,
   whatsapp_template_delivered: DEFAULT_MILESTONE_TEMPLATES.delivered,
+  whatsapp_template_greeting: DEFAULT_WHATSAPP_VARIANTS.greeting[0],
+  whatsapp_greeting_variants: DEFAULT_WHATSAPP_VARIANTS.greeting,
+  whatsapp_booking_variants: DEFAULT_WHATSAPP_VARIANTS.booking,
+  whatsapp_status_variants: DEFAULT_WHATSAPP_VARIANTS.status,
+  whatsapp_antiban_delay_sec: 120,
   whatsapp_min_delay_sec: 30,
   whatsapp_max_delay_sec: 50,
+  whatsapp_client_target: 'web',
   api_history: [],
 }
 
@@ -256,6 +263,26 @@ function readLocal(userId: string, field: keyof Settings): any {
       return DEFAULT_MILESTONE_TEMPLATES.delivered
     }
   }
+  if (field === 'whatsapp_template_greeting') {
+    if (!val || isCorruptText(val) || !val.includes('Assalam')) {
+      writeLocal(userId, field, DEFAULT_WHATSAPP_VARIANTS.greeting[0])
+      return DEFAULT_WHATSAPP_VARIANTS.greeting[0]
+    }
+  }
+  if (field === 'whatsapp_greeting_variants' || field === 'whatsapp_booking_variants' || field === 'whatsapp_status_variants') {
+    if (val) {
+      try {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      } catch {}
+    }
+    const cat = field === 'whatsapp_greeting_variants' ? 'greeting' : field === 'whatsapp_booking_variants' ? 'booking' : 'status'
+    return DEFAULT_WHATSAPP_VARIANTS[cat]
+  }
+  if (field === 'whatsapp_antiban_delay_sec') {
+    if (val !== null && val !== '') return Number(val) || 120
+    return 120
+  }
   if (field.startsWith('whatsapp_enable_')) {
     if (val === 'true') return true
     if (val === 'false') return false
@@ -270,7 +297,7 @@ function readLocal(userId: string, field: keyof Settings): any {
 
 /** Write a single field to localStorage strictly for this user (RULE D15) */
 function writeLocal(userId: string, field: keyof Settings, value: any, explicitDelete = false) {
-  const strVal = value === undefined || value === null ? '' : String(value)
+  const strVal = typeof value === 'object' && value !== null ? JSON.stringify(value) : (value === undefined || value === null ? '' : String(value))
   const isDeleting = explicitDelete || strVal === ''
   
   if (isDeleting) {
@@ -550,6 +577,15 @@ export function useSettings() {
         
         if (Array.isArray((data.settings as any)?.api_history)) {
           merged.api_history = (data.settings as any).api_history
+        }
+        if (Array.isArray((data.settings as any)?.whatsapp_greeting_variants)) {
+          merged.whatsapp_greeting_variants = (data.settings as any).whatsapp_greeting_variants
+        }
+        if (Array.isArray((data.settings as any)?.whatsapp_booking_variants)) {
+          merged.whatsapp_booking_variants = (data.settings as any).whatsapp_booking_variants
+        }
+        if (Array.isArray((data.settings as any)?.whatsapp_status_variants)) {
+          merged.whatsapp_status_variants = (data.settings as any).whatsapp_status_variants
         }
 
         // Hydrate avatar_url from Auth metadata if missing in DB / local

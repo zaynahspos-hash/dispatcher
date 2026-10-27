@@ -1453,9 +1453,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   </div>
                   <a
                     href={waLink}
-                    target="_blank"
+                    target="whatsapp_web"
                     rel="noopener noreferrer"
-                    onClick={() => waTracker.markSent(phoneDigits, 'both', c.id)}
+                    onClick={(e) => {
+                      waTracker.markSent(phoneDigits, 'both', c.id)
+                      if (!waLink.startsWith('whatsapp://')) {
+                        e.preventDefault()
+                        const win = window.open(waLink, 'whatsapp_web')
+                        if (win) { try { win.focus() } catch (_) {} }
+                      }
+                    }}
                     className={`h-8 px-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs shrink-0 active:scale-95 cursor-pointer ${
                       isSent
                         ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
@@ -1561,9 +1568,16 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                     <td className="px-4 py-3 text-center">
                       <a
                         href={waLink}
-                        target="_blank"
+                        target="whatsapp_web"
                         rel="noopener noreferrer"
-                        onClick={() => waTracker.markSent(phoneDigits, 'both', c.id)}
+                        onClick={(e) => {
+                          waTracker.markSent(phoneDigits, 'both', c.id)
+                          if (!waLink.startsWith('whatsapp://')) {
+                            e.preventDefault()
+                            const win = window.open(waLink, 'whatsapp_web')
+                            if (win) { try { win.focus() } catch (_) {} }
+                          }
+                        }}
                         className={`inline-flex items-center justify-center w-7.5 h-7.5 rounded-xl border transition shadow-2xs cursor-pointer active:scale-95 ${
                           isSent
                             ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'

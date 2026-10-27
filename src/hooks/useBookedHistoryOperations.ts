@@ -209,12 +209,34 @@ export function useBookedHistoryOperations({
           if (item.tracking === tracking) {
             const rawLower = rawStatus.toLowerCase().trim()
             const isUnbooked = rawLower === 'unbooked'
-            const isManifested = !isUnbooked && rawLower !== 'cancelled'
+            const hasExplicitManifest = Boolean(
+              res.dist?.isManifested ||
+              res.dist?.manifestNumber ||
+              res.dist?.loadSheetNumber ||
+              res.dist?.loadSheetId ||
+              rawLower.includes('manifest') ||
+              rawLower.includes('loadsheet') ||
+              rawLower.includes('picked by postex') ||
+              rawLower.includes('picked up') ||
+              rawLower.includes('in transit') ||
+              rawLower.includes('en route') ||
+              rawLower.includes('dispatched') ||
+              rawLower.includes('depart') ||
+              rawLower.includes('postex warehouse') ||
+              rawLower.includes('hub') ||
+              rawLower.includes('received at') ||
+              rawLower.includes('out for delivery') ||
+              rawLower.includes('delivered')
+            )
+            const effectiveHasLoadSheet = isUnbooked
+              ? false
+              : Boolean(item.hasLoadSheet || item.loadsheet_generated || hasExplicitManifest)
+
             return {
               ...item,
               status: determineNewStatus(item.status, rawStatus),
-              hasLoadSheet: isUnbooked ? false : (item.hasLoadSheet || isManifested),
-              loadsheet_generated: isUnbooked ? false : (item.loadsheet_generated || isManifested),
+              hasLoadSheet: effectiveHasLoadSheet,
+              loadsheet_generated: effectiveHasLoadSheet,
               name: isPlaceholder(item.name) && !isPlaceholder(customerName) ? customerName : item.name,
               phone: !item.phone && customerPhone ? customerPhone : item.phone,
               city: !item.city && cityName ? cityName : item.city,
@@ -287,12 +309,34 @@ export function useBookedHistoryOperations({
               const currentItem = mergedHistory[idx]
               const rawLower = rawStatus.toLowerCase().trim()
               const isUnbooked = rawLower === 'unbooked'
-              const isManifested = !isUnbooked && rawLower !== 'cancelled'
+              const hasExplicitManifest = Boolean(
+                res.dist?.isManifested ||
+                res.dist?.manifestNumber ||
+                res.dist?.loadSheetNumber ||
+                res.dist?.loadSheetId ||
+                rawLower.includes('manifest') ||
+                rawLower.includes('loadsheet') ||
+                rawLower.includes('picked by postex') ||
+                rawLower.includes('picked up') ||
+                rawLower.includes('in transit') ||
+                rawLower.includes('en route') ||
+                rawLower.includes('dispatched') ||
+                rawLower.includes('depart') ||
+                rawLower.includes('postex warehouse') ||
+                rawLower.includes('hub') ||
+                rawLower.includes('received at') ||
+                rawLower.includes('out for delivery') ||
+                rawLower.includes('delivered')
+              )
+              const effectiveHasLoadSheet = isUnbooked
+                ? false
+                : Boolean(currentItem.hasLoadSheet || currentItem.loadsheet_generated || hasExplicitManifest)
+
               mergedHistory[idx] = {
                 ...currentItem,
                 status: determineNewStatus(currentItem.status, rawStatus),
-                hasLoadSheet: isUnbooked ? false : (currentItem.hasLoadSheet || isManifested),
-                loadsheet_generated: isUnbooked ? false : (currentItem.loadsheet_generated || isManifested),
+                hasLoadSheet: effectiveHasLoadSheet,
+                loadsheet_generated: effectiveHasLoadSheet,
                 name: isPlaceholder(currentItem.name) && !isPlaceholder(customerName) ? customerName : currentItem.name,
                 phone: !currentItem.phone && customerPhone ? customerPhone : currentItem.phone,
                 city: !currentItem.city && cityName ? cityName : currentItem.city,
@@ -310,7 +354,7 @@ export function useBookedHistoryOperations({
       }))
 
       // Real-time incremental update so table rows change live in front of the merchant!
-      setSyncProgress(`Syncing live status: ${completedCount}/${total} (${Math.round((completedCount / total) * 100)}%)...`)
+      setSyncProgress(`Checking live status: ${completedCount}/${total} (${Math.round((completedCount / total) * 100)}%)...`)
       onUpdateHistory([...mergedHistory])
     }
 
@@ -319,7 +363,7 @@ export function useBookedHistoryOperations({
     setSyncProgress('')
     setActionStatus({
       type: 'success',
-      message: `Successfully synchronized live tracking for ${completedCount} parcels (${updatedCount} updated with real milestones)!`
+      message: `Successfully checked live tracking for ${completedCount} parcels (${updatedCount} updated with real milestones)!`
     })
     if (onTrackingSynced) {
       onTrackingSynced(updatedCount)

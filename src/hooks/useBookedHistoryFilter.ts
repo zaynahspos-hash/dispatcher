@@ -17,6 +17,7 @@ interface UseBookedHistoryFilterProps {
   sourceFilter?: SourceFilterType
   searchQuery: string
   searchScope?: SearchScopeType
+  searchExclude?: boolean
   fromDate: string
   toDate: string
   statusSelect: string
@@ -26,26 +27,26 @@ interface UseBookedHistoryFilterProps {
 }
 
 // Reusable scope predicates
-function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType = 'all'): boolean {
-  if (!query) return true
+function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType = 'all', exclude: boolean = false): boolean {
+  if (!query || !query.trim()) return true
   const q = query.toLowerCase().trim()
-  if (!q) return true
   const cleanDigits = q.replace(/\D/g, '')
 
+  let isMatch = false
   if (scope === 'name') {
-    return (item.name || '').toLowerCase().includes(q)
+    isMatch = (item.name || '').toLowerCase().includes(q)
   } else if (scope === 'phone') {
     const itemDigits = (item.phone || '').replace(/\D/g, '')
     const matchesRaw = (item.phone || '').toLowerCase().includes(q)
     const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
-    return matchesRaw || matchesDigits
+    isMatch = matchesRaw || matchesDigits
   } else if (scope === 'reference') {
-    return (item.id || '').toLowerCase().includes(q)
+    isMatch = (item.id || '').toLowerCase().includes(q)
   } else if (scope === 'tracking') {
-    return (item.tracking || '').toLowerCase().includes(q)
+    isMatch = (item.tracking || '').toLowerCase().includes(q)
   } else {
     // 'all': match order id, tracking, customer name, phone, or destination city
-    return (
+    isMatch = (
       (item.id || '').toLowerCase().includes(q) ||
       (item.tracking || '').toLowerCase().includes(q) ||
       (item.name || '').toLowerCase().includes(q) ||
@@ -53,6 +54,8 @@ function matchesSearchCriteria(item: BookedParcel, query?: string, scope: Search
       (item.city || '').toLowerCase().includes(q)
     )
   }
+
+  return exclude ? !isMatch : isMatch
 }
 
 function matchesDateRange(bookingDate?: string, fromDate?: string, toDate?: string): boolean {
@@ -98,6 +101,7 @@ export function useBookedHistoryFilter({
   sourceFilter = 'all',
   searchQuery,
   searchScope = 'all',
+  searchExclude = false,
   fromDate,
   toDate,
   statusSelect,
@@ -111,7 +115,7 @@ export function useBookedHistoryFilter({
     // 1. Status Tabs Scope: Filtered by date range, search query/scope, city, source, and WhatsApp
     const statusScopedHistory = history.filter(h => {
       if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
-      if (!matchesSearchCriteria(h, searchQuery, searchScope)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude)) return false
       if (!matchesCity(h.city, pickupFilter)) return false
       if (!matchesSource(h.source, sourceFilter)) return false
       if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
@@ -152,7 +156,7 @@ export function useBookedHistoryFilter({
     // 2. Source Counts Scope: Filtered by date range, search query/scope, city, status, and WhatsApp
     const sourceScopedHistory = history.filter(h => {
       if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
-      if (!matchesSearchCriteria(h, searchQuery, searchScope)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude)) return false
       if (!matchesCity(h.city, pickupFilter)) return false
       if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
 
@@ -195,7 +199,7 @@ export function useBookedHistoryFilter({
         portal: srcPortal
       }
     }
-  }, [history, fromDate, toDate, searchQuery, searchScope, pickupFilter, sourceFilter, statusFilter, statusSelect, whatsappFilter, isWhatsAppSent])
+  }, [history, fromDate, toDate, searchQuery, searchScope, searchExclude, pickupFilter, sourceFilter, statusFilter, statusSelect, whatsappFilter, isWhatsAppSent])
 
   // Filter and sort logic for displayed parcels manifest
   const filteredParcels = useMemo(() => {
@@ -209,8 +213,8 @@ export function useBookedHistoryFilter({
         if (cat !== statusFilter) return false
       }
 
-      // 3. Search Query with Field Scope (all | name | phone | reference | tracking)
-      if (!matchesSearchCriteria(item, searchQuery, searchScope)) return false
+      // 3. Search Query with Field Scope (all | name | phone | reference | tracking) & Exclude mode
+      if (!matchesSearchCriteria(item, searchQuery, searchScope, searchExclude)) return false
 
       // 4. Date Range Filter
       if (!matchesDateRange(item.bookingDate, fromDate, toDate)) return false
@@ -226,7 +230,7 @@ export function useBookedHistoryFilter({
 
       return true
     }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
-  }, [history, statusFilter, sourceFilter, searchQuery, searchScope, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
+  }, [history, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
 
   return { counts, sourceCounts, filteredParcels }
 }

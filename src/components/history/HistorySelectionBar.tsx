@@ -141,10 +141,10 @@ export const HistorySelectionBar: React.FC<HistorySelectionBarProps> = ({
             onClick={onSyncSelected}
             disabled={isLoading}
             className="shrink-0 h-7.5 px-2.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-semibold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 whitespace-nowrap disabled:opacity-50"
-            title="Sync latest live tracking milestones directly from PostEx"
+            title="Check latest live tracking milestones directly from PostEx"
           >
             <SyncIcon size={12} className="text-sky-500" />
-            <span>Sync ({selectedCount > 0 ? selectedCount : totalCount})</span>
+            <span>Check Status ({selectedCount > 0 ? selectedCount : totalCount})</span>
           </button>
         )}
 
