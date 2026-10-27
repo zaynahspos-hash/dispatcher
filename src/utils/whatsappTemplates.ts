@@ -17,17 +17,46 @@ export interface RespectfulGreetingInfo {
 }
 
 /**
- * Clean customer name extraction.
- * Preserves the merchant's exact customer name (e.g. "Toseef", "Ahmed", "Mrs Toseef")
- * without artificial title appendages or inaccurate gender guessing.
+ * Universal customer name cleaner.
+ * Strips gender/status prefixes (Mrs, Mr, Miss, Ms, Madam, Mister, Dr, etc.)
+ * so the greeting is 100% universal, natural, and never awkward.
+ * e.g. "Mrs Toseef" -> "Toseef"
+ *      "Mr. Ahmed" -> "Ahmed"
+ *      "Miss Sana" -> "Sana"
+ */
+export function cleanCustomerName(rawName?: string): string {
+  if (!rawName) return ''
+  let name = rawName.trim()
+
+  // 1. Strip common prefixes (case-insensitive)
+  name = name.replace(/^(?:mrs\.?|mr\.?|miss\.?|ms\.?|madam\.?|mister\.?|dr\.?|adv\.?|advocate\.?|sir\.?)\s+/i, '').trim()
+
+  // 2. Strip trailing relational honorifics if present
+  name = name.replace(/\s+(?:sahib|sahiba|khanum|begum)$/i, '').trim()
+
+  // 3. Filter generic words
+  const lower = name.toLowerCase()
+  if (['customer', 'valued customer', 'n/a', 'na', 'client', 'guest', 'none', 'user'].includes(lower)) {
+    return ''
+  }
+
+  // 4. Ensure proper title case for first letter
+  if (name.length > 0) {
+    name = name.charAt(0).toUpperCase() + name.slice(1)
+  }
+
+  return name
+}
+
+/**
+ * Universal greeting resolver.
  */
 export function getRespectfulGreeting(rawName?: string): RespectfulGreetingInfo {
-  const name = (rawName || '').trim()
-  const isGeneric = !name || name.toLowerCase() === 'customer' || name.toLowerCase() === 'valued customer'
+  const cleaned = cleanCustomerName(rawName)
   return {
     honorific: 'Customer',
     salutation: 'Assalam o Alaikum',
-    fullNameWithHonorific: isGeneric ? '' : name,
+    fullNameWithHonorific: cleaned,
     confidence: 'universal'
   }
 }
@@ -143,24 +172,21 @@ export function formatWhatsAppMessage(
   const noteContent = (customNote && customNote.trim()) ? customNote.trim() : defaultNote
 
   const rawCustomerName = (parcel.name || '').trim()
-  const isGenericName = !rawCustomerName || 
-    rawCustomerName.toLowerCase() === 'customer' || 
-    rawCustomerName.toLowerCase() === 'valued customer' ||
-    rawCustomerName.toLowerCase() === 'n/a'
+  const cleanedCustomerName = cleanCustomerName(rawCustomerName)
 
   let text = rawTemplate
 
-  if (isGenericName) {
+  if (!cleanedCustomerName) {
     // If no real customer name exists, make greeting clean and natural (no weird blank spaces)
     text = text
-      .replace(/Assalam\s+o\s+Alaikum\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Assalam o Alaikum!')
-      .replace(/Salam\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Salam!')
+      .replace(/Assalam\s+o\s+Alaikum\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Assalam o Alaikum')
+      .replace(/Salam\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Salam')
       .replace(/Dear\s+{(?:honorific_name|name|customer_name)},?/gi, 'Dear Customer,')
       .replace(/{(?:honorific_name|name|customer_name)}/gi, '')
   } else {
-    // Inject clean real customer name (e.g. "Mrs Toseef", "Ahmed Ali")
+    // Inject clean universal customer name (e.g. "Toseef", "Ahmed")
     text = text
-      .replace(/{(?:honorific_name|name|customer_name)}/gi, rawCustomerName)
+      .replace(/{(?:honorific_name|name|customer_name)}/gi, cleanedCustomerName)
   }
 
   const greetingInfo = getRespectfulGreeting(rawCustomerName)
