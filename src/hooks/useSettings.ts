@@ -273,7 +273,7 @@ function readLocal(userId: string, field: keyof Settings): any {
     if (val) {
       try {
         const parsed = JSON.parse(val)
-        if (Array.isArray(parsed) && parsed.length > 0 && !JSON.stringify(parsed).includes('Order Total:')) {
+        if (Array.isArray(parsed) && parsed.length >= DEFAULT_WHATSAPP_VARIANTS.greeting.length && !JSON.stringify(parsed).includes('Order Total:')) {
           return parsed
         }
       } catch {}
@@ -591,7 +591,12 @@ export function useSettings() {
           merged.api_history = (data.settings as any).api_history
         }
         if (Array.isArray((data.settings as any)?.whatsapp_greeting_variants)) {
-          merged.whatsapp_greeting_variants = (data.settings as any).whatsapp_greeting_variants
+          const remoteGreeting = (data.settings as any).whatsapp_greeting_variants
+          if (remoteGreeting.length >= DEFAULT_WHATSAPP_VARIANTS.greeting.length) {
+            merged.whatsapp_greeting_variants = remoteGreeting
+          } else {
+            merged.whatsapp_greeting_variants = DEFAULT_WHATSAPP_VARIANTS.greeting
+          }
         }
         if (Array.isArray((data.settings as any)?.whatsapp_booking_variants)) {
           merged.whatsapp_booking_variants = (data.settings as any).whatsapp_booking_variants

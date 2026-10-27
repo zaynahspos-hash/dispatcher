@@ -172,6 +172,11 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
 
   // Unified Single Primary Dispatch Handler
   const handleDispatch = () => {
+    // STRICT: Timer skip click kiye bina next msg send na ho sake
+    if (cooldown.isCooling) {
+      return
+    }
+
     const textToSend = resolvedMessage
     const cleanPhone = getCleanPhone(parcel.phone)
     const encoded = encodeURIComponent(textToSend)
@@ -307,18 +312,23 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           </div>
         </div>
 
-        {/* Variant Selector - Single Unified Row */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
-          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            Anti-Ban Variant (Auto-Rotating):
-          </span>
-          <div className="flex items-center gap-1">
+        {/* Variant Selector - Scrollable Horizontal Row */}
+        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-semibold text-slate-600 dark:text-slate-300">
+              Anti-Ban Variant (Auto-Rotating 1-by-1):
+            </span>
+            <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+              {currentVariantIdx + 1} of {activeVariantList.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
             {activeVariantList.map((_, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelectVariant(idx)}
-                className={`h-6 px-2 rounded-md text-[10px] font-bold transition cursor-pointer ${
+                className={`h-6 px-2.5 rounded-md text-[10px] font-bold transition shrink-0 cursor-pointer ${
                   currentVariantIdx === idx
                     ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xs'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
@@ -366,25 +376,6 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           </div>
         </div>
 
-        {/* Anti-Ban Delay Feedback (if cooling) */}
-        {cooldown.isCooling && (
-          <div className="p-2.5 rounded-xl bg-amber-500/[0.08] dark:bg-amber-500/[0.1] border border-amber-500/25 flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <ClockIcon size={13} className="text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
-              <span className="font-semibold text-amber-900 dark:text-amber-200 truncate">
-                Anti-Ban Safe Delay: {cooldown.formattedTime} remaining
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={cooldown.clearCooldown}
-              className="text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer shrink-0"
-            >
-              Skip Wait
-            </button>
-          </div>
-        )}
-
         {/* Client Target Segmented Toggle (Desktop only) */}
         {!isMobile && (
           <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
@@ -422,20 +413,39 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           </div>
         )}
 
-        {/* Exactly ONE Authoritative Primary Action Button (Rule DS1) */}
-        <button
-          type="button"
-          onClick={handleDispatch}
-          className="w-full h-11 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-sm shadow-sm shadow-[#25D366]/25 transition active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-        >
-          <WhatsAppIcon size={18} className="fill-current text-white" />
-          <span>
-            {cooldown.isCooling 
-              ? `Send Now (${cooldown.formattedTime})` 
-              : `Send via WhatsApp ${!isMobile && waTarget === 'app' ? 'Desktop App' : 'Web'}`
-            }
-          </span>
-        </button>
+        {/* Authoritative Primary Action Button with Cooldown Lock (Rule DS1) */}
+        {cooldown.isCooling ? (
+          <div className="space-y-2 pt-1">
+            <button
+              type="button"
+              disabled
+              className="w-full h-11 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/90 text-slate-400 dark:text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700/80 cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-none"
+            >
+              <ClockIcon size={15} className="text-amber-500 animate-spin" />
+              <span>
+                Cooldown Active ({cooldown.formattedTime}) • Send Locked
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={cooldown.clearCooldown}
+              className="w-full h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-500/30 transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
+            >
+              <span>⚡ Skip Timer & Unlock Send Button</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleDispatch}
+            className="w-full h-11 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-sm shadow-sm shadow-[#25D366]/25 transition active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+          >
+            <WhatsAppIcon size={18} className="fill-current text-white" />
+            <span>
+              Send via WhatsApp {!isMobile && waTarget === 'app' ? 'Desktop App' : 'Web'}
+            </span>
+          </button>
+        )}
 
       </div>
     </div>

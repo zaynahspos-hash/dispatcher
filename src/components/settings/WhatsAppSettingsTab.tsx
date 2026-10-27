@@ -124,6 +124,33 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
         whatsapp_status_variants: defaultList
       })
     }
+    setActiveVariantIdx(0)
+  }
+
+  const handleAddVariant = () => {
+    const defaultTemplate = DEFAULT_WHATSAPP_VARIANTS[activeCategory][0] || ''
+    const updated = [...currentVariants, defaultTemplate]
+    if (activeCategory === 'greeting') {
+      updateSetting('whatsapp_greeting_variants', updated)
+    } else if (activeCategory === 'booking') {
+      updateSetting('whatsapp_booking_variants', updated)
+    } else if (activeCategory === 'status') {
+      updateSetting('whatsapp_status_variants', updated)
+    }
+    setActiveVariantIdx(updated.length - 1)
+  }
+
+  const handleDeleteVariant = (idxToRemove: number) => {
+    if (currentVariants.length <= 1) return
+    const updated = currentVariants.filter((_, i) => i !== idxToRemove)
+    if (activeCategory === 'greeting') {
+      updateSetting('whatsapp_greeting_variants', updated)
+    } else if (activeCategory === 'booking') {
+      updateSetting('whatsapp_booking_variants', updated)
+    } else if (activeCategory === 'status') {
+      updateSetting('whatsapp_status_variants', updated)
+    }
+    setActiveVariantIdx(Math.max(0, idxToRemove - 1))
   }
 
   const currentNote = (!settings.whatsapp_note || isCorruptText(settings.whatsapp_note)) ? DEFAULT_NOTE : settings.whatsapp_note
@@ -275,7 +302,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 Message Templates & Variants
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Customize 4 rotating variants for each template to avoid repetitive text triggers.
+                Customize rotating variations for each template to avoid repetitive text triggers.
               </p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -292,7 +319,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 onClick={handleResetAllVariants}
                 className="text-[10px] text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition cursor-pointer"
               >
-                Reset All 4
+                Reset All Defaults
               </button>
             </div>
           </div>
@@ -330,25 +357,48 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
           </ScrollableChipsBar>
 
           {/* Variant Selector Tabs */}
-          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800">
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-              Rotating Variations:
-            </span>
-            <div className="flex items-center gap-1">
-              {[0, 1, 2, 3].map(idx => (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Rotating Variations:
+              </span>
+              <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                ({currentVariants.length} Active)
+              </span>
+            </div>
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
+              {currentVariants.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setActiveVariantIdx(idx)}
-                  className={`h-7 px-3 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  className={`h-7 px-2.5 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer ${
                     activeVariantIdx === idx
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
                   }`}
                 >
-                  Variant {idx + 1}
+                  Var {idx + 1}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={handleAddVariant}
+                title="Add new template variation"
+                className="h-7 px-2.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition shrink-0 cursor-pointer flex items-center gap-1"
+              >
+                + Add
+              </button>
+              {currentVariants.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteVariant(activeVariantIdx)}
+                  title={`Delete Variant ${activeVariantIdx + 1}`}
+                  className="h-7 px-2.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition shrink-0 cursor-pointer"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </div>
 

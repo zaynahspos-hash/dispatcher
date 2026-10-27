@@ -70,20 +70,38 @@ export function getRespectfulGreeting(rawName?: string): RespectfulGreetingInfo 
  * - STATUS: Real-time milestone update.
  */
 export const DEFAULT_WHATSAPP_VARIANTS = {
-  // 1. Fresh Number / Greeting & Verification Template Variants
+  // 1. Fresh Number / Greeting & Verification Template Variants (10 Variants)
   // ZERO links, ZERO tracking CN, ZERO amount, ZERO destination (100% Ban-Safe for fresh contacts)
   greeting: [
     // Variant 1
-    'Assalam o Alaikum {customer_name} 🌷\nAap ka parcel bohat jald aap tak pohanch jaye ga 📦\nHamara number save kar ke "OK" likh dein, baat karna asaan rahe ga 😊\nShukriya 🤍',
+    'Assalam o Alaikum {customer_name} 🌸\nAap ka parcel jald aap ke paas ho ga 📦\nBas number save kar ke "OK" bhej dein, rabta karna asaan ho jaye ga 😊\nJazakAllah ❤️',
 
     // Variant 2
-    'Assalam o Alaikum {customer_name} ✨\nAap ka parcel aap ke qareeb hai, jald mil jaye ga 📦\nNumber save kar lein aur "OK" bhej dein, taake rabta rahe 😊\nJazakAllah 🌸',
+    'Assalam o Alaikum {customer_name} 🌷\nAap ka parcel bohat jald aap tak pohanch jaye ga 📦\nHamara number save kar ke "OK" likh dein, baat karna asaan rahe ga 😊\nShukriya 🤍',
 
     // Variant 3
-    'Assalam o Alaikum {customer_name} 💐\nAap ke parcel ka intezar khatam hone wala hai 📦\nBas ye number save kar ke "OK" likh dein, rabta karna asaan ho jaye ga 📲\nBohat shukriya ❤️',
+    'Assalam o Alaikum {customer_name} ✨\nAap ka parcel aap ke qareeb hai, jald mil jaye ga 📦\nNumber save kar lein aur "OK" bhej dein, taake rabta rahe 😊\nJazakAllah 🌸',
 
     // Variant 4
-    'Assalam o Alaikum {customer_name} 😊\nAap ka parcel jald aap ke hath mein ho ga 📦\nHamara number save kar lein aur "OK" bhej dein, update dena asaan rahe ga ✨\nJazakAllah 🤍'
+    'Assalam o Alaikum {customer_name} 💐\nAap ke parcel ka intezar khatam hone wala hai 📦\nBas ye number save kar ke "OK" likh dein, rabta karna asaan ho jaye ga 📲\nBohat shukriya ❤️',
+
+    // Variant 5
+    'Assalam o Alaikum {customer_name} 😊\nAap ka parcel jald aap ke hath mein ho ga 📦\nHamara number save kar lein aur "OK" bhej dein, update dena asaan rahe ga ✨\nJazakAllah 🤍',
+
+    // Variant 6
+    'Assalam o Alaikum {customer_name} 🌼\nAap ka parcel ab aap se zyada door nahi 📦\nHamara number save kar ke "OK" likh dein, rabta karna aasan ho jaye ga 😊\nShukriya 🤍',
+
+    // Variant 7
+    'Assalam o Alaikum {customer_name} ✨\nAap ka parcel bas pohanchne hi wala hai 📦\nNumber save kar lein aur "OK" bhej dein, taake baat cheet mein asani rahe 📲\nJazakAllah 🌷',
+
+    // Variant 8
+    'Assalam o Alaikum {customer_name} 💖\nAap ka parcel jald aap ke darwaze par ho ga 📦\nBas ye number save kar ke "OK" likh dein, rabta karna asaan rahe ga 😊\nBohat shukriya 🌸',
+
+    // Variant 9
+    'Assalam o Alaikum {customer_name} 🌺\nAap ke parcel ki khabar achhi hai, jald mil jaye ga 📦\nHamara number save kar lein aur "OK" bhej dein, taake update dena aasan ho ✨\nJazakAllah 🤍',
+
+    // Variant 10
+    'Assalam o Alaikum {customer_name} 😊\nAap ka parcel safar mein hai aur jald aap tak aa jaye ga 📦\nNumber save kar ke "OK" likh dein, taake rabta bana rahe 📲\nShukriya, khush rahein ❤️'
   ],
 
   // 2. Booking Confirmation Template Variants
