@@ -61,26 +61,24 @@ const MALE_NAMES = new Set([
 ])
 
 export interface RespectfulGreetingInfo {
-  honorific: 'Sir' | 'Ma\'am' | 'Sahib' | 'Sahiba' | 'Janab'
+  honorific: 'Sir' | 'Ma\'am' | 'Janab' | 'Customer'
   salutation: string
   fullNameWithHonorific: string
   confidence: 'high' | 'medium' | 'universal'
 }
 
 /**
- * Intelligently analyzes customer name and extracts respectful greeting & title.
- * Accurately detects:
- * - Sir (Male names)
- * - Ma'am (Female names)
- * - Janab / Sahiba/Sahib (Unisex & neutral names)
+ * Intelligently extracts customer name without appending awkward titles.
+ * If customer is "Mrs Toseef", keeps "Mrs Toseef".
+ * If name is unmatched/unknown, keeps raw clean name without guessing.
  */
 export function getRespectfulGreeting(rawName?: string): RespectfulGreetingInfo {
   const name = (rawName || '').trim()
   if (!name || name.toLowerCase() === 'customer' || name.toLowerCase() === 'valued customer') {
     return {
-      honorific: 'Janab',
+      honorific: 'Customer',
       salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: 'Mohtaram Customer',
+      fullNameWithHonorific: '',
       confidence: 'universal'
     }
   }
@@ -88,101 +86,91 @@ export function getRespectfulGreeting(rawName?: string): RespectfulGreetingInfo 
   const lower = name.toLowerCase()
   const parts = lower.split(/[\s._-]+/).filter(Boolean)
 
-  // 1. Explicit title prefix checks
+  // 1. Explicit title prefix in the raw name (keep original name as is, never append!)
   if (lower.startsWith('mrs') || lower.startsWith('miss') || lower.startsWith('ms.') || lower.startsWith('ms ') || lower.startsWith('madam')) {
-    const clean = name.replace(/^(mrs\.?|miss\.?|ms\.?|madam)\s+/i, '').trim()
     return {
-      honorific: 'Ma\'am',
+      honorific: "Ma'am",
       salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: `${clean || name} Ma'am`,
+      fullNameWithHonorific: name,
       confidence: 'high'
     }
   }
 
   if (lower.startsWith('mr.') || lower.startsWith('mr ') || lower.startsWith('mister')) {
-    const clean = name.replace(/^(mr\.?|mister)\s+/i, '').trim()
     return {
       honorific: 'Sir',
       salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: `${clean || name} Sir`,
+      fullNameWithHonorific: name,
       confidence: 'high'
     }
   }
 
-  // 2. Ambiguous / Unisex name check (e.g., Noor, Dua, Naseem) -> Universal respectful greeting
-  const isUnisex = parts.some(p => UNISEX_NAMES.has(p))
+  // 2. Verified name list check
   const isFemale = parts.some(p => FEMALE_NAMES.has(p))
   const isMale = parts.some(p => MALE_NAMES.has(p))
 
-  // If strictly unisex or mixed, use universal respectful form
-  if (isUnisex && (!isFemale || !isMale)) {
-    return {
-      honorific: 'Mohtaram',
-      salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: `Mohtaram ${name}`,
-      confidence: 'universal'
-    }
-  }
-
-  // 3. Known female name check
   if (isFemale && !isMale) {
     return {
-      honorific: 'Ma\'am',
+      honorific: "Ma'am",
       salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: `${name} Ma'am`,
+      fullNameWithHonorific: name,
       confidence: 'high'
     }
   }
 
-  // 4. Known male name check
   if (isMale && !isFemale) {
     return {
       honorific: 'Sir',
       salutation: 'Assalam o Alaikum',
-      fullNameWithHonorific: `${name} Sir`,
+      fullNameWithHonorific: name,
       confidence: 'high'
     }
   }
 
-  // 5. Universal respectful Pakistani e-commerce standard (for any unmatched name - both men & women)
+  // 3. Universal / Unmatched: Keep clean original customer name without awkward appendages
   return {
-    honorific: 'Mohtaram',
+    honorific: 'Customer',
     salutation: 'Assalam o Alaikum',
-    fullNameWithHonorific: `Mohtaram ${name}`,
+    fullNameWithHonorific: name,
     confidence: 'universal'
   }
 }
 
 /**
  * 4 Rotating Pre-Crafted Message Variants for each Template.
- * Anti-Ban Protection: By rotating variants 1-by-1, WhatsApp never detects duplicate mass broadcast.
+ * 100% Anti-Ban Protection:
+ * - GREETING: ZERO links, ZERO CN tracking numbers, ZERO COD amounts, ZERO destinations.
+ *   Casual conversational human tone that builds trust and asks for "OK" reply.
+ * - BOOKING: Official PostEx booking confirmation with tracking link and COD.
+ * - STATUS: Real-time milestone update.
  */
 export const DEFAULT_WHATSAPP_VARIANTS = {
   // 1. Fresh Number / Greeting & Verification Template Variants
+  // ZERO links, ZERO tracking CN, ZERO amount, ZERO destination (100% Ban-Safe for fresh contacts)
   greeting: [
-    // Variant 1: Warm & Professional with number save request
-    'Assalam o Alaikum {honorific_name}! ✨\n\nUmeed hai aap khairiyat se honge. Aap ka order hamare paas confirm ho chuka hai. 🛍️📦\n\nOrder Total: Rs. {order_amount}\nDestination: {city}\n\nMeharbani farma kar hamara yeh number apne paas save kar lein aur reply mein "OK" likh dein taake rider ke aane par asani se rabta ho sake. 📲✅\n\nThank you for shopping with us! ❤️',
+    // Variant 1: Warm friendly confirmation
+    'Assalam o Alaikum {customer_name}! ✨\n\nUmeed hai aap khairiyat se honge. Aap ka order confirm ho gaya hai. 🛍️\n\nMeharbani farma kar hamara yeh number apne paas save kar lein aur reply mein "OK" likh dein taake delivery rider ke aane par asani se rabta ho sake. 📲✅\n\nThank you! ❤️',
 
-    // Variant 2: Direct Logistics Greeting
-    'Assalam o Alaikum {customer_name}! 🌸\n\nAap ke order ka parcel dispatch ke liye ready ho raha hai. 🚚💨\n\nConsignment CN: {tracking_number}\nTotal COD: Rs. {order_amount}\n\nDelivery rider ki call ke liye apna phone ON rakhain aur updates ke liye hamara number save farma lein. Agar koi question ho to yahan WhatsApp par rabta karein. 💬📞',
+    // Variant 2: Casual logistics greeting
+    'Salam {customer_name}! 😊\n\nAap ka order successfully receive ho chuka hai aur dispatch ke liye ready ho raha hai. 📦\n\nRider ki delivery call ke liye apna phone active rakhain aur hamara WhatsApp number save kar ke "OK" reply zaroor karein. 🤝✨\n\nShukriya!',
 
-    // Variant 3: Polite Trust-Building Question
-    'Salam {honorific_name}! 😊\n\nAap ka order hamare system mein book ho gaya hai. Rider dispatch hone se pehle barah-e-karam apna address check kar lein:\n📍 {city}\n💵 Total: Rs. {order_amount}\n\nNumber save kar ke "OK" reply zaroor karein taake delivery confirm ho jaye. 🤝✨',
+    // Variant 3: Clean polite welcome
+    'Assalam o Alaikum {customer_name}! 🌸\n\nAap ka order confirm ho chuka hai. 🚚\n\nBarah-e-karam hamara official number save farma lein aur confirmation ke liye yahan "OK" likh dein taake rider asani se parcel deliver kar sakay. 📱\n\nZaynahs se shopping karne ka shukriya!',
 
-    // Variant 4: Clean VIP Welcome
-    'Dear {customer_name}, Assalam o Alaikum! 🌟\n\nZaynahs se order karne ka shukriya! Aap ka parcel packing stage par hai aur jald PostEx courier ko hand over kar diya jayega. 📦\n\nLive Tracking link aur updates ke liye hamara WhatsApp contact save rakhain. 📱\nHappy Shopping! 🎉'
+    // Variant 4: Short & conversational
+    'Salam {customer_name}! 🌟\n\nAap ka order hamare paas book ho gaya hai.\n\nDelivery ke waqt asani ke liye hamara number apne paas save kar lein aur ek baar "OK" bhej dein. 📲\n\nHave a great day! 🎉'
   ],
 
   // 2. Booking Confirmation Template Variants
   booking: [
     // Variant 1: Detailed tracking alert
-    '📦 postex.pk • Booking Alert 🚚\n\nAssalam o Alaikum {honorific_name}!\nAap ka order successfully book ho chuka hai. 🎉\n\nTracking CN: {tracking_number}\nTotal Bill: Rs. {order_amount}\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
+    '📦 postex.pk • Booking Alert 🚚\n\nAssalam o Alaikum {customer_name}!\nAap ka order successfully book ho chuka hai. 🎉\n\nTracking CN: {tracking_number}\nTotal Bill: Rs. {order_amount}\nAap ise yahan live track kar sakti hain:\n🔗 {portal_link}\n\n{note}',
 
     // Variant 2: Quick delivery dispatch
     '🚚 Order Booked & Dispatched!\n\nDear {customer_name},\nAap ka parcel courier network ke hawale kiya ja chuka hai. 📦💨\n\nPostEx CN: {tracking_number}\nCOD Amount: Rs. {order_amount}\nLive Tracking: 🔗 {portal_link}\n\nDelivery ke waqt cash ready rakhain. Shukriya! 🙏',
 
     // Variant 3: Conversational Order Confirmation
-    'Salam {honorific_name}! 😊\n\nAap ka consignment book ho gaya hai aur PostEx tracking number generate ho chuka hai:\n🔖 CN: {tracking_number}\n💵 COD: Rs. {order_amount}\n🔗 Live Link: {portal_link}\n\n{note}',
+    'Salam {customer_name}! 😊\n\nAap ka consignment book ho gaya hai aur PostEx tracking number generate ho chuka hai:\n🔖 CN: {tracking_number}\n💵 COD: Rs. {order_amount}\n🔗 Live Link: {portal_link}\n\n{note}',
 
     // Variant 4: Sleek e-Commerce Invoice Alert
     '✅ PostEx Dispatch Confirmation\n\nDear {customer_name},\nAap ka parcel book ho chuka hai. Destination: {city}.\nTotal Amount: Rs. {order_amount}\n\nTrack here: {portal_link}\nKisi bhi madad ke liye hamara number save rakhain aur yahan WhatsApp karein. ⭐'
@@ -191,13 +179,13 @@ export const DEFAULT_WHATSAPP_VARIANTS = {
   // 3. Live Courier Status / Milestone Alert Variants
   status: [
     // Variant 1: Out for Delivery / Live Milestone Alert
-    '🛵 postex.pk • Live Delivery Alert 🚚\n\nAssalam o Alaikum {honorific_name}!\nAap ka parcel Rider ke sath Out for Delivery nikal chuka hai! 📦💨\n\nStatus: {live_status}\nOrder Total: Rs. {order_amount} 💵\nTracking: {portal_link}\n\nMeharbani farma kar apna SIM number ON rakhain aur cash ready rakhain taake rider asani se delivery kar sakay. 🚚✨',
+    '🛵 postex.pk • Live Delivery Alert 🚚\n\nAssalam o Alaikum {customer_name}!\nAap ka parcel Rider ke sath Out for Delivery nikal chuka hai! 📦💨\n\nStatus: {live_status}\nOrder Total: Rs. {order_amount} 💵\nTracking: {portal_link}\n\nMeharbani farma kar apna SIM number ON rakhain aur cash ready rakhain taake rider asani se delivery kar sakay. 🚚✨',
 
     // Variant 2: In Transit / Movement Update
     '🚚 postex.pk • Shipment Movement Update 🛣️\n\nDear {customer_name},\nAap ka parcel courier network mein on the way hai! 📦\n\nCurrent Milestone: {live_status}\nDestination: {city}\nLive Tracking: 🔗 {portal_link}\n\n{note}',
 
     // Variant 3: Delivery Alert with Rider Assistance
-    '📢 Urgent Delivery Update\n\nSalam {honorific_name}! Rider aap ke area mein deliver karne nikal chuka hai.\nTotal Payment: Rs. {order_amount}\nTracking CN: {tracking_number}\n\nBarah-e-karam apna phone call receive karne ke liye ready rakhain. Shukriya! 📞🛵',
+    '📢 Urgent Delivery Update\n\nSalam {customer_name}! Rider aap ke area mein deliver karne nikal chuka hai.\nTotal Payment: Rs. {order_amount}\nTracking CN: {tracking_number}\n\nBarah-e-karam apna phone call receive karne ke liye ready rakhain. Shukriya! 📞🛵',
 
     // Variant 4: Successful Milestone Notification
     '📦 Delivery Status Notification\n\nDear {customer_name},\nAap ke parcel ka live status update hua hai:\n📌 {live_status}\nCity: {city}\nTrack: {portal_link}\n\nHappy Shopping with Zaynahs! 🛍️'
@@ -244,6 +232,7 @@ export function setStoredVariantIndex(category: WhatsAppTemplateCategory, index:
 
 /**
  * Formats a template string by replacing all dynamic tags with real parcel data.
+ * If customer has no name, cleanly omits the name so message says "Assalam o Alaikum!" naturally.
  */
 export function formatWhatsAppMessage(
   rawTemplate: string,
@@ -253,16 +242,36 @@ export function formatWhatsAppMessage(
   if (!rawTemplate) return ''
   const trackingUrl = `https://postex.pk/tracking?cn=${parcel.tracking || ''}`
   const formattedTotal = Number(parcel.total || 0).toLocaleString('en-PK')
-  const greetingInfo = getRespectfulGreeting(parcel.name)
 
   const defaultNote = 'Meharbani farma kar apna local SIM phone number ON rakhain 📱🔔 taake delivery rider asani se rabta kar sake 🚚💨\n\nReview dejye ga lazmi is number pe ⭐📝 aur agar 2-5 din mein parcel receive nahi hota ⏳ to is number pe rabta karna hai 📞\n\nHappy Shopping! 🛍️😊🎉'
   const noteContent = (customNote && customNote.trim()) ? customNote.trim() : defaultNote
 
-  return rawTemplate
-    .replace(/{(?:honorific_name)}/gi, greetingInfo.fullNameWithHonorific)
+  const rawCustomerName = (parcel.name || '').trim()
+  const isGenericName = !rawCustomerName || 
+    rawCustomerName.toLowerCase() === 'customer' || 
+    rawCustomerName.toLowerCase() === 'valued customer' ||
+    rawCustomerName.toLowerCase() === 'n/a'
+
+  let text = rawTemplate
+
+  if (isGenericName) {
+    // If no real customer name exists, make greeting clean and natural (no weird blank spaces)
+    text = text
+      .replace(/Assalam\s+o\s+Alaikum\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Assalam o Alaikum!')
+      .replace(/Salam\s+{(?:honorific_name|name|customer_name)}[!]?/gi, 'Salam!')
+      .replace(/Dear\s+{(?:honorific_name|name|customer_name)},?/gi, 'Dear Customer,')
+      .replace(/{(?:honorific_name|name|customer_name)}/gi, '')
+  } else {
+    // Inject clean real customer name (e.g. "Mrs Toseef", "Ahmed Ali")
+    text = text
+      .replace(/{(?:honorific_name|name|customer_name)}/gi, rawCustomerName)
+  }
+
+  const greetingInfo = getRespectfulGreeting(rawCustomerName)
+
+  text = text
     .replace(/{(?:greeting)}/gi, greetingInfo.salutation)
     .replace(/{(?:title|honorific)}/gi, greetingInfo.honorific)
-    .replace(/{(?:name|customer_name)}/gi, parcel.name || 'Valued Customer')
     .replace(/{(?:url|portal_link)}/gi, trackingUrl)
     .replace(/{(?:amount|order_amount|total)}/gi, formattedTotal)
     .replace(/{(?:tracking|tracking_number|cn)}/gi, parcel.tracking || '')
@@ -270,4 +279,7 @@ export function formatWhatsAppMessage(
     .replace(/{(?:status|live_status)}/gi, parcel.status || 'Booked')
     .replace(/{items}/gi, String(parcel.items || 1))
     .replace(/{note}/gi, noteContent)
+
+  // Clean up any double spaces or orphan punctuation
+  return text.replace(/[ \t]{2,}/g, ' ').replace(/\s+([!?,])/g, '$1')
 }
