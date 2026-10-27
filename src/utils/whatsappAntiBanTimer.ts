@@ -114,14 +114,17 @@ export function useWhatsAppCooldown(configuredCooldownSec: number = DEFAULT_ANTI
 
   const isCooling = remaining > 0
   const progressPercent = totalDuration > 0 ? Math.min(100, Math.round(((totalDuration - remaining) / totalDuration) * 100)) : 100
+  const formatted = formatCooldownTime(remaining)
 
   return {
     isCooling,
     remainingSeconds: remaining,
-    formattedRemaining: formatCooldownTime(remaining),
+    formattedRemaining: formatted,
+    formattedTime: formatted,
     progressPercent,
     totalDuration,
     triggerCooldown,
-    skipCooldown
+    skipCooldown,
+    clearCooldown: skipCooldown
   }
 }
