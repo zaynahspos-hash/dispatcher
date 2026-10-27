@@ -264,19 +264,31 @@ function readLocal(userId: string, field: keyof Settings): any {
     }
   }
   if (field === 'whatsapp_template_greeting') {
-    if (!val || isCorruptText(val) || !val.includes('Assalam')) {
+    if (!val || isCorruptText(val) || !val.includes('Assalam') || val.includes('Order Total:')) {
       writeLocal(userId, field, DEFAULT_WHATSAPP_VARIANTS.greeting[0])
       return DEFAULT_WHATSAPP_VARIANTS.greeting[0]
     }
   }
-  if (field === 'whatsapp_greeting_variants' || field === 'whatsapp_booking_variants' || field === 'whatsapp_status_variants') {
+  if (field === 'whatsapp_greeting_variants') {
+    if (val) {
+      try {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0 && !JSON.stringify(parsed).includes('Order Total:')) {
+          return parsed
+        }
+      } catch {}
+    }
+    writeLocal(userId, field, DEFAULT_WHATSAPP_VARIANTS.greeting)
+    return DEFAULT_WHATSAPP_VARIANTS.greeting
+  }
+  if (field === 'whatsapp_booking_variants' || field === 'whatsapp_status_variants') {
     if (val) {
       try {
         const parsed = JSON.parse(val)
         if (Array.isArray(parsed) && parsed.length > 0) return parsed
       } catch {}
     }
-    const cat = field === 'whatsapp_greeting_variants' ? 'greeting' : field === 'whatsapp_booking_variants' ? 'booking' : 'status'
+    const cat = field === 'whatsapp_booking_variants' ? 'booking' : 'status'
     return DEFAULT_WHATSAPP_VARIANTS[cat]
   }
   if (field === 'whatsapp_antiban_delay_sec') {

@@ -148,17 +148,17 @@ export const DEFAULT_WHATSAPP_VARIANTS = {
   // 1. Fresh Number / Greeting & Verification Template Variants
   // ZERO links, ZERO tracking CN, ZERO amount, ZERO destination (100% Ban-Safe for fresh contacts)
   greeting: [
-    // Variant 1: Warm friendly confirmation
-    'Assalam o Alaikum {customer_name}! ✨\n\nUmeed hai aap khairiyat se honge. Aap ka order confirm ho gaya hai. 🛍️\n\nMeharbani farma kar hamara yeh number apne paas save kar lein aur reply mein "OK" likh dein taake delivery rider ke aane par asani se rabta ho sake. 📲✅\n\nThank you! ❤️',
+    // Variant 1
+    'Assalam o Alaikum {customer_name} 🌷\nAap ka parcel bohat jald aap tak pohanch jaye ga 📦\nHamara number save kar ke "OK" likh dein, baat karna asaan rahe ga 😊\nShukriya 🤍',
 
-    // Variant 2: Casual logistics greeting
-    'Salam {customer_name}! 😊\n\nAap ka order successfully receive ho chuka hai aur dispatch ke liye ready ho raha hai. 📦\n\nRider ki delivery call ke liye apna phone active rakhain aur hamara WhatsApp number save kar ke "OK" reply zaroor karein. 🤝✨\n\nShukriya!',
+    // Variant 2
+    'Assalam o Alaikum {customer_name} ✨\nAap ka parcel aap ke qareeb hai, jald mil jaye ga 📦\nNumber save kar lein aur "OK" bhej dein, taake rabta rahe 😊\nJazakAllah 🌸',
 
-    // Variant 3: Clean polite welcome
-    'Assalam o Alaikum {customer_name}! 🌸\n\nAap ka order confirm ho chuka hai. 🚚\n\nBarah-e-karam hamara official number save farma lein aur confirmation ke liye yahan "OK" likh dein taake rider asani se parcel deliver kar sakay. 📱\n\nZaynahs se shopping karne ka shukriya!',
+    // Variant 3
+    'Assalam o Alaikum {customer_name} 💐\nAap ke parcel ka intezar khatam hone wala hai 📦\nBas ye number save kar ke "OK" likh dein, rabta karna asaan ho jaye ga 📲\nBohat shukriya ❤️',
 
-    // Variant 4: Short & conversational
-    'Salam {customer_name}! 🌟\n\nAap ka order hamare paas book ho gaya hai.\n\nDelivery ke waqt asani ke liye hamara number apne paas save kar lein aur ek baar "OK" bhej dein. 📲\n\nHave a great day! 🎉'
+    // Variant 4
+    'Assalam o Alaikum {customer_name} 😊\nAap ka parcel jald aap ke hath mein ho ga 📦\nHamara number save kar lein aur "OK" bhej dein, update dena asaan rahe ga ✨\nJazakAllah 🤍'
   ],
 
   // 2. Booking Confirmation Template Variants
