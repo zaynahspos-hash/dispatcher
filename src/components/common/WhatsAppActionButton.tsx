@@ -53,7 +53,11 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     ? `Anti-Ban Safe Delay: ${cooldown.formattedTime} remaining • ${rawTitle}`
     : rawTitle
 
-  const resolvedLabel = label !== undefined ? label : (isSent ? 'Sent' : 'WhatsApp')
+  const resolvedLabel = label !== undefined
+    ? label
+    : (cooldown.isCooling && !disabled
+        ? (cooldown.formattedTime || cooldown.formattedRemaining || 'Wait')
+        : (isSent ? 'Sent' : 'WhatsApp'))
 
   // Authentic WhatsApp Brand Styling:
   // - Sent: Solid WhatsApp green (#25D366) with white icon and dark green teal status dot (#128C7E)
@@ -77,7 +81,11 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   const content = (
     <>
       <WhatsAppIcon size={14} className={iconColor} />
-      {isChip && <span>{resolvedLabel}</span>}
+      {isChip && (
+        <span className={cooldown.isCooling && !disabled ? 'font-mono tracking-tight text-amber-600 dark:text-amber-400 font-extrabold' : ''}>
+          {resolvedLabel}
+        </span>
+      )}
       {isSent && !disabled && (
         <span
           className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#128C7E] border-2 border-white dark:border-slate-900 ring-1 ring-[#25D366]"
@@ -85,10 +93,16 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
         />
       )}
       {cooldown.isCooling && !disabled && (
-        <span
-          className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-white dark:border-slate-900 ring-1 ring-amber-400 animate-pulse"
-          aria-hidden="true"
-        />
+        <>
+          <span
+            className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-400 opacity-75 animate-ping"
+            aria-hidden="true"
+          />
+          <span
+            className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-white dark:border-slate-900 ring-1 ring-amber-400 shadow-2xs"
+            aria-hidden="true"
+          />
+        </>
       )}
     </>
   )

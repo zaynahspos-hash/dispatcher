@@ -413,25 +413,51 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           </div>
         )}
 
-        {/* Authoritative Primary Action Button with Cooldown Lock (Rule DS1) */}
+        {/* Authoritative Primary Action with Smart Highlighted Cooldown (Rule DS1) */}
         {cooldown.isCooling ? (
-          <div className="space-y-2 pt-1">
-            <button
-              type="button"
-              disabled
-              className="w-full h-11 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/90 text-slate-400 dark:text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700/80 cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-none"
-            >
-              <ClockIcon size={15} className="text-amber-500 animate-spin" />
-              <span>
-                Cooldown Active ({cooldown.formattedTime}) • Send Locked
-              </span>
-            </button>
+          <div className="space-y-2.5 pt-1 animate-in fade-in duration-200">
+            {/* Smart Highlighted Countdown Card */}
+            <div className="p-3 rounded-2xl bg-amber-500/[0.08] dark:bg-amber-500/[0.12] border border-amber-500/30 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                  </span>
+                  <div className="leading-tight min-w-0">
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200 block truncate">
+                      Anti-Ban Safe Delay Active
+                    </span>
+                    <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 truncate block">
+                      Cooling down to protect your WhatsApp number
+                    </span>
+                  </div>
+                </div>
+
+                {/* Highlighted Monospace Timer Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/20 dark:bg-amber-500/25 border border-amber-500/40 text-amber-950 dark:text-amber-100 font-mono text-sm font-black tracking-wider shadow-inner shrink-0">
+                  <ClockIcon size={14} className="text-amber-600 dark:text-amber-400 animate-spin" />
+                  <span>{cooldown.formattedTime || cooldown.formattedRemaining || '00:00'}</span>
+                </div>
+              </div>
+
+              {/* Smooth Progress Bar */}
+              <div className="w-full h-1.5 rounded-full bg-amber-500/20 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-1000 ease-linear"
+                  style={{ width: `${cooldown.progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Smart Skip & Unlock Button */}
             <button
               type="button"
               onClick={cooldown.clearCooldown}
-              className="w-full h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-500/30 transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
+              className="w-full h-11 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs shadow-sm shadow-amber-500/25 transition active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>⚡ Skip Timer & Unlock Send Button</span>
+              <span className="text-sm">⚡</span>
+              <span>Skip Wait ({cooldown.formattedTime || cooldown.formattedRemaining || '00:00'}) & Unlock Send Now</span>
             </button>
           </div>
         ) : (
