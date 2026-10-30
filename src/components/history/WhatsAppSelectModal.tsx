@@ -23,6 +23,7 @@ import {
   rotateToNextVariant
 } from '../../utils/whatsappTemplates'
 import { useWhatsAppCooldown } from '../../utils/whatsappAntiBanTimer'
+import { dispatchWhatsAppMessage } from '../../utils/whatsappTabManager'
 
 interface WhatsAppSelectModalProps {
   parcel: BookedParcel | null
@@ -75,7 +76,7 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
   const [waTarget, setWaTarget] = useState<WhatsAppClientTarget>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('preferred_wa_client') as WhatsAppClientTarget
-      if (saved === 'app' || saved === 'web') return saved
+      if (saved === 'app' || saved === 'web' || saved === 'universal') return saved
     }
     return 'web'
   })
@@ -178,17 +179,6 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
     }
 
     const textToSend = resolvedMessage
-    const cleanPhone = getCleanPhone(parcel.phone)
-    const encoded = encodeURIComponent(textToSend)
-
-    let url = ''
-    if (isMobile) {
-      url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
-    } else if (waTarget === 'app') {
-      url = `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
-    } else {
-      url = `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encoded}`
-    }
 
     // 1. Mark sent in tracking
     onMarkSent?.(parcel.tracking, parcel.id, selectedCategory)
@@ -199,15 +189,13 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
     // 3. Advance to next rotational variant for this category
     rotateToNextVariant(selectedCategory, activeVariantList.length)
 
-    // 4. Open WhatsApp
-    if (url.startsWith('whatsapp://')) {
-      window.location.href = url
-    } else {
-      const waWin = window.open(url, 'whatsapp_web')
-      if (waWin) {
-        try { waWin.focus() } catch (_) {}
-      }
-    }
+    // 4. Open WhatsApp via Single-Tab Reused Manager (0 Duplicate Tabs)
+    dispatchWhatsAppMessage({
+      phone: parcel.phone,
+      text: textToSend,
+      target: waTarget === 'auto' ? 'web' : waTarget,
+      isMobile
+    })
 
     onClose()
   }
@@ -378,38 +366,64 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
 
         {/* Client Target Segmented Toggle (Desktop only) */}
         {!isMobile && (
-          <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
-            <span>Send Target:</span>
-            <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setWaTarget('web')
-                  localStorage.setItem('preferred_wa_client', 'web')
-                }}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  waTarget === 'web'
-                    ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                WhatsApp Web
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setWaTarget('app')
-                  localStorage.setItem('preferred_wa_client', 'app')
-                }}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                  waTarget === 'app'
-                    ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Desktop App
-              </button>
+          <div className="space-y-1.5 px-0.5">
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span className="font-semibold text-slate-600 dark:text-slate-300">Send Target:</span>
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWaTarget('web')
+                    localStorage.setItem('preferred_wa_client', 'web')
+                  }}
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    waTarget === 'web'
+                      ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                  title="WhatsApp Web: 1 reused tab, 0 duplicate tabs"
+                >
+                  <span>WhatsApp Web</span>
+                  <span className="text-[9px] px-1 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold">1 Tab</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWaTarget('universal')
+                    localStorage.setItem('preferred_wa_client', 'universal')
+                  }}
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    waTarget === 'universal'
+                      ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-2xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                  title="Meta wa.me link: opens App safely without lookup errors"
+                >
+                  <span>App (wa.me)</span>
+                  <span className="text-[9px] px-1 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 font-extrabold">Safe</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWaTarget('app')
+                    localStorage.setItem('preferred_wa_client', 'app')
+                  }}
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold transition cursor-pointer ${
+                    waTarget === 'app'
+                      ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                  title="Direct whatsapp:// protocol launcher"
+                >
+                  Direct App
+                </button>
+              </div>
             </div>
+            {waTarget === 'app' && (
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/[0.08] p-1.5 rounded-lg border border-amber-500/20 leading-tight">
+                Agar Mac app par "Couldn't look up phone number" error aaye to phone par WhatsApp open rakhein ya <strong>WhatsApp Web (1 Tab)</strong> select karein.
+              </p>
+            )}
           </div>
         )}
 
@@ -468,7 +482,7 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
           >
             <WhatsAppIcon size={18} className="fill-current text-white" />
             <span>
-              Send via WhatsApp {!isMobile && waTarget === 'app' ? 'Desktop App' : 'Web'}
+              Send via WhatsApp {!isMobile && waTarget === 'app' ? 'Desktop App' : !isMobile && waTarget === 'universal' ? 'App (wa.me)' : 'Web (1 Tab)'}
             </span>
           </button>
         )}

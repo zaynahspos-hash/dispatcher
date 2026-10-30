@@ -1,6 +1,7 @@
 import React from 'react'
 import { WhatsAppIcon } from '../Icons'
 import { useWhatsAppCooldown } from '../../utils/whatsappAntiBanTimer'
+import { openWhatsAppWebUrl } from '../../utils/whatsappTabManager'
 
 export interface WhatsAppActionButtonProps {
   isSent: boolean
@@ -117,15 +118,11 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
         return
       }
 
-      // Re-use named 'whatsapp_web' tab/window so browser navigates the existing
+      // Re-use single 'whatsapp_web' tab/window so browser navigates the existing
       // WhatsApp Web session instead of spawning a new tab every click (which causes
       // "WhatsApp is open in another window. Click Use here to use WhatsApp in this window").
       e.preventDefault()
-      const targetWindow = target || 'whatsapp_web'
-      const win = window.open(href, targetWindow)
-      if (win) {
-        try { win.focus() } catch (_) {}
-      }
+      openWhatsAppWebUrl(href)
     }
 
     return (

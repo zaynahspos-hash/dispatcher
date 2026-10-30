@@ -13,6 +13,7 @@ import { useWhatsAppSentTracker } from '../../hooks/useWhatsAppSentTracker'
 import { supabase } from '../../utils/supabaseClient'
 import { CustomerExportModal } from './CustomerExportModal'
 import { executeAutonomousCloudSync } from '../../utils/cloudSyncManager'
+import { openWhatsAppWebUrl } from '../../utils/whatsappTabManager'
 
 interface AdminCustomerDirectoryTabProps {
   customers: CustomerEntry[]
@@ -1459,8 +1460,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                       waTracker.markSent(phoneDigits, 'both', c.id)
                       if (!waLink.startsWith('whatsapp://')) {
                         e.preventDefault()
-                        const win = window.open(waLink, 'whatsapp_web')
-                        if (win) { try { win.focus() } catch (_) {} }
+                        openWhatsAppWebUrl(waLink)
                       }
                     }}
                     className={`h-8 px-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs shrink-0 active:scale-95 cursor-pointer ${
@@ -1574,8 +1574,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                           waTracker.markSent(phoneDigits, 'both', c.id)
                           if (!waLink.startsWith('whatsapp://')) {
                             e.preventDefault()
-                            const win = window.open(waLink, 'whatsapp_web')
-                            if (win) { try { win.focus() } catch (_) {} }
+                            openWhatsAppWebUrl(waLink)
                           }
                         }}
                         className={`inline-flex items-center justify-center w-7.5 h-7.5 rounded-xl border transition shadow-2xs cursor-pointer active:scale-95 ${
