@@ -5,6 +5,7 @@ import { clearCachedAvatar } from '../utils/avatarCache'
 import { DEFAULT_MILESTONE_TEMPLATES, isCorruptText } from '../components/history/types'
 import { DEFAULT_WHATSAPP_VARIANTS } from '../utils/whatsappTemplates'
 import { getMerchantAddresses } from '../utils/postexApi'
+import { purgeEmergencyStorage } from '../utils/cacheWithExpiry'
 
 // Automatically purge corrupted emoji keys from localStorage
 if (typeof window !== 'undefined' && window.localStorage) {
@@ -328,10 +329,22 @@ function writeLocal(userId: string, field: keyof Settings, value: any, explicitD
       localStorage.removeItem('zaynah_vault_groq_api_keys')
     }
   } else {
-    localStorage.setItem(userSettingsKey(userId, field), strVal)
-    if (CRITICAL_SECRET_KEYS.includes(field)) {
-      localStorage.setItem(userVaultKey(userId, field), strVal)
-      localStorage.setItem(`zaynah_vault_${field}`, strVal)
+    try {
+      localStorage.setItem(userSettingsKey(userId, field), strVal)
+      if (CRITICAL_SECRET_KEYS.includes(field)) {
+        localStorage.setItem(userVaultKey(userId, field), strVal)
+        localStorage.setItem(`zaynah_vault_${field}`, strVal)
+      }
+    } catch (e: any) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882)) {
+        purgeEmergencyStorage()
+        try {
+          localStorage.setItem(userSettingsKey(userId, field), strVal)
+          if (CRITICAL_SECRET_KEYS.includes(field)) {
+            localStorage.setItem(userVaultKey(userId, field), strVal)
+          }
+        } catch {}
+      }
     }
   }
 }

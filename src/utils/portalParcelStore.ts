@@ -12,8 +12,8 @@ import { idbSaveParcels, idbGetParcels, idbFindEncompassingParcels } from './ind
  */
 
 const STORAGE_PREFIX = 'zaynah_ext_parcels_v2'
-const MAX_STORED_RANGES = 12
-const MAX_LOCAL_STORAGE_PARCELS = 5000
+const MAX_STORED_RANGES = 3
+const MAX_LOCAL_STORAGE_PARCELS = 50
 
 interface StoredExternalRange {
   range: string

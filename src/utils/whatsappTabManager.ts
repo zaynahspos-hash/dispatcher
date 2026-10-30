@@ -3,16 +3,13 @@
  * 
  * Solves 2 Critical Production Problems:
  * 1. Single Reused Tab for WhatsApp Web:
- *    Retains an active in-memory Window reference (`activeWhatsAppTab`).
- *    When subsequent messages are sent, it updates `activeWhatsAppTab.location.href = url`
- *    and focuses the existing tab instead of opening new duplicate tabs.
- *    Permanently eliminates "WhatsApp is open in another window. Click Use here" alerts.
+ *    Retains an active in-memory Window reference (`activeWhatsAppTab`) and persistent
+ *    window target name ('whatsapp_web'). When subsequent messages are sent, it routes
+ *    navigation into the existing tab rather than spawning new duplicate tabs.
  * 
- * 2. Mac & Desktop App Support:
- *    - Native App (`whatsapp://`): Directly launches installed WhatsApp desktop app.
- *    - Universal Link (`wa.me`): Pre-resolves contact via Meta's servers to prevent
- *      the macOS Catalyst "Couldn't look up phone number. Check your phone's internet connection"
- *      bug on unsaved numbers.
+ * 2. Desktop App Redirect:
+ *    Direct `whatsapp://` native protocol launcher that triggers the desktop app
+ *    with 0 browser tabs opened.
  */
 
 let activeWhatsAppTab: Window | null = null
@@ -36,21 +33,34 @@ export function cleanWhatsAppPhone(phone?: string): string {
 
 /**
  * Opens or reuses a single active WhatsApp Web tab.
- * NEVER creates duplicate tabs if one is already open.
+ * Uses persistent named target 'whatsapp_web' so subsequent sends route into
+ * the same tab rather than creating duplicate tabs.
  */
 export function openWhatsAppWebUrl(url: string): Window | null {
-  // If a WhatsApp Web tab is already open in this browser session, reuse it!
-  if (activeWhatsAppTab && !activeWhatsAppTab.closed) {
+  // 1. If we have a retained handle, attempt in-place navigation
+  // Note: Avoid relying solely on .closed check as COOP can report true while tab is active
+  if (activeWhatsAppTab) {
     try {
       activeWhatsAppTab.location.href = url
       activeWhatsAppTab.focus()
       return activeWhatsAppTab
     } catch (_) {
-      // If detached or restricted, fallback to window.open
+      // Cross-origin boundary security restriction on direct property write
     }
   }
 
-  // First time or previous tab was closed: open named window
+  // 2. Named window probe: if target 'whatsapp_web' exists, reuse it without spawning
+  try {
+    const existing = window.open('', 'whatsapp_web')
+    if (existing) {
+      existing.location.href = url
+      existing.focus()
+      activeWhatsAppTab = existing
+      return existing
+    }
+  } catch (_) {}
+
+  // 3. Fallback: Standard window.open with persistent target name
   const newWin = window.open(url, 'whatsapp_web')
   activeWhatsAppTab = newWin
   if (newWin) {
@@ -61,17 +71,20 @@ export function openWhatsAppWebUrl(url: string): Window | null {
   return newWin
 }
 
-export type WhatsAppTarget = 'web' | 'app' | 'universal'
+export type WhatsAppTarget = 'web' | 'app'
 
 export interface DispatchWhatsAppOptions {
   phone?: string
   text: string
-  target?: WhatsAppTarget
+  target?: WhatsAppTarget | string
   isMobile?: boolean
 }
 
 /**
  * Unified dispatch function for all WhatsApp alerts.
+ * Exactly 2 modes on Desktop:
+ * - 'web': WhatsApp Web (1 reused tab)
+ * - 'app': App Redirect (Direct Desktop App via whatsapp://)
  */
 export function dispatchWhatsAppMessage({
   phone,
@@ -89,22 +102,14 @@ export function dispatchWhatsAppMessage({
     return
   }
 
-  // 2. Native Desktop App (whatsapp:// protocol)
+  // 2. Desktop App Redirect (whatsapp:// protocol handler - 0 browser tabs opened)
   if (target === 'app') {
     const nativeUrl = `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
     window.location.href = nativeUrl
     return
   }
 
-  // 3. Universal Web-to-App link (wa.me)
-  // Bypasses Mac desktop contact lookup bug by resolving via Meta servers
-  if (target === 'universal') {
-    const universalUrl = `https://wa.me/${cleanPhone}?text=${encoded}`
-    openWhatsAppWebUrl(universalUrl)
-    return
-  }
-
-  // 4. WhatsApp Web (Default & Recommended) with 100% Single-Tab Reuse
+  // 3. WhatsApp Web (Default & Single Reused Tab)
   const webUrl = `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encoded}`
   openWhatsAppWebUrl(webUrl)
 }

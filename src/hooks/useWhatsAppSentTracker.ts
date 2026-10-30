@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BookedParcel, WhatsAppAlertState } from '../components/history/types'
+import { purgeEmergencyStorage } from '../utils/cacheWithExpiry'
+import { supabase } from '../utils/supabaseClient'
 
 const STORAGE_KEY_BOOKING = 'zaynah_wa_booking_sent_v2'
 const STORAGE_KEY_STATUS = 'zaynah_wa_status_sent_v2'
@@ -139,22 +141,78 @@ export function useWhatsAppSentTracker(
     })
   }, [history, bookingKey, statusKey])
 
+  // Cross-device cloud sync: Load sent states directly from Supabase booked_history on mount
+  useEffect(() => {
+    if (!userId || userId === 'guest' || userId === 'default') return
+    supabase
+      .from('booked_history')
+      .select('history')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.history && Array.isArray(data.history)) {
+          const dbItems = data.history as BookedParcel[]
+          setBookingSet(prev => {
+            const next = new Set(prev)
+            let changed = false
+            dbItems.forEach(p => {
+              const isBooking = p.whatsapp_booking_sent === true || (p.whatsapp_booking_sent === undefined && p.whatsapp_status_sent !== true && (p.whatsapp_sent || p.whatsappSent))
+              const t = cleanKey(p.tracking)
+              const i = cleanKey(p.id)
+              if (isBooking) {
+                if (t && !next.has(t)) { next.add(t); changed = true }
+                if (i && !next.has(i)) { next.add(i); changed = true }
+              }
+            })
+            return changed ? next : prev
+          })
+          setStatusSet(prev => {
+            const next = new Set(prev)
+            let changed = false
+            dbItems.forEach(p => {
+              if (p.whatsapp_status_sent === true) {
+                const t = cleanKey(p.tracking)
+                const i = cleanKey(p.id)
+                if (t && !next.has(t)) { next.add(t); changed = true }
+                if (i && !next.has(i)) { next.add(i); changed = true }
+              }
+            })
+            return changed ? next : prev
+          })
+        }
+      })
+  }, [userId])
+
   const saveBookingSet = useCallback((newSet: Set<string>) => {
     setBookingSet(newSet)
+    const arr = Array.from(newSet)
     try {
-      const arr = Array.from(newSet)
       localStorage.setItem(bookingKey, JSON.stringify(arr))
       window.dispatchEvent(new CustomEvent('zaynah:wa_booking_updated', { detail: arr }))
-    } catch {}
+    } catch (e: any) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882)) {
+        purgeEmergencyStorage()
+        try {
+          localStorage.setItem(bookingKey, JSON.stringify(arr))
+        } catch {}
+      }
+    }
   }, [bookingKey])
 
   const saveStatusSet = useCallback((newSet: Set<string>) => {
     setStatusSet(newSet)
+    const arr = Array.from(newSet)
     try {
-      const arr = Array.from(newSet)
       localStorage.setItem(statusKey, JSON.stringify(arr))
       window.dispatchEvent(new CustomEvent('zaynah:wa_status_updated', { detail: arr }))
-    } catch {}
+    } catch (e: any) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882)) {
+        purgeEmergencyStorage()
+        try {
+          localStorage.setItem(statusKey, JSON.stringify(arr))
+        } catch {}
+      }
+    }
   }, [statusKey])
 
   const getAlertState = useCallback((tracking?: string | null, id?: string | null): WhatsAppAlertState => {

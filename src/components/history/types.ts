@@ -588,7 +588,7 @@ export const isMobileDevice = (): boolean => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 }
 
-export type WhatsAppClientTarget = 'auto' | 'web' | 'app' | 'universal'
+export type WhatsAppClientTarget = 'auto' | 'web' | 'app'
 
 export const getWhatsAppLink = (
   parcel: BookedParcel, 
@@ -654,10 +654,6 @@ export const getWhatsAppLink = (
 
   if (effectiveTarget === 'app') {
     return `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`
-  }
-
-  if (effectiveTarget === 'universal') {
-    return `https://wa.me/${cleanPhone}?text=${encodedText}`
   }
 
   if (effectiveTarget === 'web') {

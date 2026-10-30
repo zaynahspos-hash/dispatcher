@@ -162,6 +162,8 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
       })
 
     // Cross-device realtime sync on focus and mobile visibility change (RULE D15 / C10)
+    let lastSyncMemoryTimestamp = 0
+
     const handleSyncCheck = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       const cacheKey = `booked_history_synced_at_${user.id}`
@@ -173,8 +175,11 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
         .then(({ data }) => {
           if (data?.updated_at) {
             const dbUpdated = new Date(data.updated_at).getTime()
-            const lastSync = Number(localStorage.getItem(cacheKey) || 0)
+            const localSync = Number(localStorage.getItem(cacheKey) || 0)
+            const lastSync = Math.max(localSync, lastSyncMemoryTimestamp)
             if (dbUpdated > lastSync) {
+              lastSyncMemoryTimestamp = dbUpdated
+              try { localStorage.setItem(cacheKey, String(dbUpdated)) } catch {}
               supabase
                 .from('booked_history')
                 .select('history, updated_at')
@@ -183,10 +188,11 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
                 .then(({ data: fresh }) => {
                   if (fresh?.history) {
                     const dbHistory = fresh.history as unknown as BookedParcel[]
-                    // The DB stays the single source of truth for app-booked parcels.
-                    setHistory(dbHistory)
-                    setCached(userHistoryKey, dbHistory, getTTL('days', 30))
-                    localStorage.setItem(cacheKey, String(dbUpdated))
+                    // Merge with previous state to preserve optimistic WhatsApp sent states
+                    setHistory(prev => mergeHistory(dbHistory, prev))
+                    try {
+                      setCached(userHistoryKey, dbHistory, getTTL('days', 30))
+                    } catch {}
                   }
                 })
             }
@@ -208,10 +214,15 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
         payload => {
           const fresh = payload.new as { history?: BookedParcel[]; updated_at?: string }
           if (fresh && fresh.history && Array.isArray(fresh.history)) {
-            setHistory(fresh.history as BookedParcel[])
+            const freshHistory = fresh.history as BookedParcel[]
+            setHistory(prev => mergeHistory(freshHistory, prev))
             if (fresh.updated_at) {
+              const freshTime = new Date(fresh.updated_at).getTime()
+              lastSyncMemoryTimestamp = freshTime
               const cacheKey = `booked_history_synced_at_${user.id}`
-              localStorage.setItem(cacheKey, String(new Date(fresh.updated_at).getTime()))
+              try {
+                localStorage.setItem(cacheKey, String(freshTime))
+              } catch {}
             }
           }
         }
@@ -239,13 +250,10 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
     if (user) {
       const userHistoryKey = `booked_history_${user.id}`
       const cacheKey = `booked_history_synced_at_${user.id}`
-      setCached(userHistoryKey, toPersist, getTTL('days', 30))
       const nowIso = new Date().toISOString()
-      localStorage.setItem(cacheKey, String(new Date(nowIso).getTime()))
+      const nowTime = new Date(nowIso).getTime()
 
-      // RULE C10: optimistic update above is already done. Now persist to DB.
-      // RULE D15: Persist app-originated bookings AND any portal orders that have merchant WhatsApp actions
-      // so that WhatsApp sent indicators sync across all devices in real-time.
+      // 1. Prioritize Supabase DB persist FIRST so cloud sync NEVER fails due to local storage quota
       supabase
         .from('booked_history')
         .upsert({
@@ -256,8 +264,16 @@ export function useUserHistorySync(user: User | null, _postexToken?: string) {
         .then(({ error }) => {
           if (error) console.error('Failed to sync history to db:', error)
         })
+
+      // 2. Safely attempt local cache without blocking or crashing on QuotaExceededError
+      try {
+        setCached(userHistoryKey, toPersist, getTTL('days', 30))
+        localStorage.setItem(cacheKey, String(nowTime))
+      } catch {}
     } else {
-      setCached('booked_history', toPersist, getTTL('days', 30))
+      try {
+        setCached('booked_history', toPersist, getTTL('days', 30))
+      } catch {}
     }
   }
 

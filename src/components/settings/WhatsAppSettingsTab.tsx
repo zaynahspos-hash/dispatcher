@@ -28,16 +28,16 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
   // Variant index within the active category: 0, 1, 2, 3
   const [activeVariantIdx, setActiveVariantIdx] = useState<number>(0)
 
-  // WhatsApp client target
-  const [waClientTarget, setWaClientTarget] = useState<'web' | 'app' | 'universal'>(() => {
+  // WhatsApp client target (web or app)
+  const [waClientTarget, setWaClientTarget] = useState<'web' | 'app'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('preferred_wa_client')
-      if (saved === 'app' || saved === 'web' || saved === 'universal') return saved
+      if (saved === 'app' || saved === 'web') return saved
     }
-    return (settings.whatsapp_client_target as any) || 'web'
+    return (settings.whatsapp_client_target as any) === 'app' ? 'app' : 'web'
   })
 
-  const handleClientTargetChange = (target: 'web' | 'app' | 'universal') => {
+  const handleClientTargetChange = (target: 'web' | 'app') => {
     setWaClientTarget(target)
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferred_wa_client', target)
@@ -246,7 +246,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <button
               type="button"
               onClick={() => handleClientTargetChange('web')}
@@ -267,32 +267,7 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Ek hi tab bar bar update hota hai. Zero duplicate tabs aur "open in another window" ka issue khatam.
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleClientTargetChange('universal')}
-              className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-start gap-3 ${
-                waClientTarget === 'universal'
-                  ? 'border-emerald-500/40 bg-emerald-500/[0.04] ring-1 ring-emerald-500/30'
-                  : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 hover:border-slate-300'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
-                <WhatsAppIcon size={16} className="fill-current" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">Desktop App (wa.me)</span>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                    Safe Route
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Meta servers ke zariye pre-resolve kar ke Desktop app kholta hai. "Couldn't look up" error bypass hota hai.
+                  Ek hi tab bar bar update hota hai. Browser mein open tab automatically reuse hota hai aur naye tabs nahi khulte.
                 </p>
               </div>
             </button>
@@ -310,9 +285,14 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
                 <WhatsAppIcon size={16} className="fill-current" />
               </div>
               <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">Direct App (Native)</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">App Redirect</span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-500/15 text-slate-700 dark:text-slate-300">
+                    Direct Desktop
+                  </span>
+                </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Direct whatsapp:// protocol launcher. Phone screen active aur WhatsApp background mein hona zaroori hai.
+                  Direct whatsapp:// protocol se Mac/Windows desktop app open hota hai. 0 browser tabs open hote hain.
                 </p>
               </div>
             </button>
