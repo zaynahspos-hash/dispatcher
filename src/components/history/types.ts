@@ -653,7 +653,7 @@ export const getWhatsAppLink = (
   const effectiveTarget = clientTarget !== 'auto' ? clientTarget : (storedPreference || 'auto')
 
   if (effectiveTarget === 'app') {
-    return `whatsapp://send?phone=${cleanPhone}&text=${encodedText}`
+    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
   }
 
   if (effectiveTarget === 'web') {
@@ -661,16 +661,8 @@ export const getWhatsAppLink = (
   }
 
   // Auto Mode:
-  // On mobile: use api.whatsapp.com which mobile OS intercepts via Universal/App Links to open WhatsApp natively
-  if (isMobileDevice()) {
-    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
-  }
-
-  // On Desktop: use web.whatsapp.com directly.
-  // CRITICAL FIX: api.whatsapp.com has a known Meta server bug where 4-byte UTF-8 emojis are rendered
-  // as diamond question marks (\uFFFD) on the intermediate preview screen.
-  // Pointing directly to web.whatsapp.com completely bypasses the preview page and preserves 100% of emojis.
-  return `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encodedText}`
+  // Universal endpoint that reliably hands off to WhatsApp on both mobile and desktop
+  return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
 }
 
 export const isPlaceholder = (val: string) => {

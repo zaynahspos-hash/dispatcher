@@ -1,4 +1,5 @@
 import React from 'react'
+import { PasteIcon, TableIcon, ResultsIcon, HistoryIcon, MoreIcon } from '../Icons'
 
 export interface TabItem {
   id: string
@@ -12,46 +13,55 @@ interface BottomTabBarProps {
   tabs: TabItem[]
   activeTab: string
   setActiveTab: (tab: any) => void
+  isSettingsConfigured?: boolean
 }
 
-export const BottomTabBar: React.FC<BottomTabBarProps> = ({ tabs, activeTab, setActiveTab }) => {
+export const BottomTabBar: React.FC<BottomTabBarProps> = ({ tabs, activeTab, setActiveTab, isSettingsConfigured = true }) => {
+  const parcelsTab = tabs.find(t => t.id === 'table')
+  const resultsTab = tabs.find(t => t.id === 'results')
+
+  // Check if we are in one of the sub-pages belonging to "More"
+  const isMoreActive = ['more', 'vault', 'settings', 'admin', 'apps'].includes(activeTab)
+
+  const items = [
+    { id: 'paste', label: 'Paste', Icon: PasteIcon, badge: null, isActive: activeTab === 'paste' },
+    { id: 'table', label: 'Parcels', Icon: TableIcon, badge: parcelsTab?.badge, isActive: activeTab === 'table' },
+    { id: 'results', label: 'Results', Icon: ResultsIcon, badge: resultsTab?.badge, isActive: activeTab === 'results' },
+    { id: 'history', label: 'History', Icon: HistoryIcon, badge: null, isActive: activeTab === 'history' },
+    { id: 'more', label: 'More', Icon: MoreIcon, badge: !isSettingsConfigured ? 1 : null, isActive: isMoreActive },
+  ]
+
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#0c121e] border-t border-slate-200/90 dark:border-slate-800 flex items-stretch h-[60px] pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] transition-colors select-none">
-      {tabs.map(tab => (
+    <nav className="min-[860px]:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--s1)] border-t border-[var(--bd)] flex items-stretch h-[56px] pb-[max(6px,env(safe-area-inset-bottom))] select-none transition-colors">
+      {items.map(item => (
         <button
-          key={tab.id}
-          onClick={() => setActiveTab(tab.id)}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 gap-1 relative transition-colors active:scale-95 ${
-            activeTab === tab.id
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+          key={item.id}
+          type="button"
+          onClick={() => setActiveTab(item.id)}
+          className={`flex-1 flex flex-col items-center justify-center pt-1.5 pb-1 gap-1 relative transition-colors active:opacity-70 ${
+            item.isActive
+              ? 'text-[var(--ac)] font-semibold'
+              : 'text-[var(--t2)] hover:text-[var(--tx)]'
           }`}
         >
-          {/* Active indicator bar */}
-          {activeTab === tab.id && (
-            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-full" />
-          )}
-
           <div className="relative flex items-center justify-center">
-            <tab.Icon
+            <item.Icon
               size={20}
-              className={activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}
+              className={item.isActive ? 'text-[var(--ac)]' : 'text-[var(--t2)]'}
             />
-            {/* Badge anchored to icon */}
-            {tab.badge !== null && tab.badge !== undefined && tab.badge > 0 && (
-              <span className="absolute -top-1 -right-2.5 min-w-[15px] h-3.5 px-0.5 bg-emerald-500 text-white text-[9px] rounded-full font-bold flex items-center justify-center leading-none ring-2 ring-white dark:ring-[#0c121e]">
-                {tab.badge > 99 ? '99+' : tab.badge}
+            {item.badge !== null && item.badge !== undefined && item.badge > 0 && (
+              <span className="absolute -top-1.5 -right-3 min-w-[16px] h-4 px-1 bg-[var(--ac)] text-white text-[10px] rounded-full font-bold flex items-center justify-center leading-none shadow-xs">
+                {item.badge > 99 ? '99+' : item.badge}
               </span>
             )}
           </div>
 
-          <span className={`text-[10px] font-semibold leading-tight ${
-            activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'
-          }`}>
-            {tab.mobileLabel}
+          <span className={`text-[11px] leading-tight ${item.isActive ? 'text-[var(--ac)] font-semibold' : 'text-[var(--t2)]'}`}>
+            {item.label}
           </span>
         </button>
       ))}
     </nav>
   )
 }
+

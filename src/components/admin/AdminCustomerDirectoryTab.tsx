@@ -1458,7 +1458,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                     rel="noopener noreferrer"
                     onClick={(e) => {
                       waTracker.markSent(phoneDigits, 'both', c.id)
-                      if (!waLink.startsWith('whatsapp://')) {
+                      if (!waLink.startsWith('whatsapp://') && !waLink.includes('api.whatsapp.com')) {
                         e.preventDefault()
                         openWhatsAppWebUrl(waLink)
                       }
@@ -1572,7 +1572,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                         rel="noopener noreferrer"
                         onClick={(e) => {
                           waTracker.markSent(phoneDigits, 'both', c.id)
-                          if (!waLink.startsWith('whatsapp://')) {
+                          if (!waLink.startsWith('whatsapp://') && !waLink.includes('api.whatsapp.com')) {
                             e.preventDefault()
                             openWhatsAppWebUrl(waLink)
                           }

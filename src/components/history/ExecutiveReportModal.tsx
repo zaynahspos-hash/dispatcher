@@ -81,45 +81,38 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-none animate-in fade-in duration-200">
-      <div className="w-full max-w-6xl max-h-[94vh] flex flex-col bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all">
+    <div className="mo">
+      <div className="mbk" onClick={onClose} />
+      <div className="mc2 big">
         
-        {/* Header & Preset Toolbar */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#070b12] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <FileTextIcon size={16} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
-                  Executive Logistics Audit Report
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  {analytics.totalParcels.toLocaleString()} Orders
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                  Rs. {analytics.totalCOD.toLocaleString()}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                {storeName} &bull; Report ID: <span className="font-mono">{analytics.reportId}</span> &bull; {analytics.generatedAt}
-              </p>
-            </div>
+        {/* Header - app (1).html layout */}
+        <div className="mh rh">
+          <span className="wic">
+            <FileTextIcon size={22} />
+          </span>
+          <div className="ht">
+            <b>
+              Executive Logistics Audit Report
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {analytics.totalParcels.toLocaleString()} orders
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                Rs. {analytics.totalCOD.toLocaleString()}
+              </span>
+            </b>
+            <small>
+              {storeName} &bull; Report ID: <span className="font-mono">{analytics.reportId}</span> &bull; {analytics.generatedAt}
+            </small>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-2xs">
+          <div className="ra">
+            <div className="seg-bar">
               {(Object.keys(PAPER_PRESETS) as PaperPresetType[]).map(key => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setSelectedPreset(key)}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${
-                    selectedPreset === key
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
+                  className={selectedPreset === key ? 'on' : ''}
                   title={`${PAPER_PRESETS[key].label} (${PAPER_PRESETS[key].dimensions})`}
                 >
                   {PAPER_PRESETS[key].label.split(' ')[0]}
@@ -130,120 +123,126 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
-              className="h-8.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+              className="btn p"
             >
-              <PrintIcon size={13} />
+              <PrintIcon size={14} />
               <span>Print / PDF</span>
             </button>
 
             <button
               type="button"
               onClick={handleExcelExport}
-              className="h-8.5 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-100 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer whitespace-nowrap"
+              className="btn"
             >
-              <span className="text-emerald-600 font-extrabold text-[11px]">XLSX</span>
               <span>Excel</span>
             </button>
 
             <button
               type="button"
               onClick={handleCSVExport}
-              className="h-8.5 px-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer whitespace-nowrap"
+              className="btn"
             >
-              CSV
+              <span>CSV</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-8.5 h-8.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition cursor-pointer"
+              className="btn sm"
+              title="Close report"
             >
               <CloseIcon size={14} />
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="px-4 py-2 bg-slate-100/70 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar shrink-0">
-          <div className="flex items-center gap-1">
-            {[
-              { id: 'overview', label: 'Executive Overview' },
-              { id: 'status', label: 'Milestone Status' },
-              { id: 'prefixes', label: `Order Prefix Ranking (${analytics.topPrefixes.length})` },
-              { id: 'cities', label: `City Distribution (${analytics.topCities.length})` },
-              { id: 'ledger', label: `Manifest Ledger (${parcels.length})` }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-2xs border border-slate-200 dark:border-slate-700'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 hidden sm:block">
-            Preset: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{PAPER_PRESETS[selectedPreset].label}</span> ({PAPER_PRESETS[selectedPreset].dimensions})
-          </div>
+        {/* Sub-tabs bar */}
+        <div className="rtb">
+          {[
+            { id: 'overview', label: 'Executive Overview' },
+            { id: 'status', label: 'Milestone Status' },
+            { id: 'prefixes', label: `Order Prefix Ranking (${analytics.topPrefixes.length})` },
+            { id: 'cities', label: `City Distribution (${analytics.topCities.length})` },
+            { id: 'ledger', label: `Manifest Ledger (${parcels.length})` }
+          ].map(tab => (
+            <span
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`filter-tab ${activeTab === tab.id ? 'on' : ''}`}
+            >
+              {tab.label}
+            </span>
+          ))}
+          <span className="pre">
+            Preset: <b className="text-emerald-600 dark:text-emerald-400 font-bold">{PAPER_PRESETS[selectedPreset].label}</b> ({PAPER_PRESETS[selectedPreset].dimensions})
+          </span>
         </div>
 
         {/* Document Preview Canvas */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-100/50 dark:bg-[#070b12] space-y-4">
+        <div className="mb space-y-4">
           
-          {/* Active Filter Criteria */}
-          <div className="p-3 bg-white dark:bg-[#0c121e] rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Active Scope & Filter Criteria
+          {/* Active Filter Scope Grid (5 columns on desktop, 2 on mobile) */}
+          <div className="sc">
+            <div>
+              <small>Date Range</small>
+              <b className="font-mono text-xs">
+                {activeFilters.fromDate || 'All'} &rarr; {activeFilters.toDate || 'All'}
+              </b>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="text-[10px] text-slate-500 font-medium">Date Range</span>
-                  {daysText && (
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                      {daysText}
-                    </span>
-                  )}
-                </div>
-                <span className="font-bold text-slate-800 dark:text-slate-200 font-mono text-xs">
-                  {activeFilters.fromDate || 'All'} &rarr; {activeFilters.toDate || 'All'}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">Status Scope</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {activeFilters.statusFilter === 'all' ? 'All Statuses' : activeFilters.statusFilter}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">City / Destination</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200 uppercase">
-                  {activeFilters.cityFilter === 'all' ? 'All Cities' : activeFilters.cityFilter}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">Order Source</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">
-                  {activeFilters.sourceFilter === 'postex_portal' ? 'Portal / External' : activeFilters.sourceFilter === 'app' ? 'In-App' : 'All Sources'}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-500">Search Filter</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
-                  {activeFilters.searchQuery ? `"${activeFilters.searchQuery}"` : 'None (Full Set)'}
-                </span>
-              </div>
+            <div>
+              <small>Status Scope</small>
+              <b>
+                {activeFilters.statusFilter === 'all' ? 'All statuses' : activeFilters.statusFilter}
+              </b>
+            </div>
+            <div>
+              <small>City / Destination</small>
+              <b className="uppercase">
+                {activeFilters.cityFilter === 'all' ? 'All cities' : activeFilters.cityFilter}
+              </b>
+            </div>
+            <div>
+              <small>Order Source</small>
+              <b>
+                {activeFilters.sourceFilter === 'postex_portal' ? 'Portal / external' : activeFilters.sourceFilter === 'app' ? 'In-app' : 'All sources'}
+              </b>
+            </div>
+            <div>
+              <small>Search Filter</small>
+              <b className="truncate">
+                {activeFilters.searchQuery ? `"${activeFilters.searchQuery}"` : 'None (full set)'}
+              </b>
             </div>
           </div>
 
-          {/* 5-Card Executive KPI Strip */}
-          <ReportKPIStrip analytics={analytics} />
+          {/* 5-Card Executive KPI Grid */}
+          <div className="rk">
+            <div>
+              <small>Filtered Orders</small>
+              <b>{analytics.totalParcels.toLocaleString()}</b>
+              <span>100% filtered scope</span>
+            </div>
+            <div>
+              <small>Gross COD Revenue</small>
+              <b>Rs. {analytics.totalCOD.toLocaleString()}</b>
+              <span>Total receivable</span>
+            </div>
+            <div>
+              <small>Average Order</small>
+              <b>Rs. {Math.round(analytics.totalParcels > 0 ? analytics.totalCOD / analytics.totalParcels : 0).toLocaleString()}</b>
+              <span>COD per parcel</span>
+            </div>
+            <div>
+              <small>Delivery Success</small>
+              <b>{analytics.deliverySuccessRate || '0%'}</b>
+              <span>{analytics.statusBreakdown.find(s => s.status.toLowerCase().includes('delivered'))?.count || 0} delivered</span>
+            </div>
+            <div>
+              <small>Active Pipeline COD</small>
+              <b>Rs. {analytics.inTransitCOD ? analytics.inTransitCOD.toLocaleString() : analytics.totalCOD.toLocaleString()}</b>
+              <span>{analytics.inTransitCount || analytics.totalParcels} in transit / out</span>
+            </div>
+          </div>
 
           {/* Milestone Status Breakdown */}
           {(activeTab === 'overview' || activeTab === 'status') && (
@@ -278,57 +277,15 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             />
           )}
 
-          {/* Signatures & Verification Footer - Smart, Clean & Sleek */}
-          <div className="p-3.5 bg-white dark:bg-[#0c121e] rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div className="border-t border-dashed border-slate-200 dark:border-slate-700 pt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Merchant Dispatcher Signatory:</span>
-                  <span className="text-[10px] font-mono text-slate-400">Date: {analytics.generatedAt.split(',')[0]}</span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-mono">
-                  Name & Sign: _________________________________
-                </p>
-              </div>
-
-              <div className="border-t border-dashed border-slate-200 dark:border-slate-700 pt-2">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Courier / PostEx Rider Signatory:</span>
-                <p className="text-[11px] text-slate-400 mt-2 font-mono">
-                  Officer Name & CNIC: __________________________
-                </p>
-              </div>
+          {/* Signatures & Verification Footer */}
+          <div className="sig">
+            <div>
+              <b>Merchant dispatcher signatory</b>
+              Name &amp; sign: _________________________________
             </div>
-
-            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Verified Audit
-                </span>
-                <span>&bull;</span>
-                <span>Official Logistics Engine:</span>
-                <a
-                  href="https://dispatcher.zaynahs.pk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  dispatcher.zaynahs.pk
-                </a>
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="px-1.5 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition cursor-pointer text-[10px] text-slate-400 font-semibold"
-                  title="Copy link"
-                >
-                  {copiedLink ? <CheckIcon size={11} className="text-emerald-500" /> : 'copy'}
-                </button>
-                <span>&bull; PostEx V3 Engine</span>
-              </div>
-
-              <div className="text-slate-400 text-[10px]">
-                &copy; 2026 Zaynahs POS Logistics Ecosystem
-              </div>
+            <div>
+              <b>Courier / PostEx rider signatory</b>
+              Officer name &amp; CNIC: __________________________
             </div>
           </div>
 

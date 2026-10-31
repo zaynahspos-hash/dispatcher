@@ -299,8 +299,8 @@ export default function BookingResults({
   }
 
   return (
-    <div className="space-y-3.5 transition-colors duration-200 w-full min-w-0 max-w-full">
-      {/* 1. Integrated KPI Summary & Action Toolbar */}
+    <div className="space-y-4 transition-colors duration-200 w-full min-w-0 max-w-full">
+      {/* 1. Integrated KPI Summary & Header */}
       <ResultsKPIBar
         totalResults={results.length}
         selectedCount={selected.size}
@@ -313,96 +313,103 @@ export default function BookingResults({
         onClearAll={clearAllResults}
         onPrintAll={handlePrintAll}
         loadingLabels={loadingLabels}
-        expandDefaults={expandDefaults}
-        onToggleExpandDefaults={handleToggleExpandDefaults}
-        onAutoFitColumns={handleAutoFitColumns}
       />
 
-      {/* 2. Filter Bar (Search + Segmented Status Pills) */}
-      <ResultsFilterBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        counts={counts}
-        onClearFilters={() => {
-          setSearchQuery('')
-          setStatusFilter('all')
-        }}
-      />
+      {/* 2. Master Card enclosing Toolbar, Tabs, Table and Footer (app (1).html) */}
+      <div className="card">
+        {/* Search Toolbar + Status Tabs */}
+        <ResultsFilterBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          counts={counts}
+          onClearFilters={() => {
+            setSearchQuery('')
+            setStatusFilter('all')
+          }}
+          expandDefaults={expandDefaults}
+          onToggleExpandDefaults={handleToggleExpandDefaults}
+          onAutoFitColumns={handleAutoFitColumns}
+          onClearAll={clearAllResults}
+        />
 
-      {/* 3. Selection Action Bar (Anchored directly above table) */}
-      <ResultsSelectionBar
-        selectedCount={selected.size}
-        totalCount={filteredResults.length}
-        selectedBookedCount={selectedBooked.length}
-        onDeselectAll={() => setSelected(new Set())}
-        onPrintSelected={handlePrintSelected}
-        onDeleteSelected={handleDeleteSelected}
-        loadingLabels={loadingLabels}
-      />
-
-      {/* 4. Spreadsheet Grid for Desktop / Cards for Mobile */}
-      {filteredResults.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-          <div className="flex justify-center">
-            <HistoryIcon size={36} className="text-gray-400 dark:text-gray-500" />
-          </div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold mt-3">No results match this filter</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try resetting search or status filters</p>
-        </div>
-      ) : (
-        <>
-          <ResultsDesktopGrid
-            results={paginatedResults}
-            selected={selected}
-            toggleSelect={toggleSelect}
-            toggleAll={toggleAll}
-            updateField={updateField}
-            onDelete={handleDeleteRow}
-            onBookSingle={onBookSingle}
-            onCancelShipment={onCancelShipment ? handleCancel : undefined}
-            cancellingTracking={cancellingTracking}
-            getWhatsAppLink={getWhatsAppLink}
-            cities={cities}
-            orderTypes={ORDER_TYPES}
-            expandDefaults={expandDefaults}
-            isWhatsAppSent={waTracker.isSent}
-            onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
-            onToggleWhatsAppSent={waTracker.toggleSent}
-          />
-
-          <ResultsMobileCardList
-            results={paginatedResults}
-            selected={selected}
-            toggleSelect={toggleSelect}
-            toggleAll={toggleAll}
+        {/* Selection Action Bar (when rows selected) */}
+        {selected.size > 0 && (
+          <ResultsSelectionBar
+            selectedCount={selected.size}
+            totalCount={filteredResults.length}
+            selectedBookedCount={selectedBooked.length}
             onDeselectAll={() => setSelected(new Set())}
-            onDelete={handleDeleteRow}
-            onBookSingle={onBookSingle}
-            onCancelShipment={onCancelShipment ? handleCancel : undefined}
-            cancellingTracking={cancellingTracking}
-            getWhatsAppLink={getWhatsAppLink}
-            isWhatsAppSent={waTracker.isSent}
-            onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
-            onToggleWhatsAppSent={waTracker.toggleSent}
-            expandDefaults={expandDefaults}
+            onPrintSelected={handlePrintSelected}
+            onDeleteSelected={handleDeleteSelected}
+            loadingLabels={loadingLabels}
           />
+        )}
 
-          {/* Shared Unified Pagination */}
-          <SharedPagination
-            currentPage={currentPage}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
-            itemLabel="results"
-            className="mt-2"
-          />
-        </>
-      )}
+        {/* Content Table / Empty */}
+        {filteredResults.length === 0 ? (
+          <div className="empty">
+            <span className="ei">
+              <HistoryIcon size={26} />
+            </span>
+            <b>No results match this filter</b>
+            <p>Try resetting search or status filters to view records.</p>
+          </div>
+        ) : (
+          <>
+            <ResultsDesktopGrid
+              results={paginatedResults}
+              selected={selected}
+              toggleSelect={toggleSelect}
+              toggleAll={toggleAll}
+              updateField={updateField}
+              onDelete={handleDeleteRow}
+              onBookSingle={onBookSingle}
+              onCancelShipment={onCancelShipment ? handleCancel : undefined}
+              cancellingTracking={cancellingTracking}
+              getWhatsAppLink={getWhatsAppLink}
+              cities={cities}
+              orderTypes={ORDER_TYPES}
+              expandDefaults={expandDefaults}
+              isWhatsAppSent={waTracker.isSent}
+              onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
+              onToggleWhatsAppSent={waTracker.toggleSent}
+            />
 
+            <ResultsMobileCardList
+              results={paginatedResults}
+              selected={selected}
+              toggleSelect={toggleSelect}
+              toggleAll={toggleAll}
+              onDeselectAll={() => setSelected(new Set())}
+              onDelete={handleDeleteRow}
+              onBookSingle={onBookSingle}
+              onCancelShipment={onCancelShipment ? handleCancel : undefined}
+              cancellingTracking={cancellingTracking}
+              getWhatsAppLink={getWhatsAppLink}
+              isWhatsAppSent={waTracker.isSent}
+              onMarkWhatsAppSent={(key, id) => waTracker.markSent(key, 'booking', id)}
+              onToggleWhatsAppSent={waTracker.toggleSent}
+              expandDefaults={expandDefaults}
+            />
+
+            {/* Footer .foot from app (1).html */}
+            <div className="foot">
+              <span>Showing {paginatedResults.length} of {filteredResults.length}</span>
+              <SharedPagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
+                itemLabel="results"
+              />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

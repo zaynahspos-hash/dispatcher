@@ -23,6 +23,7 @@ import { useNavigationTabs, Tab } from './hooks/useNavigationTabs'
 import { getSavedAirwayDocuments } from './utils/localPdfVault'
 import { getCached, setCached, removeCached, getTTL } from './utils/cacheWithExpiry'
 import { AppLayout } from './components/layout/AppLayout'
+import { MobileMoreScreen } from './components/layout/MobileMoreScreen'
 import { ToastProvider } from './components/common/Toast'
 import { MobileInstallBanner } from './components/layout/MobileInstallBanner'
 import { GlobalLoadingOverlay } from './components/layout/GlobalLoadingOverlay'
@@ -358,6 +359,28 @@ export default function App() {
           )}
           {activeTab === 'apps' && (
             <OtherApps />
+          )}
+          {activeTab === 'more' && (
+            <MobileMoreScreen
+              user={user}
+              userDisplayName={
+                user?.user_metadata?.full_name ||
+                user?.user_metadata?.name ||
+                user?.email?.split('@')[0] ||
+                'Merchant'
+              }
+              avatarUrl={settings.avatar_url || user?.user_metadata?.avatar_url}
+              vaultCount={vaultCount}
+              isAdmin={isAdmin}
+              isSettingsConfigured={isSettingsConfigured}
+              isInstallable={isInstallable}
+              theme={theme}
+              onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onRefreshApp={() => window.location.reload()}
+              onInstallApp={handleInstallApp}
+              onLogout={() => logout()}
+              onNavigate={(tab) => setActiveTab(tab as any)}
+            />
           )}
         </ErrorBoundary>
       </AppLayout>

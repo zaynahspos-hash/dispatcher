@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { checkIsAdmin } from '../utils/adminAuth'
 
-export type Tab = 'paste' | 'table' | 'results' | 'history' | 'vault' | 'settings' | 'admin' | 'apps'
+export type Tab = 'paste' | 'table' | 'results' | 'history' | 'vault' | 'settings' | 'admin' | 'apps' | 'more'
 
-const VALID_TABS: Tab[] = ['paste', 'table', 'results', 'history', 'vault', 'settings', 'admin', 'apps']
+const VALID_TABS: Tab[] = ['paste', 'table', 'results', 'history', 'vault', 'settings', 'admin', 'apps', 'more']
 
 function isSystemHash(hash: string): boolean {
   return (

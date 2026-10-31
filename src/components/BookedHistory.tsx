@@ -445,70 +445,30 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   }
 
   return (
-    <div className="bg-white dark:bg-[#0c121e] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-6 shadow-xs transition-colors duration-200 w-full max-w-full min-w-0">
-      {/* Top Header with Filtered Parcels Count & Total COD Amount Value */}
-      <div className="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
-        <div className="flex items-center justify-between w-full sm:w-auto">
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Booked History</span>
-              <span className="text-xs font-mono font-black px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                {filteredParcels.length} {filteredParcels.length === 1 ? 'Parcel' : 'Parcels'}
-              </span>
-            </h2>
-
-            {/* Filtered Total COD Value Badge */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shadow-2xs">
-              <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total COD:</span>
-              <span>Rs. {filteredTotalCOD.toLocaleString()}</span>
-            </span>
-
-            {/* Average COD per parcel */}
-            {filteredParcels.length > 0 && (
-              <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-[10px] font-sans text-slate-400 uppercase tracking-wider">Avg:</span>
-                <span>Rs. {Math.round(filteredTotalCOD / (filteredParcels.length || 1)).toLocaleString()}</span>
-              </span>
-            )}
-
-            {/* Active Filter Pills (scrolling indicator) */}
-            {activeFilterPills.length > 0 && (
-              <div className="hidden lg:flex items-center gap-1.5">
-                {activeFilterPills.map((pill, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
-                  >
-                    <span>{pill.label}</span>
-                    <button
-                      type="button"
-                      onClick={pill.onClear}
-                      className="hover:text-rose-600 dark:hover:text-rose-400 font-bold ml-0.5 cursor-pointer"
-                      title="Clear filter"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {portalSync.isSyncing && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                Live PostEx Sync
-              </span>
-            )}
-          </div>
+    <div className="w-full">
+      {/* Top Page Header matching app (1).html .ph */}
+      <div className="ph">
+        <div>
+          <h1>Booked History</h1>
+          <p>
+            {filteredParcels.length} {filteredParcels.length === 1 ? 'parcel' : 'parcels'} · Total COD Rs {filteredTotalCOD.toLocaleString()} · Avg Rs {Math.round(filteredTotalCOD / (filteredParcels.length || 1)).toLocaleString()}
+          </p>
         </div>
-
-        {/* Header Action Control (Check Status) */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="ac">
           <button
             type="button"
+            className="btn"
+            onClick={() => setIsReportModalOpen(true)}
+            title="Open Executive Logistics Audit Report"
+          >
+            <PrintIcon size={16} />
+            <span>Report ({filteredParcels.length})</span>
+          </button>
+          <button
+            type="button"
+            className="btn p"
             onClick={handleManualRefresh}
             disabled={portalSync.isSyncing || isLoading || isSyncingAll}
-            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
             title="Fetch latest booked parcels and check live tracking directly from PostEx for selected date range"
           >
             {portalSync.isSyncing ? (
@@ -517,17 +477,20 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span>Checking Status...</span>
+                <span>Checking...</span>
               </>
             ) : (
               <>
-                <RefreshIcon size={13} />
-                <span>Check Status</span>
+                <RefreshIcon size={14} />
+                <span>Check status</span>
               </>
             )}
           </button>
         </div>
       </div>
+
+      {/* Master Card container matching app (1).html .card */}
+      <div className="card">
 
       {/* Live Concurrent Tracking Sync Progress Banner */}
       {isSyncingAll && (
@@ -661,7 +624,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       ) : (
         <div className="flex flex-col gap-4">
           {/* Desktop Table: fixed layout, columns shrink to fit — zero horizontal scroll */}
-          <div className="hidden lg:block rounded-xl border border-slate-200/80 dark:border-slate-800 w-full max-w-full overflow-hidden">
+          <div className="hidden min-[860px]:block rounded-xl border border-[var(--bd)] bg-[var(--s1)] w-full max-w-full overflow-hidden">
             <table className="w-full table-fixed max-w-full text-left text-xs border-collapse select-none">
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#070b12] border-b border-slate-200/80 dark:border-slate-800 text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
@@ -741,19 +704,22 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             autoExpandLines={autoExpandLines}
           />
 
-          {/* Shared Unified Pagination */}
-          <SharedPagination
-            currentPage={currentPage}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-            pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
-            itemLabel="booked parcels"
-            className="mt-4"
-          />
+          {/* Unified Footer from app (1).html */}
+          <div className="foot">
+            <span>Showing {paginatedParcels.length} of {filteredParcels.length}</span>
+            <SharedPagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 25, 50, 100, 200, 300, 500]}
+              itemLabel="booked parcels"
+            />
+          </div>
         </div>
       )}
+      </div>
 
       {/* Shipper Advice Modal */}
       <ShipperAdviceModal

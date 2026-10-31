@@ -78,7 +78,7 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
       const saved = localStorage.getItem('preferred_wa_client') as WhatsAppClientTarget
       if (saved === 'app' || saved === 'web') return saved
     }
-    return 'web'
+    return 'app'
   })
 
   // Customer honorific detection (Sir / Ma'am / Mohtaram)
@@ -368,23 +368,8 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
         {!isMobile && (
           <div className="space-y-1.5 px-0.5">
             <div className="flex items-center justify-between text-[11px] text-slate-500">
-              <span className="font-semibold text-slate-600 dark:text-slate-300">Send Target:</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">Send Destination:</span>
               <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setWaTarget('web')
-                    localStorage.setItem('preferred_wa_client', 'web')
-                  }}
-                  className={`px-3 py-1 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                    waTarget === 'web'
-                      ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                  title="WhatsApp Web: Single reused tab"
-                >
-                  <span>WhatsApp Web</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -398,17 +383,32 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
                   }`}
                   title="App Redirect: Direct WhatsApp Desktop App"
                 >
-                  <span>App Redirect</span>
+                  <span>App Redirect (Recommended)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWaTarget('web')
+                    localStorage.setItem('preferred_wa_client', 'web')
+                  }}
+                  className={`px-3 py-1 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    waTarget === 'web'
+                      ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                  title="WhatsApp Web: Browser Tab"
+                >
+                  <span>WhatsApp Web</span>
                 </button>
               </div>
             </div>
-            {waTarget === 'web' ? (
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 leading-tight">
-                Agar pehle se WhatsApp Web khula hai to pehli dafa us tab ko band karein taake har dafa wahi single tab reuse ho aur naya tab na khule.
+            {waTarget === 'app' ? (
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-500/[0.08] p-2 rounded-lg border border-emerald-500/20 leading-tight">
+                Official Meta Cloud Gateway: Launches WhatsApp Desktop app with 0 lookup errors.
               </p>
             ) : (
-              <p className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/[0.08] p-2 rounded-lg border border-amber-500/20 leading-tight">
-                Direct WhatsApp Desktop App khulega. Agar "Couldn't look up phone number" error aaye to phone par WhatsApp screen on rakhein.
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 leading-tight">
+                Direct web.whatsapp.com browser tab open hoga.
               </p>
             )}
           </div>

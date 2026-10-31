@@ -249,9 +249,9 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <button
               type="button"
-              onClick={() => handleClientTargetChange('web')}
+              onClick={() => handleClientTargetChange('app')}
               className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-start gap-3 ${
-                waClientTarget === 'web'
+                waClientTarget === 'app'
                   ? 'border-emerald-500/40 bg-emerald-500/[0.04] ring-1 ring-emerald-500/30'
                   : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 hover:border-slate-300'
               }`}
@@ -261,22 +261,22 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">WhatsApp Web</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">App Redirect</span>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                    1 Tab (Reused)
+                    Recommended
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Ek hi tab bar bar update hota hai. Browser mein open tab automatically reuse hota hai aur naye tabs nahi khulte.
+                  Meta official cloud gateway se Mac / Windows Desktop App open hota hai bina kisi phone lookup error ke.
                 </p>
               </div>
             </button>
 
             <button
               type="button"
-              onClick={() => handleClientTargetChange('app')}
+              onClick={() => handleClientTargetChange('web')}
               className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-start gap-3 ${
-                waClientTarget === 'app'
+                waClientTarget === 'web'
                   ? 'border-emerald-500/40 bg-emerald-500/[0.04] ring-1 ring-emerald-500/30'
                   : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-900/30 hover:border-slate-300'
               }`}
@@ -286,13 +286,13 @@ export const WhatsAppSettingsTab: React.FC<WhatsAppSettingsTabProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">App Redirect</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">WhatsApp Web</span>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-500/15 text-slate-700 dark:text-slate-300">
-                    Direct Desktop
+                    Browser Tab
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  Direct whatsapp:// protocol se Mac/Windows desktop app open hota hai. 0 browser tabs open hote hain.
+                  Direct web.whatsapp.com browser tab open hota hai.
                 </p>
               </div>
             </button>

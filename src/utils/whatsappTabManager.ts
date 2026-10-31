@@ -32,43 +32,16 @@ export function cleanWhatsAppPhone(phone?: string): string {
 }
 
 /**
- * Opens or reuses a single active WhatsApp Web tab.
- * Uses persistent named target 'whatsapp_web' so subsequent sends route into
- * the same tab rather than creating duplicate tabs.
+ * Opens a clean WhatsApp Web window without spawning blank tabs.
  */
 export function openWhatsAppWebUrl(url: string): Window | null {
-  // 1. If we have a retained handle, attempt in-place navigation
-  // Note: Avoid relying solely on .closed check as COOP can report true while tab is active
-  if (activeWhatsAppTab) {
+  const win = window.open(url, '_blank')
+  if (win) {
     try {
-      activeWhatsAppTab.location.href = url
-      activeWhatsAppTab.focus()
-      return activeWhatsAppTab
-    } catch (_) {
-      // Cross-origin boundary security restriction on direct property write
-    }
-  }
-
-  // 2. Named window probe: if target 'whatsapp_web' exists, reuse it without spawning
-  try {
-    const existing = window.open('', 'whatsapp_web')
-    if (existing) {
-      existing.location.href = url
-      existing.focus()
-      activeWhatsAppTab = existing
-      return existing
-    }
-  } catch (_) {}
-
-  // 3. Fallback: Standard window.open with persistent target name
-  const newWin = window.open(url, 'whatsapp_web')
-  activeWhatsAppTab = newWin
-  if (newWin) {
-    try {
-      newWin.focus()
+      win.focus()
     } catch (_) {}
   }
-  return newWin
+  return win
 }
 
 export type WhatsAppTarget = 'web' | 'app'
@@ -83,33 +56,37 @@ export interface DispatchWhatsAppOptions {
 /**
  * Unified dispatch function for all WhatsApp alerts.
  * Exactly 2 modes on Desktop:
- * - 'web': WhatsApp Web (1 reused tab)
- * - 'app': App Redirect (Direct Desktop App via whatsapp://)
+ * - 'app': App Redirect (Launches WhatsApp Desktop via official Meta cloud gateway with 0 lookup errors)
+ * - 'web': WhatsApp Web (Direct web.whatsapp.com browser tab)
  */
 export function dispatchWhatsAppMessage({
   phone,
   text,
-  target = 'web',
+  target = 'app',
   isMobile = false
 }: DispatchWhatsAppOptions): void {
   const cleanPhone = cleanWhatsAppPhone(phone)
   const encoded = encodeURIComponent(text)
 
-  // 1. Mobile devices: api.whatsapp.com handles native app handoff automatically
+  // 1. Mobile devices: api.whatsapp.com handles native iOS / Android app handoff automatically
   if (isMobile) {
     const mobileUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
     window.location.href = mobileUrl
     return
   }
 
-  // 2. Desktop App Redirect (whatsapp:// protocol handler - 0 browser tabs opened)
+  // 2. Desktop App Redirect (Official api.whatsapp.com endpoint):
+  // Pre-validates unsaved Pakistani numbers via Meta's cloud directory before handing off
+  // to macOS / Windows WhatsApp Desktop app. This eliminates the
+  // "Couldn't look up phone number +92... Check your phone's internet connection" error.
   if (target === 'app') {
-    const nativeUrl = `whatsapp://send?phone=${cleanPhone}&text=${encoded}`
-    window.location.href = nativeUrl
+    const appGatewayUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}`
+    window.open(appGatewayUrl, '_blank')
     return
   }
 
-  // 3. WhatsApp Web (Default & Single Reused Tab)
+  // 3. WhatsApp Web Mode
   const webUrl = `https://web.whatsapp.com/send/?phone=${cleanPhone}&text=${encoded}`
   openWhatsAppWebUrl(webUrl)
 }
+

@@ -108,7 +108,7 @@ export function ParcelDesktopGrid({
   )
 
   return (
-    <div className="hidden lg:block rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0c121e] shadow-xs overflow-hidden w-full max-w-full min-w-0">
+    <div className="hidden min-[860px]:block rounded-2xl border border-[var(--bd)] bg-[var(--s1)] shadow-xs overflow-hidden w-full max-w-full min-w-0">
       {/* Horizontal scroll container with interactive Excel resizable column widths */}
       <div ref={scrollContainerRef} className="overflow-x-auto min-h-[400px] pb-32 max-w-full min-w-0">
         <table className="text-xs border-collapse table-fixed select-none w-full" style={{ minWidth: `${totalTableWidth}px` }}>

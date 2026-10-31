@@ -76,7 +76,7 @@ export function ParcelMobileCards({
   }
 
   return (
-    <div className="lg:hidden space-y-3 w-full max-w-full min-w-0">
+    <div className="min-[860px]:hidden space-y-3 w-full max-w-full min-w-0">
       {/* Mobile Select All Bar (Matches Results tab, shows only when none selected) */}
       {parcels.length > 0 && toggleAll && selected.size === 0 && (
         <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">

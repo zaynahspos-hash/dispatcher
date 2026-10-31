@@ -59,8 +59,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   return (
     <aside
-      className={`hidden lg:flex flex-col bg-white dark:bg-[#0c121e] border-r border-slate-200/80 dark:border-slate-800/80 select-none shrink-0 z-30 transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-16' : 'w-64 xl:w-72'
+      className={`hidden min-[860px]:flex flex-col bg-[var(--s1)] border-r border-[var(--bd)] select-none shrink-0 z-30 transition-all duration-200 ease-in-out ${
+        isCollapsed ? 'w-[72px]' : 'w-[264px]'
       }`}
     >
       {/* Brand Header */}

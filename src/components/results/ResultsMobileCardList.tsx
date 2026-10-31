@@ -51,7 +51,7 @@ export function ResultsMobileCardList({
   }
 
   return (
-    <div className="lg:hidden space-y-2.5 w-full max-w-full min-w-0">
+    <div className="min-[860px]:hidden space-y-2.5 w-full max-w-full min-w-0">
       {/* Mobile Select All Bar (Single clean bar, hides when selection action bar is active) */}
       {results.length > 0 && toggleAll && (!selected || selected.size === 0) && (
         <div className="flex items-center justify-between bg-white dark:bg-[#0c121e] px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs mb-1">

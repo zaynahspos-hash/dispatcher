@@ -113,14 +113,11 @@ export const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       if (onClick) onClick(e)
       if (e.defaultPrevented) return
 
-      // If native desktop app protocol, let browser trigger the registered app
-      if (href.startsWith('whatsapp://')) {
+      // If native desktop app or official Meta cloud gateway, let browser trigger the registered app
+      if (href.startsWith('whatsapp://') || href.includes('api.whatsapp.com')) {
         return
       }
 
-      // Re-use single 'whatsapp_web' tab/window so browser navigates the existing
-      // WhatsApp Web session instead of spawning a new tab every click (which causes
-      // "WhatsApp is open in another window. Click Use here to use WhatsApp in this window").
       e.preventDefault()
       openWhatsAppWebUrl(href)
     }

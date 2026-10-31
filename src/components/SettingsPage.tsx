@@ -214,12 +214,12 @@ export default function SettingsPage({ settings, updateSetting, onSave }: Settin
     <div className="space-y-6 w-full max-w-5xl min-w-0 mx-auto pb-16">
       
       {/* 1. Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/90 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--bd)]">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-xl font-bold tracking-tight text-[var(--tx)]">
             System Settings
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--t2)] mt-0.5">
             Configure PostEx V3 credentials, neural AI parser engines, WhatsApp alerts, and dispatch defaults.
           </p>
         </div>

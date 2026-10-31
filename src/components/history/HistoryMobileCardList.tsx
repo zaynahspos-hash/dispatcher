@@ -55,7 +55,7 @@ export function HistoryMobileCardList({
   }
 
   return (
-    <div className="lg:hidden flex flex-col gap-3 w-full max-w-full min-w-0">
+    <div className="min-[860px]:hidden flex flex-col gap-3 w-full max-w-full min-w-0">
       {paginatedParcels.map(parcel => {
         const isExpanded = cardOverrides[parcel.tracking] !== undefined
           ? cardOverrides[parcel.tracking]
