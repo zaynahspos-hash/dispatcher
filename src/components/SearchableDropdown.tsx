@@ -55,18 +55,24 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const normalizedOptions = useMemo(() => {
     return options.map(opt => {
       if (typeof opt === 'string') {
+        const lower = opt.toLowerCase()
+        const dashNorm = lower.replace(/[\u2013\u2014]/g, '-')
+        const spaceNorm = lower.replace(/[\u2013\u2014-]/g, ' ')
         return {
           value: opt,
           label: opt,
           subLabel: undefined,
-          searchKeywords: opt.toLowerCase()
+          searchKeywords: `${lower} ${dashNorm} ${spaceNorm}`
         }
       }
+      const rawText = `${opt.label} ${opt.subLabel || ''} ${opt.searchKeywords || ''} ${opt.value}`.toLowerCase()
+      const dashNorm = rawText.replace(/[\u2013\u2014]/g, '-')
+      const spaceNorm = rawText.replace(/[\u2013\u2014-]/g, ' ')
       return {
         value: opt.value,
         label: opt.label,
         subLabel: opt.subLabel,
-        searchKeywords: `${opt.label} ${opt.subLabel || ''} ${opt.searchKeywords || ''} ${opt.value}`.toLowerCase()
+        searchKeywords: `${rawText} ${dashNorm} ${spaceNorm}`
       }
     })
   }, [options])
@@ -74,7 +80,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const filteredOptions = useMemo(() => {
     const q = search.toLowerCase().trim()
     if (!q) return normalizedOptions
-    return normalizedOptions.filter(opt => opt.searchKeywords.includes(q))
+    const qDash = q.replace(/[\u2013\u2014]/g, '-')
+    const qSpace = q.replace(/[\u2013\u2014-]/g, ' ')
+    return normalizedOptions.filter(opt =>
+      opt.searchKeywords.includes(q) ||
+      opt.searchKeywords.includes(qDash) ||
+      opt.searchKeywords.includes(qSpace)
+    )
   }, [normalizedOptions, search])
 
   const handleSelect = (val: string) => {

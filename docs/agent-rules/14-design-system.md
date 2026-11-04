@@ -236,4 +236,27 @@ Visual design tokens, component anatomy, aesthetic standards, and unified applic
     - Primary button: Solid emerald (`bg-emerald-600 hover:bg-emerald-500 text-white font-bold`)
     - Micro-haptics: `active:scale-95 transition-all`
 
+---
+
+### 18. Rule DS18 — Strict `app (1).html` Search, Filter & Date Layout Invariants (RULE APP1-UI-PARITY)
+- **Search Clear Button Containment (`.sw`, `.sw-clear`)**:
+  - Search inputs across all screens (`#history`, `#results`, `#admin`, CRM) MUST adhere to the Apple pill design system from `app (1).html`.
+  - The outer wrapper `.sw` must ALWAYS be a flex container (`display: flex; align-items: center; border-radius: 11px; background: var(--s2); border: 1px solid var(--bd); padding: 0 10px 0 12px; gap: 8px;`).
+  - Active focus styles (`:focus-within`) reside on the parent `.sw` wrapper (`border-color: var(--ac); background: var(--s1); box-shadow: 0 0 0 3px var(--acs);`).
+  - The `<input>` has `flex: 1; min-width: 0; border: 0; background: transparent; outline: none; padding: 0;`.
+  - The clear button (`✕`, `.sw-clear`) MUST be nested INSIDE `.sw` as a child flex item (`shrink-0 w-5.5 h-5.5 rounded-full`) within the container's right padding.
+  - Absolute positioning of clear buttons outside or on top of loose inputs that causes the `✕` to hang or clip outside the input border is PERMANENTLY FORBIDDEN.
+- **Atomic Date Range Grouping (`[fromDate] to [toDate]`)**:
+  - Date range controls must NEVER be loose individual flex siblings inside a wrapping toolbar.
+  - The start date, "to" label, and end date MUST be grouped inside a single atomic inline container (`<div className="inline-flex items-center gap-1.5 shrink-0 ...">`).
+  - Line-wrapping that orphans the start date and "to" label across different vertical lines on mobile screens (375px+) is strictly prohibited.
+- **Horizontal Chip & Segmented Control Preservation (`ScrollableChipsBar`)**:
+  - Quick date presets (`Today`, `Yesterday`, `Last 7 days`, `This month`, `Last 3 months`) and status filter tabs (`All`, `Pending loadsheet`, `Booked`, `In transit`, `Out for delivery`, etc.) must NEVER wrap into disjointed multi-row fragmented lines on mobile.
+  - They MUST be wrapped in `ScrollableChipsBar` (Rule DS14) or utilize horizontal scroll with `overflow-x: auto; scrollbar-width: none; white-space: nowrap; -webkit-overflow-scrolling: touch;`.
+  - Text inside chips must never be cut off or clipped at container boundaries ("This mo..." truncation bug permanently banned).
+- **Universal Form Control Styling (`.in`)**:
+  - All text inputs, date pickers, and select dropdowns must share Apple-grade standard tokens: `height: 38px; border-radius: 11px; background: var(--s2); border: 1px solid var(--bd); color: var(--tx); font-size: 13px; padding: 0 10px;`.
+  - Native browser default square selects and unpadded date inputs are prohibited.
+
+
 

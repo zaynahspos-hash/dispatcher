@@ -155,6 +155,7 @@ export default function App() {
       getOperationalCities(settings.postex_token).then(cities => {
         if (cities && cities.length > 0) {
           const combined = Array.from(new Set([...cities, ...CITY_LIST]))
+          combined.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
           setOperationalCities(combined)
         }
       }).catch(err => {

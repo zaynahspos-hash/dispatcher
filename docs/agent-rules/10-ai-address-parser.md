@@ -59,3 +59,26 @@ When merchants paste multiple orders (e.g. 10, 20, 50+ orders):
 3. **Zero Data Loss Guarantee**:
    - If AI quota or network limits fail completely, the system automatically activates `parseTextFallback`, fills the staged table with extracted orders, advances serials, and notifies the merchant with a toast. User data is NEVER discarded.
 
+---
+
+## 6. Strict Bulk WhatsApp Order Integrity & Delimiter Invariants (RULE AI-BULK-INTEG)
+1. **Explicit Symbol Delimiters (`.`, `---`, `***`, `===`, `•••`)**:
+   - Multiple orders separated by lines containing single or repeated dots (`.`), dashes, or asterisks MUST be split cleanly at those lines.
+   - Internal blank lines within a parcel (e.g., between landmark address and phone/name) must NEVER split that single parcel into disjointed pieces.
+2. **Landmark vs. True Human Name Invariant**:
+   - Shops, clinics, medical halls, hostels, electronics stores, and plazas (e.g., `Mehr Al Shifa Medical Hall`, `Yaqoob Electronics`, `Boys Hostel`, `Hamza Autos`) are LANDMARKS / ADDRESSES, never recipient names.
+   - The parser must locate the actual human recipient's name (`Balil`, `M Imran`, `Asad`, `Rukhshana Faqir`).
+3. **Inline Labeled Format Support**:
+   - Inline labeled pastes (e.g. `Name rukhshana faqir address Ali Abad hunzia connect number 03555184939 tcs p bjo na sir`) must extract:
+     * Name: `Rukhshana Faqir`
+     * Address: `Ali Abad hunzia`
+     * Phone: `03555184939`
+     * Note / Instructions: `tcs p bjo na sir`
+4. **Order ID & Piece Count Preservation**:
+   - Explicit order IDs with formats like `Id wa1025`, `Id wa 1026`, `wa1024` MUST be extracted into `id` (normalized to `WA1025`, `WA1026`, `WA1024`).
+   - Piece counts (`Pc2`, `Pc 2`, `Pc3`, `2 pcs`, `3 items`) MUST be extracted as explicit item quantities.
+5. **Secondary Phone & Credentials Stripping**:
+   - When multiple phone numbers are provided (e.g. landline `05822-445812` + mobile `03129036969`), mobile is primary `phone`, and the alternate number is appended to `address`.
+   - Trailing merchant notes, passwords, and emails (e.g. `Mytvpass@.371@m2`, `Shoaibzaynah@gmail.com`) must be filtered out so they never pollute customer addresses.
+
+

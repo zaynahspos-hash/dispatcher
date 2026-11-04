@@ -171,65 +171,60 @@ ${citiesListText}
 CRITICAL FORMATTING & GEOGRAPHIC RULES:
 
 1. RECIPIENT NAME:
-   - Properly capitalized: 'usman malik' -> 'Usman Malik', 'ali' -> 'Ali', 'fatima bibi' -> 'Fatima Bibi'.
-   - NEVER confuse a recipient's name with a city (e.g. 'Ali' is NOT 'Alipur', 'Umar' is NOT 'Umerkot', 'Hassan' is NOT 'Hasan Abdal', 'Zahid' is NOT 'Zahir Pir'). The person's name belongs strictly in 'name'!
+   - Extract the TRUE PERSON's name, properly capitalized: 'usman malik' -> 'Usman Malik', 'm imran' -> 'M Imran', 'balil' -> 'Balil', 'rukhshana faqir' -> 'Rukhshana Faqir', 'asad' -> 'Asad'.
+   - NEVER confuse a landmark, medical store, electronic shop, hostel, or street with a recipient's name:
+     * 'Mehr Al Shifa Medical Hall', 'Yaqoob Electronics', 'New satellite Boys hostal', 'Gulshan Market' are ADDRESS / SHOP LANDMARKS, NOT the customer's name!
+     * When a shop name or landmark is written on line 1, look for the actual human person's name on other lines ('Balil', 'M Imran', 'Asad')!
+   - Support inline labels:
+     * 'Name rukhshana faqir address Ali Abad hunzia connect number 03555184939 tcs p bjo na sir' -> Name is 'Rukhshana Faqir', Address is 'Ali Abad, Hunza', Note is 'TCS p bjo na sir'.
+   - NEVER confuse recipient names with cities (e.g. 'Ali' is NOT 'Alipur', 'Hassan' is NOT 'Hasan Abdal').
 
-2. PHONE NUMBER:
-   - Always format as: 03XXXXXXXXX (11 digits, starting with 03).
+2. ORDER DELIMITERS & SEPARATION:
+   - Orders can be separated by a dot on a line by itself ('.'), dashes ('---'), asterisks ('***'), or multiple newlines.
+   - Extract ALL distinct parcels. DO NOT merge separate orders into one!
+   - If trailing merchant notes, passwords, or emails appear at the bottom (e.g., 'Mytvpass@.371@m2', 'Shoaibzaynah@gmail.com'), IGNORE them completely — DO NOT include them in any parcel address.
+
+3. PHONE NUMBER:
+   - Format: 03XXXXXXXXX (11 digits, starting with 03).
    - Normalize: '+92 300 4455667', '0300-4455667', '923004455667' -> '03004455667'.
-   - If multiple phone numbers are provided in an order:
-     * Put the primary number in 'phone'.
-     * Move additional numbers to the end of 'address': '(Alternate: 03XXXXXXXXX)'.
+   - If multiple phone numbers are provided in an order (e.g. landline '05822-445812' and mobile '03129036969'):
+     * Put the mobile 03xx in 'phone'.
+     * Append the secondary/landline number to 'address': '(Phone: 05822-445812)'.
 
-3. CITY DETECTION, GEO-RESEARCH & VALIDATION:
+4. ORDER ID / REFERENCE:
+   - If explicitly given (e.g. 'Id wa1025', 'Id wa 1026', 'Id wa1024', '#1024', 'ORD-99'), extract as 'id' in uppercase without spaces (e.g. 'WA1025', 'WA1026', 'WA1024'). If not given, return "" (empty string).
+
+5. ITEMS / PIECES COUNT:
+   - Match 'Pc2', 'Pc 2', 'Pc3', '2 pcs', '3 items', '4 suit', 'qty 2' -> extract as integer number (e.g. 2, 3).
+   - If missing in text, return null.
+
+6. CITY DETECTION, GEO-RESEARCH & VALIDATION:
    - Cross-reference and match against the APPROVED COURIER CITIES list above.
    - Auto-correct misspellings and abbreviations (e.g. 'Lahor' -> 'LAHORE', 'Karach' -> 'KARACHI', 'Fsd' -> 'FAISALABAD', 'Isb' -> 'ISLAMABAD', 'Rwp' -> 'RAWALPINDI', 'Mul' -> 'MULTAN', 'Skt' -> 'SIALKOT', 'Grw' -> 'GUJRANWALA', 'Psh' -> 'PESHAWAR', 'Qta' -> 'QUETTA').
-   - If city is missing or if the customer wrote only a local area, landmark, commercial market, or sector:
-     * Research and deduce the true parent courier city in Pakistan:
-       - 'Chungi Amar Sidhu', 'Makki Complex Chungi', 'Kahna', 'Kot Lakhpat', 'Township', 'Green Town', 'Wapda Town', 'Valencia', 'Johar Town', 'Model Town', 'Gulberg', 'Faisal Town', 'Garden Town', 'Allama Iqbal Town', 'Samanabad', 'Ichhra', 'Anarkali', 'Shadman', 'Shahdara', 'Baghbanpura', 'Mughalpura', 'Dharampura', 'Harbanspura', 'Walton', 'Cavalry Ground', 'Chung', 'Thokar Niaz Baig', 'Lake City', 'Paragon City', 'Bahria Town Lahore', 'DHA Lahore' -> 'LAHORE'.
-       - 'Clifton', 'DHA Karachi', 'Korangi', 'Landhi', 'Malir', 'Malir Cantt', 'Gulshan-e-Iqbal', 'Gulistan-e-Johar', 'North Nazimabad', 'Nazimabad', 'Federal B Area', 'FB Area', 'Liaquatabad', 'PECHS', 'Saddar Karachi', 'Tariq Road', 'Bahadurabad', 'Orangi', 'Baldia', 'SITE', 'Lyari', 'Surjani', 'Scheme 33', 'Bahria Town Karachi' -> 'KARACHI'.
-       - Sectors 'F-6', 'F-7', 'F-8', 'F-10', 'F-11', 'G-6', 'G-7', 'G-8', 'G-9', 'G-10', 'G-11', 'G-13', 'G-15', 'H-8', 'H-9', 'H-12', 'I-8', 'I-9', 'I-10', 'E-11', 'Blue Area', 'PWD', 'Soan Gardens', 'Bani Gala', 'DHA Islamabad' -> 'ISLAMABAD'.
-       - 'Satellite Town', 'Raja Bazar', 'Commercial Market', 'Chaklala', 'Westridge', 'Tench Bhatta', 'Adyala Road', 'Peshawar Road', 'Bahria Town Rawalpindi' -> 'RAWALPINDI'.
-       - 'D-Ground', 'Madina Town', 'Peoples Colony', 'Ghulam Muhammad Abad', 'Jinnah Colony', 'Millat Town' -> 'FAISALABAD'.
-       - 'Bosan Road', 'Gulgasht', 'Shah Rukn-e-Alam', 'Chungi No 9', 'Mumtazabad', 'Cantt Multan' -> 'MULTAN'.
-       - 'Hayatabad', 'University Town', 'Karkhano', 'Gulbahar', 'Warsak Road' -> 'PESHAWAR'.
-   - RURAL AREAS & SMALL TOWNS:
-     * If an order is from a village, Chak (e.g. 'Chak 45/12L', 'Chak 14 Tehsil Chunian', 'Chak 229 GB'), Basti, Mouza, or Tehsil:
-     * Research its parent administrative district/tehsil and output the valid approved courier city name from the approved list above (e.g. 'Pattoki', 'Daska', 'Chunian', 'Kot Radha Kishan', 'Kamoke', 'Samundri', 'Tandlianwala', 'Taxila', 'Wah Cantt', 'Muridke', 'Lalamusa', 'Shakargarh', 'Haroonabad', 'Chishtian', 'Mian Channu', 'Burewala', 'Vehari', 'Hasilpur', 'Sadiqabad', 'Liaquatpur', 'Khanpur', 'Uch Sharif', 'Jalalpur Pirwala', 'Alipur Chatha', 'Wazirabad', 'Sambrial', 'Pasrur', 'Zafarwal', 'Narowal', 'Bhakkar', 'Layyah', 'Taunsa', 'Kot Addu', 'Muzaffargarh', 'Rajanpur', 'Chiniot', 'Lalian', 'Sangla Hill', 'Nankana Sahib', 'Pindi Bhattian', 'Bhalwal', 'Talagang', 'Chakwal', 'Pind Dadan Khan', 'Sohawa', 'Dina', 'Kharian', 'Mandi Bahauddin', 'Phalia', 'Ghotki', 'Mirpur Mathelo', 'Daharki', 'Pano Akil', 'Rohri', 'Khairpur', 'Gambat', 'Ranipur', 'Moro', 'Naushahro Feroze', 'Kandiaro', 'Daur', 'Sakrand', 'Qazi Ahmed', 'Sanghar', 'Shahdadpur', 'Sinjhoro', 'Tando Adam', 'Mirpur Khas', 'Digri', 'Umerkot', 'Kunri', 'Mithi', 'Badin', 'Matli', 'Talhar', 'Thatta', 'Sujawal', 'Tando Jam', 'Tando Allahyar', 'Tando Muhammad Khan', 'Matiari', 'Hala', 'Jamshoro', 'Kotri', 'Sehwan', 'Dadu', 'Mehar', 'Larkana', 'Ratodero', 'Qambar', 'Shahdadkot', 'Shikarpur', 'Jacobabad', 'Thul', 'Kashmore', 'Kandhkot', 'Swat', 'Mingora', 'Mardan', 'Swabi', 'Topi', 'Charsadda', 'Nowshera', 'Abbottabad', 'Havelian', 'Haripur', 'Mansehra', 'Bannu', 'Kohat', 'Dera Ismail Khan', 'Tank', 'Batkhela', 'Timergara', 'Dir', 'Chitral', 'Hub', 'Gwadar', 'Turbat', 'Khuzdar', 'Chaman', 'Sibi', 'Loralai', 'Pishin', 'Usta Muhammad', 'Muzaffarabad', 'Mirpur AJK', 'Kotli', 'Bhimber', 'Rawalakot').
-   - Output 'city' in standard uppercase English (e.g. 'LAHORE').
+   - 'Ali Abad hunzia' -> 'HUNZA–NAGAR'
+   - 'Muzaffarabad Azad Kashmir' -> 'MUZAFFARABAD (AJK)'
+   - 'HassanaAbbad' -> 'HASAN ABDAL'
+   - 'Rawalpindi' -> 'RAWALPINDI'
+   - 'Gojra' / 'go jera' -> 'GOJRA'
+   - Output 'city' in standard uppercase English matching approved list (e.g. 'LAHORE', 'MIRPUR (AJK)', 'HUNZA–NAGAR', 'GOJRA', 'MUZAFFARABAD (AJK)').
 
-4. ADDRESS FORMATTING:
+7. ADDRESS FORMATTING:
    - If address is in Urdu or mixed script, convert to Roman Urdu.
-   - For location words, ALWAYS use English:
-     * 'near' (not 'qareeb' or 'nazd')
-     * 'opposite' (not 'samne' or 'mukhalif')
-     * 'beside' (not 'saath' or 'baghal')
-     * 'behind' (not 'peechay' or 'aqab')
-     * 'in front of' (not 'samne')
-   - City name must always be at the end of the address (e.g. 'G77 Makki Complex, Chungi Amar Sidhu, Lahore').
-   - If multiple phone numbers exist, append alternate number at the end: '(Alternate: 03XXXXXXXXX)'.
-   - Avoid redundant repeated city names and junk conversational phrases.
+   - City name must always be at the end of the address.
+   - For location words, use English ('near', 'opposite', 'beside', 'behind', 'in front of').
 
-5. TOTAL / COD AMOUNT:
+8. TOTAL / COD AMOUNT:
    - Extract cash amount as integer number only (no 'Rs.' prefix).
    - If value is missing -> set 0.
    - If payment is Advance / Already Paid / Bank Transfer / Non-COD / Easypaisa / Jazzcash -> set 0.
 
-6. ORDER TYPE (RETURN / REPLACEMENT / CHANGING):
-   - If any of these keywords appear: Return, Replacement, Replacing, Exchange, Changing, Change, Reverse, Wrong Item, Wrong Product, Sending Back
-   - Set 'orderType': 'Replacement'.
+9. ORDER TYPE (RETURN / REPLACEMENT / CHANGING):
+   - If keywords appear: Return, Replacement, Replacing, Exchange, Changing, Change, Reverse, Wrong Item -> 'Replacement'.
    - Otherwise set 'orderType': 'Normal'.
 
-7. ORDER ID / REFERENCE:
-   - If explicitly given (e.g. #1024, ORD-99, Ref 55), extract as 'id'. If not given, return "" (empty string).
-
-8. ITEMS / PIECES COUNT:
-   - If explicitly given (e.g. 2 pcs, 3 items, 4 suit, qty 2), extract as integer number.
-   - If missing in text, return null.
-
-9. PRODUCT DETAILS & NOTE:
+10. PRODUCT DETAILS & NOTE:
    - Detail: ALWAYS use merchant's preset "${settings.default_product || 'Kids Clothes'}".
-   - Note: Customer delivery remark (e.g. 'Call before delivery'). If none, use "${settings.default_note || 'Call before delivery'}".
+   - Note: Customer delivery remark (e.g. 'TCS p bjo na sir', 'Call before delivery'). If none, use "${settings.default_note || 'Call before delivery'}".
    - Weight: ${settings.default_weight || 0.5}.
    - AirwayBillCopy: 1.
 
@@ -237,18 +232,18 @@ Return ONLY a valid JSON array. Zero markdown fences outside, NO conversational 
 Format:
 [
   {
-    "id": "",
-    "name": "Ali",
-    "phone": "03030303003",
-    "city": "LAHORE",
-    "address": "G77 Makki Complex, Chungi Amar Sidhu, Lahore",
-    "total": 500,
-    "items": null,
+    "id": "WA1025",
+    "name": "Rukhshana Faqir",
+    "phone": "03555184939",
+    "city": "HUNZA–NAGAR",
+    "address": "Ali Abad hunzia",
+    "total": 3800,
+    "items": 2,
     "weight": 0.5,
     "orderType": "Normal",
     "airwayBillCopy": 1,
     "detail": "${settings.default_product || 'Kids Clothes'}",
-    "note": "Call before delivery"
+    "note": "TCS p bjo na sir"
   }
 ]
 `
@@ -546,43 +541,43 @@ Format:
  * Safely handles:
  * 1. Double/multiple blank lines (\n\s*\n+) used in WhatsApp/SMS chats.
  * 2. Explicit numbered lists (1. ... 2. ... or Order 1 ... Order 2).
- * 3. Dense unseparated multi-order text with multiple phone numbers, splitting cleanly at \n line boundaries
- *    (NEVER using naive midpoints that chop addresses, customer names, or products in half).
+ * 3. Dense unseparated multi-order text with multiple phone numbers, splitting cleanly at \n li/**
+ * Single Source of Truth for splitting unstructured raw text into distinct order blocks.
+ * Safely handles:
+ * 1. Explicit symbol delimiters on a line by themselves ('.', '---', '***', '===', '___', '•••').
+ * 2. Numbered lists (1. ... 2. ... or Order 1: ... Order 2: ...).
+ * 3. Double blank lines (\n\s*\n+), while smartly preserving multi-line orders whose address
+ *    is followed by empty lines before the phone/name.
+ * 4. Strips trailing merchant credentials, passwords, or emails from order blocks.
  */
 export function splitRawTextIntoOrderBlocks(rawText: string): string[] {
   if (!rawText || !rawText.trim()) return []
 
   const clean = rawText.trim()
 
-  // 1. Check if separated by blank lines (standard WhatsApp multi-order format)
-  const paragraphBlocks = clean
-    .split(/\r?\n\s*\r?\n+/)
+  // 1. Check for explicit separator lines (e.g. '.', '---', '***', '===', '___')
+  const sepRegex = /(?:^|\r?\n)\s*[\.\*\-\_\=\#\•\~]{1,15}\s*(?:\r?\n|$)/
+  const explicitCandidates = clean.split(sepRegex)
     .map(b => b.trim())
-    .filter(b => b.length > 0)
+    .filter(b => b.length > 0 && !/^[\.\*\-\_\=\#\•\~]+$/.test(b))
 
-  // If we found multiple paragraph blocks, check if they contain phone numbers or order signals
-  if (paragraphBlocks.length > 1) {
-    const hasOrderSignals = paragraphBlocks.filter(b =>
-      /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/.test(b) ||
-      /(?:rs\.?|cod|total|amount|روپے|وصول|suit|shirt|shoes|dress)/i.test(b)
-    ).length
-
-    if (hasOrderSignals >= Math.max(1, Math.floor(paragraphBlocks.length * 0.4))) {
-      // Re-stitch any accidental short fragments (< 15 chars without phone) to the previous block
-      const consolidated: string[] = []
-      for (const b of paragraphBlocks) {
-        if (consolidated.length > 0 && b.length < 15 && !/(?:03\d{2}|923\d{2})/.test(b)) {
-          consolidated[consolidated.length - 1] += '\n' + b
-        } else {
-          consolidated.push(b)
-        }
-      }
-      return consolidated
+  if (explicitCandidates.length > 1) {
+    const filteredBlocks: string[] = []
+    for (let i = 0; i < explicitCandidates.length; i++) {
+      const b = explicitCandidates[i]
+      const isTrailingNoise = (i === explicitCandidates.length - 1) &&
+        !/(?:03\d{2}|923\d{2}|rs\.?|cod|amount|total|wa\d+|ord|pc\d+)/i.test(b) &&
+        /(?:password|pass|email|@|\.com)/i.test(b)
+      if (isTrailingNoise) continue
+      filteredBlocks.push(b)
+    }
+    if (filteredBlocks.length > 1) {
+      return filteredBlocks
     }
   }
 
   // 2. Check for numbered list markers (1. ... 2. ... or Order 1: ... Order 2: ...)
-  const numberedSplit = clean.split(/(?:^|\r?\n)(?=\s*(?:\d+[\.\)]\s+|Order\s*#?\d+[:\s\.-]))/i)
+  const numberedSplit = clean.split(/(?:^|\r?\n)(?=\s*(?:\d+[\.\)]\s+|Order\s*#?\d+[:\s\.-]|Parcel\s*#?\d+[:\s\.-]))/i)
     .map(b => b.trim())
     .filter(b => b.length > 0)
 
@@ -590,60 +585,40 @@ export function splitRawTextIntoOrderBlocks(rawText: string): string[] {
     return numberedSplit
   }
 
-  // 3. Fallback for dense text without blank lines: split at \n line breaks near phone numbers
-  const phoneRegex = /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/g
-  const phoneMatches: { index: number; text: string }[] = []
-  let match: RegExpExecArray | null
-  while ((match = phoneRegex.exec(clean)) !== null) {
-    phoneMatches.push({ index: match.index, text: match[0] })
-  }
+  // 3. Check for blank lines, consolidating orphaned fragments (e.g., address with empty line before phone)
+  const paragraphBlocks = clean
+    .split(/\r?\n\s*\r?\n+/)
+    .map(b => b.trim())
+    .filter(b => b.length > 0 && !/^[\.\*\-\_\=\#\•\~]+$/.test(b))
 
-  if (phoneMatches.length <= 1) {
-    return [clean]
-  }
+  if (paragraphBlocks.length > 1) {
+    const consolidated: string[] = []
+    for (const b of paragraphBlocks) {
+      const hasPhone = /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7}|0\d{2,4}[\s-]?\d{6,7})/.test(b)
+      const hasAmount = /(?:rs\.?|cod|total|amount|روپے|وصول)\s*[:\-]?\s*\d+/i.test(b)
+      const hasOrderId = /(?:wa\s*\d+|ord\s*\d+|order\s*#?\d+)/i.test(b)
 
-  // Find all line boundaries (\n)
-  const lines = clean.split(/\r?\n/)
-  const lineOffsets: number[] = []
-  let curOffset = 0
-  for (const l of lines) {
-    lineOffsets.push(curOffset)
-    curOffset += l.length + 1
-  }
-
-  // Assign each line cleanly to its respective order without cutting words
-  const blocks: string[] = []
-  let curBlockLines: string[] = []
-  let currentPhoneIdx = 0
-
-  for (let i = 0; i < lines.length; i++) {
-    const lineStart = lineOffsets[i]
-    if (currentPhoneIdx + 1 < phoneMatches.length) {
-      const nextPhoneOffset = phoneMatches[currentPhoneIdx + 1].index
-      const currentPhoneOffset = phoneMatches[currentPhoneIdx].index
-      const splitBoundary = (currentPhoneOffset + nextPhoneOffset) / 2
-
-      if (lineStart >= splitBoundary && curBlockLines.length > 0) {
-        blocks.push(curBlockLines.join('\n').trim())
-        curBlockLines = []
-        currentPhoneIdx++
+      // If this block has no phone, no amount, and no orderId, it is an address/name fragment of the order
+      if (consolidated.length > 0 && !hasPhone && !hasAmount && !hasOrderId) {
+        consolidated[consolidated.length - 1] += '\n' + b
+      } else if (consolidated.length > 0 && !hasPhone && consolidated[consolidated.length - 1].length < 80) {
+        consolidated[consolidated.length - 1] += '\n' + b
+      } else {
+        consolidated.push(b)
       }
     }
-    curBlockLines.push(lines[i])
+    if (consolidated.length > 1) {
+      return consolidated
+    }
   }
 
-  if (curBlockLines.length > 0) {
-    blocks.push(curBlockLines.join('\n').trim())
-  }
-
-  return blocks.filter(b => b.length > 0)
+  return [clean]
 }
 
 /**
  * Zero-Loss Algorithmic Fallback Parser:
- * If all AI APIs hit rate limits or are unavailable, this high-accuracy regex engine
- * extracts Pakistani phone numbers, customer names, COD amounts, and addresses directly
- * so the merchant's orders are NEVER lost or discarded.
+ * High-accuracy Pakistani logistics engine extracting phone numbers, recipient names,
+ * COD amounts, IDs, items, and normalized cities so data is NEVER lost or scrambled.
  */
 export function parseTextFallback(
   rawText: string,
@@ -664,17 +639,40 @@ export function parseTextFallback(
   const parcels: Parcel[] = []
 
   for (const block of blocks) {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length === 0) continue
+    // Filter out trailing noise lines like merchant passwords, emails, etc.
+    const rawLines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    if (rawLines.length === 0) continue
 
-    // 1. Phone extraction
+    const lines: string[] = []
+    for (const l of rawLines) {
+      if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i.test(l)) continue
+      if (/(?:mytvpass|password\s*[:\-=]|pass\s*[:\-=])/i.test(l)) continue
+      lines.push(l)
+    }
+
+    // 1. Phone extraction (primary mobile 03xx + landline preservation)
     let phone = ''
-    const pMatch = block.match(/(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7})/)
-    if (pMatch) {
-      phone = pMatch[0].replace(/[\s-+]/g, '')
+    let secondaryPhone = ''
+    const phoneRegex = /(?:(?:\+92|0092|92)[\s-]?3\d{2}[\s-]?\d{7}|03\d{2}[\s-]?\d{7}|3\d{2}[\s-]?\d{7}|058\d{2}[\s-]?\d{6,7}|0\d{2,4}[\s-]?\d{6,7})/g
+    const allPhones: string[] = []
+    let pm: RegExpExecArray | null
+    while ((pm = phoneRegex.exec(block)) !== null) {
+      allPhones.push(pm[0])
+    }
+
+    const mobilePhone = allPhones.find(p => /(?:03|3\d{2}|923)/.test(p))
+    const altPhone = allPhones.find(p => p !== mobilePhone)
+
+    if (mobilePhone) {
+      phone = mobilePhone.replace(/[\s-+]/g, '')
       if (phone.startsWith('92')) phone = '0' + phone.substring(2)
       if (phone.startsWith('0092')) phone = '0' + phone.substring(4)
       if (phone.length === 10 && phone.startsWith('3')) phone = '0' + phone
+    } else if (allPhones.length > 0) {
+      phone = allPhones[0].replace(/[\s-+]/g, '')
+    }
+    if (altPhone) {
+      secondaryPhone = altPhone.trim()
     }
 
     // 2. COD / Total extraction
@@ -695,76 +693,25 @@ export function parseTextFallback(
       }
     }
 
-    // 3. Name extraction (first line or labeled line)
-    let name = ''
-    const nameLine = lines.find(l => /^name\s*[:\-]/i.test(l))
-    if (nameLine) {
-      name = nameLine.replace(/^name\s*[:\-]\s*/i, '').trim()
-    } else {
-      const firstCandidate = lines[0].replace(/^\d+[\.\)]\s*/, '').trim()
-      if (!firstCandidate.match(/\d{5,}/) && !/^(phone|contact|mobile|address|amount|rs|cod)/i.test(firstCandidate)) {
-        name = firstCandidate
-      } else if (lines.length > 1 && !lines[1].match(/\d{5,}/) && !/^(phone|contact|mobile|address|amount|rs|cod)/i.test(lines[1])) {
-        name = lines[1].trim()
-      } else {
-        name = 'Recipient'
+    // 3. Pieces / Items count
+    let explicitItems: number | null = null
+    const pcMatch = block.match(/\b(?:pc|pcs|pieces?|qty|quantity|items?|suits?|jore?|jori?)\s*[:#\-]?\s*(\d+)\b/i) ||
+                    block.match(/\b(\d+)\s*(?:pc|pcs|pieces?|qty|quantity|items?|suits?|jore?|jori?)\b/i)
+    if (pcMatch && pcMatch[1]) {
+      const parsedItems = parseInt(pcMatch[1], 10)
+      if (parsedItems > 0 && parsedItems <= 100) {
+        explicitItems = parsedItems
       }
     }
+    const itemsVal = explicitItems !== null ? explicitItems : Number(settings.default_items || 1)
+    const isDefaultItems = explicitItems === null
 
-    // 4. Address extraction
-    let address = ''
-    const addressLine = lines.find(l => /^(address|pata|ghar|street|house)\s*[:\-]/i.test(l))
-    if (addressLine) {
-      address = addressLine.replace(/^(address|pata|ghar|street|house)\s*[:\-]\s*/i, '').trim()
-    } else {
-      const remainingLines = lines.filter(l => {
-        if (l.includes(name) || (phone && l.includes(phone.slice(-7)))) return false
-        if (/(?:rs\.?|amount|cod|total)[\s:]*\d+/i.test(l)) return false
-        return true
-      })
-      address = remainingLines.join(', ') || block
-    }
-
-    // 5. Intelligent City extraction
-    // Priority A: Scan address for known major cities or area landmarks (e.g. "Chungi Amar Sidhu" -> "LAHORE")
-    let detectedCity = detectCityFromAddress(address) || detectCityFromAddress(block)
-    
-    // Priority B: Labeled city/destination line
-    if (!detectedCity) {
-      const cityLine = lines.find(l => /^(city|shehar|destination)\s*[:\-]/i.test(l))
-      if (cityLine) {
-        const raw = cityLine.replace(/^(city|shehar|destination)\s*[:\-]\s*/i, '').trim()
-        detectedCity = normalizeCityName(raw, address)
-      }
-    }
-
-    // Priority C: Scan words in address from right to left (cities are written at the end of addresses in Pakistan)
-    if (!detectedCity) {
-      const addrWords = address.toUpperCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length >= 4)
-      for (let wIdx = addrWords.length - 1; wIdx >= 0; wIdx--) {
-        const w = addrWords[wIdx]
-        const norm = normalizeCityName(w, address)
-        if (norm && norm.length >= 4 && norm !== 'RECIPIENT') {
-          detectedCity = norm
-          break
-        }
-      }
-    }
-
-    if (!detectedCity) {
-      detectedCity = 'LAHORE'
-    }
-
-    // Anti-name-collision safeguard (e.g. name "Ali" confused as "Alipur")
-    if (detectedCity === 'ALIPUR' && (name.toUpperCase() === 'ALI' || name.toUpperCase().startsWith('ALI '))) {
-      detectedCity = detectCityFromAddress(address) || 'LAHORE'
-    }
-
-    // 6. Order ID check: explicit or fallback
+    // 4. Order ID extraction
     let explicitId = ''
-    const idMatch = block.match(/(?:order\s*(?:id|no|#|num)?|ref\s*(?:id|no|#|num)?|inv\s*(?:id|no|#|num)?)\s*[:#\-]?\s*([A-Za-z0-9\-]+)/i)
-    if (idMatch && idMatch[1] && !/^(name|phone|city|address|amount|cod|total|rs)$/i.test(idMatch[1])) {
-      explicitId = idMatch[1].trim()
+    const idMatch = block.match(/\b(?:order\s*(?:id|no|#|num)?|ref\s*(?:id|no|#|num)?|inv\s*(?:id|no|#|num)?|\bid)\s*[:#\-]?\s*([A-Za-z0-9\-]+(?:\s*\d+)?)\b/i) ||
+                    block.match(/\b(wa\s*\d+|ord\s*\d+|ref\s*\d+)\b/i)
+    if (idMatch && idMatch[1] && !/^(name|phone|city|address|amount|cod|total|rs|pc)$/i.test(idMatch[1].trim())) {
+      explicitId = idMatch[1].replace(/\s+/g, '').toUpperCase().trim()
     }
 
     let orderId = ''
@@ -785,19 +732,84 @@ export function parseTextFallback(
       isDefaultId = true
     }
 
-    // 7. Explicit items check
-    let explicitItems: number | null = null
-    const itemsMatch = block.match(/(?:qty|quantity|pieces?|pcs?|items?|suits?|jore?|jori?)\s*[:#\-]?\s*(\d+)/i) ||
-                       block.match(/(\d+)\s*(?:pieces?|pcs?|items?|suits?|jore?|jori?)\b/i)
-    if (itemsMatch && itemsMatch[1]) {
-      const parsedItems = parseInt(itemsMatch[1], 10)
-      if (parsedItems > 0 && parsedItems <= 100) {
-        explicitItems = parsedItems
+    // 5. Special Instruction / Courier Note
+    let note = settings.default_note || 'Call before delivery'
+    const noteMatch = block.match(/(?:tcs\s+p\s+bjo\s+na\s+sir|tcs\s+se\s+bhejo|leopards\s+se|postex\s+se|call\s+before\s+delivery|urgent|call\s+karna|delivery\s+se\s+pehle\s+call)/i)
+    if (noteMatch) {
+      note = noteMatch[0].trim()
+    }
+
+    // 6. Name extraction (never confuse with shops/landmarks/medical halls)
+    let name = ''
+    // Pattern A: Inline label 'Name rukhshana faqir address...' or 'Name: ...'
+    const inlineNameMatch = block.match(/(?:^|\n|\s)name\s*[:\-]?\s*([A-Za-z\s\.]+?)(?=\s+(?:address|addr|pata|phone|contact|connect|mobile|num|no|city|tcs|call|rs|cod|id|wa|pc)\b|$)/i)
+    if (inlineNameMatch && inlineNameMatch[1].trim().length > 1) {
+      name = inlineNameMatch[1].trim()
+    }
+
+    if (!name) {
+      // Labeled line: 'Name: ...'
+      const nameLine = lines.find(l => /^name\s*[:\-]?\s*[A-Za-z]/i.test(l))
+      if (nameLine) {
+        name = nameLine.replace(/^name\s*[:\-]?\s*/i, '').trim()
       }
     }
 
-    const itemsVal = explicitItems !== null ? explicitItems : Number(settings.default_items || 1)
-    const isDefaultItems = explicitItems === null
+    if (!name) {
+      // Scan candidate lines: 1 to 4 words that do NOT contain landmark/shop/address words or labels
+      const nonNameWords = /(?:medical\s+hall|electronics|hostal|hostel|hospital|bazar|market|plaza|road|street|galli|house|flat|chowk|near|nazdeek|adha|bangla|tahseel|tehsil|zila|city|phone|connect|contact|id\s+|pc\s*\d+|rs\.?|cod|amount|total)/i
+      for (const l of lines) {
+        if (nonNameWords.test(l)) continue
+        if (/\d{4,}/.test(l)) continue
+        const words = l.split(/\s+/).filter(Boolean)
+        if (words.length >= 1 && words.length <= 4) {
+          name = l.trim()
+          break
+        }
+      }
+    }
+
+    if (!name) name = 'Recipient'
+    name = name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).trim()
+
+    // 7. Address extraction
+    let address = ''
+    const inlineAddrMatch = block.match(/(?:^|\n|\s)address\s*[:\-]?\s*(.+?)(?=\s+(?:connect|contact|phone|mobile|num|no|tcs|call|rs|cod|id|wa|pc)\b|$)/i)
+    if (inlineAddrMatch) {
+      address = inlineAddrMatch[1].trim()
+    } else {
+      const addrLines = lines.filter(l => {
+        if (l.toLowerCase() === name.toLowerCase()) return false
+        if (phone && l.includes(phone.slice(-6))) return false
+        if (/(?:rs\.?|amount|cod|total|id\s+|pc\s*\d+)/i.test(l)) return false
+        if (/^phone\s*[:\-]/i.test(l)) return false
+        return true
+      })
+      address = addrLines.join(', ').trim()
+    }
+
+    if (secondaryPhone && !address.includes(secondaryPhone)) {
+      address += ` (Phone: ${secondaryPhone})`
+    }
+
+    // 8. Intelligent City detection & normalization
+    let detectedCity = detectCityFromAddress(address) || detectCityFromAddress(block)
+    if (!detectedCity) {
+      const cityLine = lines.find(l => /^(city|shehar|destination)\s*[:\-]/i.test(l))
+      if (cityLine) {
+        const raw = cityLine.replace(/^(city|shehar|destination)\s*[:\-]\s*/i, '').trim()
+        detectedCity = normalizeCityName(raw, address)
+      }
+    }
+    if (!detectedCity) {
+      const cityLineMatch = block.match(/(?:city|shehar)\s*[:\-]?\s*([A-Za-z\s]+)/i)
+      if (cityLineMatch) {
+        detectedCity = normalizeCityName(cityLineMatch[1].trim(), address)
+      }
+    }
+    if (!detectedCity) {
+      detectedCity = 'LAHORE'
+    }
 
     parcels.push({
       id: orderId,
@@ -811,7 +823,7 @@ export function parseTextFallback(
       orderType: settings.default_order_type || 'Normal',
       airwayBillCopy: 1,
       detail: settings.default_product || 'Kids Clothes',
-      note: settings.default_note || 'Call before delivery',
+      note,
       isDefaultId,
       isDefaultItems
     })
@@ -823,4 +835,5 @@ export function parseTextFallback(
     nextSerialNum: currentNum
   }
 }
+
 

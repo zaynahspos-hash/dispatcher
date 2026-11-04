@@ -1,5 +1,6 @@
 import React from 'react'
 import { SearchIcon, AutoFitIcon, TrashIcon, CloseIcon } from '../Icons'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 
 export type ResultsStatusFilter = 'all' | 'success' | 'error' | 'manual' | 'cancelled'
 
@@ -28,7 +29,7 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
   statusFilter,
   setStatusFilter,
   counts,
-  onClearFilters,
+  onClearFilters: _onClearFilters,
   expandDefaults,
   onToggleExpandDefaults,
   onAutoFitColumns,
@@ -45,7 +46,7 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
   return (
     <div className="w-full">
       {/* 1. Main Search & Utility Toolbar (.tb from app (1).html) */}
-      <div className="tb">
+      <div className="tb justify-between gap-2.5">
         <div className="sw">
           <SearchIcon size={16} />
           <input
@@ -53,69 +54,78 @@ export const ResultsFilterBar: React.FC<ResultsFilterBarProps> = ({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search customer, phone, tracking, order #, city"
-            className="in"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              className="sw-clear"
+              title="Clear search"
             >
               <CloseIcon size={14} />
             </button>
           )}
         </div>
 
-        {onToggleExpandDefaults && (
-          <button
-            type="button"
-            onClick={onToggleExpandDefaults}
-            className="btn"
-            title="Toggle defaults columns on desktop or card expand on mobile"
-          >
-            <span>{expandDefaults ? 'Collapse defaults' : 'Expand defaults'}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {onToggleExpandDefaults && (
+            <button
+              type="button"
+              onClick={onToggleExpandDefaults}
+              className="btn"
+              title="Toggle defaults columns on desktop or card expand on mobile"
+            >
+              <span>{expandDefaults ? 'Collapse defaults' : 'Expand defaults'}</span>
+            </button>
+          )}
 
-        {onAutoFitColumns && (
-          <button
-            type="button"
-            onClick={onAutoFitColumns}
-            className="btn"
-            title="Auto-fit columns on desktop"
-          >
-            <AutoFitIcon size={15} />
-            <span>Auto-fit</span>
-          </button>
-        )}
+          {onAutoFitColumns && (
+            <button
+              type="button"
+              onClick={onAutoFitColumns}
+              className="btn"
+              title="Auto-fit columns on desktop"
+            >
+              <AutoFitIcon size={15} />
+              <span>Auto-fit</span>
+            </button>
+          )}
 
-        {onClearAll && (
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="btn d"
-            title="Clear all results"
-          >
-            <TrashIcon size={15} />
-            <span>Clear all</span>
-          </button>
-        )}
+          {onClearAll && (
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="btn d"
+              title="Clear all results"
+            >
+              <TrashIcon size={15} />
+              <span>Clear all</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 2. Filter Tabs with Italic Pill Counts (.filter-tabs-bar from app (1).html) */}
-      <div className="filter-tabs-bar">
-        {tabs.map(tab => {
-          const isActive = statusFilter === tab.id
-          return (
-            <span
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`filter-tab ${isActive ? 'on' : ''}`}
-            >
-              {tab.label} <i>{tab.count}</i>
-            </span>
-          )
-        })}
+      {/* 2. Filter Tabs with Italic Pill Counts (.filter-tabs-bar wrapped in ScrollableChipsBar) */}
+      <div className="border-b border-[var(--bd)] px-3 py-2 bg-[var(--s1)]">
+        <ScrollableChipsBar
+          containerClassName="flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+          ariaLabel="Results status filter tabs"
+        >
+          {tabs.map(tab => {
+            const isActive = statusFilter === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStatusFilter(tab.id)}
+                className={`filter-tab ${isActive ? 'on' : ''}`}
+              >
+                <span>{tab.label}</span>
+                <i>{tab.count}</i>
+              </button>
+            )
+          })}
+        </ScrollableChipsBar>
       </div>
     </div>
   )

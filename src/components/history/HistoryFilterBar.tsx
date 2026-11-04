@@ -1,5 +1,6 @@
 import React from 'react'
 import { SearchIcon, CloseIcon } from '../Icons'
+import { ScrollableChipsBar } from '../common/ScrollableChipsBar'
 import { StatusFilterType, SourceFilterType, SearchScopeType, getLocalTodayDate, getDatePresetsInfo, DatePresetType } from './types'
 import { formatDaysCount } from '../../utils/report/analytics'
 
@@ -139,66 +140,71 @@ export function HistoryFilterBar({
       )}
 
       {/* Tier 1: Search scope dropdown, search input, exclude, and reset */}
-      <div className="tb">
-        {setSearchScope && (
-          <select
-            className="in"
-            style={{ width: '130px' }}
-            value={searchScope}
-            onChange={e => setSearchScope(e.target.value as SearchScopeType)}
-            title="Search field filter: All, Order #, Tracking, Customer, Phone"
-          >
-            <option value="all">All fields</option>
-            <option value="orderRef">Order #</option>
-            <option value="trackingNumber">Tracking</option>
-            <option value="customerName">Customer</option>
-            <option value="customerPhone">Phone</option>
-          </select>
-        )}
-        <div className="sw">
-          <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-          <input
-            className="in"
-            type="text"
-            placeholder="Search order #, tracking, customer, phone"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
+      <div className="tb justify-between gap-2.5">
+        <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
+          {setSearchScope && (
+            <select
+              className="in shrink-0 text-xs sm:text-sm"
+              style={{ width: '120px' }}
+              value={searchScope}
+              onChange={e => setSearchScope(e.target.value as SearchScopeType)}
+              title="Search field filter: All, Order #, Tracking, Customer, Phone"
+            >
+              <option value="all">All fields</option>
+              <option value="orderRef">Order #</option>
+              <option value="trackingNumber">Tracking</option>
+              <option value="customerName">Customer</option>
+              <option value="customerPhone">Phone</option>
+            </select>
+          )}
+          <div className="sw">
+            <SearchIcon className="w-4 h-4 shrink-0 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search order #, tracking, customer, phone"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="sw-clear"
+                title="Clear search"
+              >
+                <CloseIcon className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {setSearchExclude && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              title="Clear search"
+              className={`btn sm ${searchExclude ? 'p' : ''}`}
+              onClick={() => setSearchExclude(!searchExclude)}
+              title="Exclude matching results from display"
             >
-              <CloseIcon className="w-3.5 h-3.5" />
+              Exclude
+            </button>
+          )}
+          {isCustomFilterActive && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={handleClearFilters}
+              title="Reset all filters"
+            >
+              Reset
             </button>
           )}
         </div>
-        {setSearchExclude && (
-          <button
-            type="button"
-            className={`btn sm ${searchExclude ? 'p' : ''}`}
-            onClick={() => setSearchExclude(!searchExclude)}
-            title="Exclude matching results from display"
-          >
-            Exclude
-          </button>
-        )}
-        {isCustomFilterActive && (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={handleClearFilters}
-            title="Reset all filters"
-          >
-            Reset
-          </button>
-        )}
       </div>
 
       {/* Tier 2: Date presets, custom date range, status select, city select */}
-      <div className="tb">
+      <div className="tb justify-between gap-2.5">
+        {/* Date presets with smooth horizontal scroll */}
         <div className="seg-bar">
           <button
             type="button"
@@ -236,150 +242,170 @@ export function HistoryFilterBar({
             Last 3 months
           </button>
         </div>
-        <span className="g"></span>
-        <input
-          type="date"
-          className="in"
-          value={fromDate}
-          onChange={e => setFromDate(e.target.value)}
-          title="From date"
-        />
-        <span className="t3">to</span>
-        <input
-          type="date"
-          className="in"
-          value={toDate}
-          onChange={e => setToDate(e.target.value)}
-          title="To date"
-        />
-        {daysText && (
-          <span className="t3 sm2 mono hidden xl:inline">{daysText}</span>
-        )}
-        <select
-          className="in"
-          value={statusSelect}
-          onChange={e => setStatusSelect(e.target.value)}
-          title="All statuses"
-        >
-          <option value="all">All statuses</option>
-          <option value="Booked">Booked</option>
-          <option value="In Transit">In Transit</option>
-          <option value="Out for Delivery">Out for Delivery</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Returned">Returned</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-        <select
-          className="in"
-          value={pickupFilter}
-          onChange={e => setPickupFilter(e.target.value)}
-          title="All cities"
-        >
-          <option value="all">All cities ({uniqueCities.length})</option>
-          {uniqueCities.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Custom Date Range atomic group (never splits across lines) */}
+          <div className="inline-flex items-center gap-1.5 shrink-0 bg-slate-50/50 dark:bg-slate-900/40 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+            <input
+              type="date"
+              className="in text-xs sm:text-sm !h-8 !px-2"
+              style={{ width: '130px' }}
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              title="From date"
+            />
+            <span className="t3 text-xs font-semibold px-0.5">to</span>
+            <input
+              type="date"
+              className="in text-xs sm:text-sm !h-8 !px-2"
+              style={{ width: '130px' }}
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              title="To date"
+            />
+            {daysText && (
+              <span className="t3 text-[11px] mono hidden xl:inline px-1 font-semibold">{daysText}</span>
+            )}
+          </div>
+
+          {/* Status & City Selectors */}
+          <div className="inline-flex items-center gap-1.5 shrink-0">
+            <select
+              className="in text-xs sm:text-sm !h-8 !px-2"
+              style={{ minWidth: '120px' }}
+              value={statusSelect}
+              onChange={e => setStatusSelect(e.target.value)}
+              title="All statuses"
+            >
+              <option value="all">All statuses</option>
+              <option value="Booked">Booked</option>
+              <option value="In Transit">In Transit</option>
+              <option value="Out for Delivery">Out for Delivery</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Returned">Returned</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <select
+              className="in text-xs sm:text-sm !h-8 !px-2"
+              style={{ minWidth: '125px' }}
+              value={pickupFilter}
+              onChange={e => setPickupFilter(e.target.value)}
+              title="All cities"
+            >
+              <option value="all">All cities ({uniqueCities.length})</option>
+              {uniqueCities.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Tier 3: Status filter tabs */}
-      <div className="filter-tabs-bar">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`filter-tab ${statusFilter === tab.id ? 'on' : ''}`}
-            onClick={() => setStatusFilter(tab.id as StatusFilterType)}
-          >
-            <span>{tab.label}</span>
-            <i>{tab.count}</i>
-          </button>
-        ))}
+      {/* Tier 3: Status filter tabs wrapped in ScrollableChipsBar */}
+      <div className="border-b border-[var(--bd)] px-3 py-2 bg-[var(--s1)]">
+        <ScrollableChipsBar
+          containerClassName="flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+          ariaLabel="Status filter tabs"
+        >
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`filter-tab ${statusFilter === tab.id ? 'on' : ''}`}
+              onClick={() => setStatusFilter(tab.id as StatusFilterType)}
+            >
+              <span>{tab.label}</span>
+              <i>{tab.count}</i>
+            </button>
+          ))}
+        </ScrollableChipsBar>
       </div>
 
       {/* Tier 4: Source, WhatsApp, Auto-fit, and Expand all */}
-      <div className="tb" style={{ borderBottom: '1px solid var(--bd)' }}>
-        {setSourceFilter && (
-          <>
-            <span className="t3 sm2">SOURCE</span>
-            <div className="seg-bar">
-              <button
-                type="button"
-                className={sourceFilter === 'all' ? 'on' : ''}
-                onClick={() => setSourceFilter('all')}
-              >
-                All {sourceCounts?.all ?? counts.all}
-              </button>
-              <button
-                type="button"
-                className={sourceFilter === 'app' ? 'on' : ''}
-                onClick={() => setSourceFilter('app')}
-              >
-                Booked in app {sourceCounts?.app ?? 0}
-              </button>
-              <button
-                type="button"
-                className={sourceFilter === 'portal' ? 'on' : ''}
-                onClick={() => setSourceFilter('portal')}
-              >
-                External / portal {sourceCounts?.portal ?? 0}
-              </button>
+      <div className="tb justify-between gap-2.5" style={{ borderBottom: '1px solid var(--bd)' }}>
+        <div className="flex items-center gap-3 flex-wrap">
+          {setSourceFilter && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="t3 text-[11px] font-bold tracking-wider">SOURCE</span>
+              <div className="seg-bar">
+                <button
+                  type="button"
+                  className={sourceFilter === 'all' ? 'on' : ''}
+                  onClick={() => setSourceFilter('all')}
+                >
+                  All {sourceCounts?.all ?? counts.all}
+                </button>
+                <button
+                  type="button"
+                  className={sourceFilter === 'app' ? 'on' : ''}
+                  onClick={() => setSourceFilter('app')}
+                >
+                  Booked in app {sourceCounts?.app ?? 0}
+                </button>
+                <button
+                  type="button"
+                  className={sourceFilter === 'portal' ? 'on' : ''}
+                  onClick={() => setSourceFilter('portal')}
+                >
+                  External / portal {sourceCounts?.portal ?? 0}
+                </button>
+              </div>
             </div>
-          </>
-        )}
+          )}
 
-        {setWhatsappFilter && (
-          <>
-            <span className="t3 sm2" style={{ marginLeft: '8px' }}>WHATSAPP</span>
-            <div className="seg-bar">
-              <button
-                type="button"
-                className={whatsappFilter === 'all' ? 'on' : ''}
-                onClick={() => setWhatsappFilter('all')}
-              >
-                All {counts.all}
-              </button>
-              <button
-                type="button"
-                className={whatsappFilter === 'pending' ? 'on' : ''}
-                onClick={() => setWhatsappFilter('pending')}
-              >
-                Pending {counts.waPending ?? 0}
-              </button>
-              <button
-                type="button"
-                className={whatsappFilter === 'sent' ? 'on' : ''}
-                onClick={() => setWhatsappFilter('sent')}
-              >
-                Sent {counts.waSent ?? 0}
-              </button>
+          {setWhatsappFilter && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="t3 text-[11px] font-bold tracking-wider">WHATSAPP</span>
+              <div className="seg-bar">
+                <button
+                  type="button"
+                  className={whatsappFilter === 'all' ? 'on' : ''}
+                  onClick={() => setWhatsappFilter('all')}
+                >
+                  All {counts.all}
+                </button>
+                <button
+                  type="button"
+                  className={whatsappFilter === 'pending' ? 'on' : ''}
+                  onClick={() => setWhatsappFilter('pending')}
+                >
+                  Pending {counts.waPending ?? 0}
+                </button>
+                <button
+                  type="button"
+                  className={whatsappFilter === 'sent' ? 'on' : ''}
+                  onClick={() => setWhatsappFilter('sent')}
+                >
+                  Sent {counts.waSent ?? 0}
+                </button>
+              </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
 
-        <span className="g"></span>
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          {onAutoFitColumns && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={onAutoFitColumns}
+              title="Auto-fit table column widths"
+            >
+              Auto-fit
+            </button>
+          )}
 
-        {onAutoFitColumns && (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={onAutoFitColumns}
-            title="Auto-fit table column widths"
-          >
-            Auto-fit
-          </button>
-        )}
-
-        {onToggleAutoExpandLines && (
-          <button
-            type="button"
-            className="btn sm"
-            onClick={onToggleAutoExpandLines}
-            title="Toggle multi-line expansion on addresses and notes"
-          >
-            {autoExpandLines ? 'Collapse all' : 'Expand all'}
-          </button>
-        )}
+          {onToggleAutoExpandLines && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={onToggleAutoExpandLines}
+              title="Toggle multi-line expansion on addresses and notes"
+            >
+              {autoExpandLines ? 'Collapse all' : 'Expand all'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

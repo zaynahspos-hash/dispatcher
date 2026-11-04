@@ -116,9 +116,29 @@ export function usePostExRangeSync({ token, userId, fromDate, toDate, onOrders }
     [token, userId, fromDate, toDate, rangeKey]
   )
 
-  // NOTE: Auto-sync on date change is intentionally disabled.
-  // Both Booked History and Admin tabs sync strictly on "Sync PostEx" button click,
-  // while date filters instantly filter local/cached data without network round-trips.
+  // Intelligent Auto-Sync on Date Range Change:
+  // Automatically loads parcels from PostEx API if the selected range is not yet cached or if cooldown expired.
+  useEffect(() => {
+    const cleanToken = (token || '').trim()
+    if (!cleanToken || !fromDate || !toDate) return
+
+    const lastSync = getLastRangeSyncTime(userId, rangeKey)
+    const isCooldownActive = Date.now() - lastSync < AUTO_SYNC_COOLDOWN_MS
+    const alreadyHasData = hasExternalParcels(userId, fromDate, toDate)
+
+    if (alreadyHasData && isCooldownActive) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      void sync(false)
+    }, AUTO_SYNC_DEBOUNCE_MS)
+
+    return () => {
+      clearTimeout(timer)
+      abortRef.current?.abort()
+    }
+  }, [sync, token, userId, fromDate, toDate, rangeKey])
 
   return { isSyncing, progress, error, elapsedSeconds, sync }
 }
