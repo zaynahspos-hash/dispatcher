@@ -27,22 +27,23 @@ interface UseBookedHistoryFilterProps {
 }
 
 // Reusable scope predicates
-function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType = 'all', exclude: boolean = false): boolean {
+function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType | string = 'all', exclude: boolean = false): boolean {
   if (!query || !query.trim()) return true
   const q = query.toLowerCase().trim()
   const cleanDigits = q.replace(/\D/g, '')
+  const s = (scope || 'all').toLowerCase().trim()
 
   let isMatch = false
-  if (scope === 'name') {
+  if (s === 'name' || s === 'customername' || s === 'customer') {
     isMatch = (item.name || '').toLowerCase().includes(q)
-  } else if (scope === 'phone') {
+  } else if (s === 'phone' || s === 'customerphone') {
     const itemDigits = (item.phone || '').replace(/\D/g, '')
     const matchesRaw = (item.phone || '').toLowerCase().includes(q)
     const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
     isMatch = matchesRaw || matchesDigits
-  } else if (scope === 'reference') {
+  } else if (s === 'reference' || s === 'orderref' || s === 'order#' || s === 'id') {
     isMatch = (item.id || '').toLowerCase().includes(q)
-  } else if (scope === 'tracking') {
+  } else if (s === 'tracking' || s === 'trackingnumber' || s === 'cn') {
     isMatch = (item.tracking || '').toLowerCase().includes(q)
   } else {
     // 'all': match order id, tracking, customer name, phone, or destination city
@@ -79,12 +80,19 @@ function matchesSource(source?: string, sourceFilter?: SourceFilterType): boolea
 
 function matchesSelectStatus(status: string, tracking: string, hasLoadSheet: boolean, statusSelect?: string): boolean {
   if (!statusSelect || statusSelect === 'all') return true
-  const cat = getStatusCategory(status, tracking, hasLoadSheet)
-  if (statusSelect === 'transit') return cat === 'intransit'
-  if (statusSelect === 'under_review' || statusSelect === 'action_required') return cat === 'action_required'
-  if (statusSelect === 'out_for_delivery') return cat === 'out_for_delivery'
-  if (statusSelect === 'pending_loadsheet') return cat === 'pending_loadsheet'
-  return cat === statusSelect
+  const cat = getStatusCategory(status, tracking, hasLoadSheet).toLowerCase()
+  const sel = statusSelect.toLowerCase().replace(/[\s\-_]/g, '')
+
+  if (sel === 'intransit' || sel === 'transit') return cat === 'intransit'
+  if (sel === 'actionrequired' || sel === 'underreview' || sel === 'advice') return cat === 'action_required'
+  if (sel === 'outfordelivery') return cat === 'out_for_delivery'
+  if (sel === 'pendingloadsheet' || sel === 'unbooked') return cat === 'pending_loadsheet'
+  if (sel === 'booked' || sel === 'manifested') return cat === 'booked'
+  if (sel === 'delivered') return cat === 'delivered'
+  if (sel === 'returned') return cat === 'returned'
+  if (sel === 'cancelled' || sel === 'canceled') return cat === 'cancelled'
+
+  return cat.replace(/[\s\-_]/g, '') === sel
 }
 
 function matchesWhatsApp(h: BookedParcel, whatsappFilter?: 'all' | 'pending' | 'sent', isWhatsAppSent?: (tracking: string, id?: string) => boolean): boolean {

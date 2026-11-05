@@ -151,10 +151,10 @@ export function HistoryFilterBar({
               title="Search field filter: All, Order #, Tracking, Customer, Phone"
             >
               <option value="all">All fields</option>
-              <option value="orderRef">Order #</option>
-              <option value="trackingNumber">Tracking</option>
-              <option value="customerName">Customer</option>
-              <option value="customerPhone">Phone</option>
+              <option value="reference">Order #</option>
+              <option value="tracking">Tracking</option>
+              <option value="name">Customer</option>
+              <option value="phone">Phone</option>
             </select>
           )}
           <div className="sw">
@@ -229,6 +229,13 @@ export function HistoryFilterBar({
           </button>
           <button
             type="button"
+            className={activePreset === 'last30' ? 'on' : ''}
+            onClick={() => handleQuickDate('last30')}
+          >
+            Last 30 days
+          </button>
+          <button
+            type="button"
             className={activePreset === 'thisMonth' ? 'on' : ''}
             onClick={() => handleQuickDate('thisMonth')}
           >
@@ -264,7 +271,7 @@ export function HistoryFilterBar({
               title="To date"
             />
             {daysText && (
-              <span className="t3 text-[11px] mono hidden xl:inline px-1 font-semibold">{daysText}</span>
+              <span className="t3 text-[11px] mono hidden sm:inline px-1 font-semibold">{daysText}</span>
             )}
           </div>
 
@@ -278,12 +285,14 @@ export function HistoryFilterBar({
               title="All statuses"
             >
               <option value="all">All statuses</option>
-              <option value="Booked">Booked</option>
-              <option value="In Transit">In Transit</option>
-              <option value="Out for Delivery">Out for Delivery</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Returned">Returned</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="pending_loadsheet">Pending loadsheet</option>
+              <option value="booked">Booked</option>
+              <option value="intransit">In Transit</option>
+              <option value="out_for_delivery">Out for Delivery</option>
+              <option value="action_required">Action Required</option>
+              <option value="delivered">Delivered</option>
+              <option value="returned">Returned</option>
+              <option value="cancelled">Cancelled</option>
             </select>
             <select
               className="in text-xs sm:text-sm !h-8 !px-2"

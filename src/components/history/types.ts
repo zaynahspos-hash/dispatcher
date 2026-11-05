@@ -89,12 +89,13 @@ export const getLocalTodayDate = (): string => {
   return `${year}-${month}-${day}`
 }
 
-export type DatePresetType = 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last3Months'
+export type DatePresetType = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'last3Months'
 
 export interface DatePresetsInfo {
   todayStr: string
   yestStr: string
   last7Str: string
+  last30Str: string
   thisMonthStr: string
   last3MonthsStr: string
   getRangeForPreset: (preset: DatePresetType) => { fromDate: string; toDate: string }
@@ -115,15 +116,23 @@ export const getDatePresetsInfo = (refDate: Date = new Date()): DatePresetsInfo 
   yest.setDate(refDate.getDate() - 1)
   const yestStr = formatDate(yest)
 
+  // Exactly 7 days inclusive of today (e.g. Nov 5 -> Oct 30 = 7 days)
   const d7 = new Date(refDate)
-  d7.setDate(refDate.getDate() - 7)
+  d7.setDate(refDate.getDate() - 6)
   const last7Str = formatDate(d7)
 
+  // Exactly 30 days rolling inclusive of today (e.g. Nov 5 -> Oct 7 = 30 days)
+  const d30 = new Date(refDate)
+  d30.setDate(refDate.getDate() - 29)
+  const last30Str = formatDate(d30)
+
+  // Calendar month (1st of current month to today, e.g. Nov 1 to Nov 5)
   const firstMonth = new Date(refDate.getFullYear(), refDate.getMonth(), 1)
   const thisMonthStr = formatDate(firstMonth)
 
+  // Exactly 90 days rolling inclusive of today (3 months = 90 days)
   const d90 = new Date(refDate)
-  d90.setDate(refDate.getDate() - 90)
+  d90.setDate(refDate.getDate() - 89)
   const last3MonthsStr = formatDate(d90)
 
   const getRangeForPreset = (preset: DatePresetType): { fromDate: string; toDate: string } => {
@@ -134,6 +143,8 @@ export const getDatePresetsInfo = (refDate: Date = new Date()): DatePresetsInfo 
         return { fromDate: yestStr, toDate: yestStr }
       case 'last7':
         return { fromDate: last7Str, toDate: todayStr }
+      case 'last30':
+        return { fromDate: last30Str, toDate: todayStr }
       case 'thisMonth':
         return { fromDate: thisMonthStr, toDate: todayStr }
       case 'last3Months':
@@ -145,6 +156,7 @@ export const getDatePresetsInfo = (refDate: Date = new Date()): DatePresetsInfo 
     if (fromDate === todayStr && toDate === todayStr) return 'today'
     if (fromDate === yestStr && toDate === yestStr) return 'yesterday'
     if (fromDate === last7Str && toDate === todayStr) return 'last7'
+    if (fromDate === last30Str && toDate === todayStr) return 'last30'
     if (fromDate === thisMonthStr && toDate === todayStr) return 'thisMonth'
     if (fromDate === last3MonthsStr && toDate === todayStr) return 'last3Months'
     return null
@@ -154,6 +166,7 @@ export const getDatePresetsInfo = (refDate: Date = new Date()): DatePresetsInfo 
     todayStr,
     yestStr,
     last7Str,
+    last30Str,
     thisMonthStr,
     last3MonthsStr,
     getRangeForPreset,

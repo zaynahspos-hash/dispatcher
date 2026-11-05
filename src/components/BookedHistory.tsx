@@ -326,17 +326,18 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       if (toDate && (!itemDate || itemDate > toDate)) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim()
-        if (searchScope === 'name') {
+        const s = (searchScope || 'all').toLowerCase().trim()
+        if (s === 'name' || s === 'customername' || s === 'customer') {
           if (!h.name.toLowerCase().includes(q)) return false
-        } else if (searchScope === 'phone') {
+        } else if (s === 'phone' || s === 'customerphone') {
           const itemDigits = h.phone.replace(/\D/g, '')
           const cleanDigits = q.replace(/\D/g, '')
           const matchesRaw = h.phone.toLowerCase().includes(q)
           const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
           if (!matchesRaw && !matchesDigits) return false
-        } else if (searchScope === 'reference') {
+        } else if (s === 'reference' || s === 'orderref' || s === 'order#' || s === 'id') {
           if (!h.id.toLowerCase().includes(q)) return false
-        } else if (searchScope === 'tracking') {
+        } else if (s === 'tracking' || s === 'trackingnumber' || s === 'cn') {
           if (!h.tracking.toLowerCase().includes(q)) return false
         } else {
           if (

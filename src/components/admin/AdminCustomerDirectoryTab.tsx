@@ -1182,6 +1182,17 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
             </button>
             <button
               type="button"
+              onClick={() => handleQuickDate('last30')}
+              className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                activePreset === 'last30'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/90 dark:border-slate-700 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+              }`}
+            >
+              Last 30 Days
+            </button>
+            <button
+              type="button"
               onClick={() => handleQuickDate('thisMonth')}
               className={`flex-1 sm:flex-initial text-center px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
                 activePreset === 'thisMonth'
