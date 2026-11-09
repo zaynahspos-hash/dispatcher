@@ -143,7 +143,7 @@ export function syncAppBookedCnsFromHistory(history: Array<{ tracking?: string |
   let changed = false
   history.forEach(p => {
     // If not portal, or source is 'app', it was booked in this app
-    if (p.source !== 'postex_portal' || p.source === 'app') {
+    if (p.source !== 'postex_portal') {
       const tKey = normalizeKey(p.tracking)
       const rKey = normalizeKey(p.id)
       if (tKey && !memorySet.has(tKey)) {

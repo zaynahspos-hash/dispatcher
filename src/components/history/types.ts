@@ -902,8 +902,8 @@ export function mergePostExOrders(history: BookedParcel[], postExOrders: any[]):
         status: rawOrderStatus,
         orderType: 'Normal',
         source: isApp ? 'app' : 'postex_portal',
-        hasLoadSheet,
-        loadsheet_generated: hasLoadSheet,
+        hasLoadSheet: isUnbooked ? false : orderHasManifest,
+        loadsheet_generated: isUnbooked ? false : orderHasManifest,
         whatsapp_sent: false,
         whatsappSent: false
       }

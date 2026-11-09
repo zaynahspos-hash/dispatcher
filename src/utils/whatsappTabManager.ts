@@ -12,8 +12,6 @@
  *    with 0 browser tabs opened.
  */
 
-let activeWhatsAppTab: Window | null = null
-
 /**
  * Standardizes Pakistani and international phone numbers into clean international format
  * (e.g. 0331-9806502 -> 923319806502).

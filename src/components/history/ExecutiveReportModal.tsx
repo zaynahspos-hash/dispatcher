@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { CloseIcon, PrintIcon, FileTextIcon, CheckIcon } from '../Icons'
+import { CloseIcon, PrintIcon, FileTextIcon } from '../Icons'
 import { BookedParcel } from './types'
 import {
   PaperPresetType,
@@ -11,7 +11,6 @@ import {
   exportExecutiveReportToCSV,
   printExecutiveReportHTML
 } from '../../utils/executiveReportGenerator'
-import { ReportKPIStrip } from './report/ReportKPIStrip'
 import { ReportStatusBreakdown } from './report/ReportStatusBreakdown'
 import { ReportPrefixRanking } from './report/ReportPrefixRanking'
 import { ReportCityRanking } from './report/ReportCityRanking'
@@ -34,10 +33,23 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'status' | 'prefixes' | 'cities' | 'ledger'>('overview')
   const [selectedPrefixFilter, setSelectedPrefixFilter] = useState<string | null>(null)
   const [ledgerSearch, setLedgerSearch] = useState('')
-  const [copiedLink, setCopiedLink] = useState(false)
 
   const analytics = useMemo(() => computeExecutiveAnalytics(parcels), [parcels])
   const daysText = useMemo(() => formatDaysCount(activeFilters.fromDate, activeFilters.toDate), [activeFilters.fromDate, activeFilters.toDate])
+
+  const searchFilterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (activeFilters.searchIncludes && activeFilters.searchIncludes.length > 0) {
+      parts.push(`+ [${activeFilters.searchIncludes.join(', ')}]`)
+    }
+    if (activeFilters.searchExcludes && activeFilters.searchExcludes.length > 0) {
+      parts.push(`- [${activeFilters.searchExcludes.join(', ')}]`)
+    }
+    if (activeFilters.searchQuery) {
+      parts.push(`"${activeFilters.searchQuery}"`)
+    }
+    return parts.length > 0 ? parts.join(' • ') : 'None (full set)'
+  }, [activeFilters.searchIncludes, activeFilters.searchExcludes, activeFilters.searchQuery])
 
   const previewParcels = useMemo(() => {
     return parcels.filter(p => {
@@ -72,12 +84,6 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
 
   const handleCSVExport = () => {
     exportExecutiveReportToCSV(parcels, analytics.reportId)
-  }
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText('https://dispatcher.zaynahs.pk')
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
   }
 
   return (
@@ -186,7 +192,7 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             <div>
               <small>Date Range</small>
               <b className="font-mono text-xs">
-                {activeFilters.fromDate || 'All'} &rarr; {activeFilters.toDate || 'All'}
+                {activeFilters.fromDate || 'All'} &rarr; {activeFilters.toDate || 'All'}{daysText ? ` (${daysText})` : ''}
               </b>
             </div>
             <div>
@@ -208,9 +214,9 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
               </b>
             </div>
             <div>
-              <small>Search Filter</small>
-              <b className="truncate">
-                {activeFilters.searchQuery ? `"${activeFilters.searchQuery}"` : 'None (full set)'}
+              <small>Search Filters</small>
+              <b className="truncate text-xs">
+                {searchFilterSummary}
               </b>
             </div>
           </div>
@@ -229,18 +235,18 @@ export const ExecutiveReportModal: React.FC<ExecutiveReportModalProps> = ({
             </div>
             <div>
               <small>Average Order</small>
-              <b>Rs. {Math.round(analytics.totalParcels > 0 ? analytics.totalCOD / analytics.totalParcels : 0).toLocaleString()}</b>
+              <b>Rs. {analytics.avgCOD.toLocaleString()}</b>
               <span>COD per parcel</span>
             </div>
             <div>
               <small>Delivery Success</small>
-              <b>{analytics.deliverySuccessRate || '0%'}</b>
-              <span>{analytics.statusBreakdown.find(s => s.status.toLowerCase().includes('delivered'))?.count || 0} delivered</span>
+              <b>{analytics.deliverySuccessRatio}%</b>
+              <span>{analytics.deliveredCount.toLocaleString()} delivered &bull; {analytics.returnRatio}% RTO</span>
             </div>
             <div>
               <small>Active Pipeline COD</small>
-              <b>Rs. {analytics.inTransitCOD ? analytics.inTransitCOD.toLocaleString() : analytics.totalCOD.toLocaleString()}</b>
-              <span>{analytics.inTransitCount || analytics.totalParcels} in transit / out</span>
+              <b>Rs. {(analytics.inTransitCOD + analytics.outForDeliveryCOD).toLocaleString()}</b>
+              <span>{(analytics.inTransitCount + analytics.outForDeliveryCount).toLocaleString()} in transit / out</span>
             </div>
           </div>
 

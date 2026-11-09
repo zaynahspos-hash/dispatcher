@@ -51,6 +51,8 @@ export interface ReportActiveFilters {
   cityFilter?: string
   sourceFilter?: string
   searchQuery?: string
+  searchIncludes?: string[]
+  searchExcludes?: string[]
   whatsappFilter?: string
   presetName?: string
 }
@@ -58,6 +60,7 @@ export interface ReportActiveFilters {
 export interface StatusMilestoneMetric {
   key: string
   label: string
+  status?: string
   count: number
   codAmount: number
   volumeShare: number

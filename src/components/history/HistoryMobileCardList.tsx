@@ -25,8 +25,8 @@ interface HistoryMobileCardListProps {
 export function HistoryMobileCardList({
   paginatedParcels,
   selectedIds,
-  handleSelectAll,
-  setSelectedIds,
+  handleSelectAll: _handleSelectAll,
+  setSelectedIds: _setSelectedIds,
   handleSelectItem,
   handleSyncStatus,
   syncingTracking,

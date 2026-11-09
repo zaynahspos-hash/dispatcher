@@ -995,6 +995,28 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
                   </div>
                 </button>
 
+                {/* Option 1c: Value-Based Meta Lookalike Audience */}
+                <button
+                  type="button"
+                  onClick={handleExportMetaValueCSV}
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-start gap-3 cursor-pointer group mt-0.5"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Value-Based Lookalike CSV</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded font-bold">With Revenue</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      Export phone, name, city & purchase values for high-ROAS Meta lookalike ad campaigns
+                    </p>
+                  </div>
+                </button>
+
                 {/* Option 2: Google Contacts */}
                 <button
                   type="button"
@@ -1244,7 +1266,7 @@ export const AdminCustomerDirectoryTab: React.FC<AdminCustomerDirectoryTabProps>
               placeholder="All Merchants"
               allOptionLabel={`All Merchants (${users.length})`}
               allOptionValue="all"
-              multiLabelFormatter={(count, total) => `${count} Merchants Selected`}
+              multiLabelFormatter={count => `${count} Merchants Selected`}
               className="w-full"
             />
           </div>

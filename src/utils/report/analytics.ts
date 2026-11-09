@@ -150,6 +150,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'delivered',
       label: 'Delivered',
+      status: 'delivered',
       count: deliveredCount,
       codAmount: deliveredCOD,
       volumeShare: totalParcels > 0 ? Math.round((deliveredCount / totalParcels) * 1000) / 10 : 0,
@@ -158,6 +159,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'intransit',
       label: 'In Transit',
+      status: 'intransit',
       count: inTransitCount,
       codAmount: inTransitCOD,
       volumeShare: totalParcels > 0 ? Math.round((inTransitCount / totalParcels) * 1000) / 10 : 0,
@@ -166,6 +168,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'out_for_delivery',
       label: 'Out for Delivery',
+      status: 'out_for_delivery',
       count: outForDeliveryCount,
       codAmount: outForDeliveryCOD,
       volumeShare: totalParcels > 0 ? Math.round((outForDeliveryCount / totalParcels) * 1000) / 10 : 0,
@@ -174,6 +177,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'booked',
       label: 'Booked',
+      status: 'booked',
       count: bookedCount,
       codAmount: bookedCOD,
       volumeShare: totalParcels > 0 ? Math.round((bookedCount / totalParcels) * 1000) / 10 : 0,
@@ -182,6 +186,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'action_required',
       label: 'Action Required / Advice',
+      status: 'action_required',
       count: actionRequiredCount,
       codAmount: actionRequiredCOD,
       volumeShare: totalParcels > 0 ? Math.round((actionRequiredCount / totalParcels) * 1000) / 10 : 0,
@@ -190,6 +195,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'pending_loadsheet',
       label: 'Pending Loadsheet',
+      status: 'pending_loadsheet',
       count: pendingLoadsheetCount,
       codAmount: pendingLoadsheetCOD,
       volumeShare: totalParcels > 0 ? Math.round((pendingLoadsheetCount / totalParcels) * 1000) / 10 : 0,
@@ -198,6 +204,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'returned',
       label: 'Returned',
+      status: 'returned',
       count: returnedCount,
       codAmount: returnedCOD,
       volumeShare: totalParcels > 0 ? Math.round((returnedCount / totalParcels) * 1000) / 10 : 0,
@@ -206,6 +213,7 @@ export function computeExecutiveAnalytics(
     {
       key: 'cancelled',
       label: 'Cancelled',
+      status: 'cancelled',
       count: cancelledCount,
       codAmount: cancelledCOD,
       volumeShare: totalParcels > 0 ? Math.round((cancelledCount / totalParcels) * 1000) / 10 : 0,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { TabItem, BottomTabBar } from './BottomTabBar'
-import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon, AdminIcon, ChevronLeftIcon } from '../Icons'
+import { SunIcon, MoonIcon, AlertTriangleIcon, RefreshIcon, ChevronLeftIcon } from '../Icons'
 import { forceAppUpdate } from '../../utils/pwaReload'
 import { UserAvatar } from '../common/UserAvatar'
 import { UserAccountMenu } from '../common/UserAccountMenu'
@@ -53,7 +53,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   operationalCitiesCount = 500,
   avatarUrl
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -118,15 +117,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     await forceAppUpdate()
   }
 
-  // Mobile Bottom Bar (5 core focused operations tabs - includes Admin for admin merchants)
   const hasAdminAccess = tabs.some(t => t.id === 'admin')
-  const baseBottomTabIds = hasAdminAccess
-    ? ['paste', 'table', 'results', 'history', 'admin']
-    : ['paste', 'table', 'results', 'history', 'vault']
-  const mobileBottomTabIds = baseBottomTabIds.includes(activeTab)
-    ? baseBottomTabIds
-    : [...baseBottomTabIds.slice(0, 4), activeTab]
-  const mobileBottomTabs = mobileBottomTabIds.map(id => tabs.find(t => t.id === id)).filter(Boolean) as typeof tabs
 
   // Find active tab label for header breadcrumb
   const currentTabObj = tabs.find(t => t.id === activeTab) || tabs[0]

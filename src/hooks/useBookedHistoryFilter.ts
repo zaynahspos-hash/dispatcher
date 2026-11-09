@@ -5,9 +5,6 @@ import {
   SourceFilterType, 
   SearchScopeType,
   getStatusCategory, 
-  isUnderReview,
-  isOutForDelivery,
-  isActionRequired,
   getParcelDateStr
 } from '../components/history/types'
 
@@ -18,6 +15,8 @@ interface UseBookedHistoryFilterProps {
   searchQuery: string
   searchScope?: SearchScopeType
   searchExclude?: boolean
+  searchIncludes?: string[]
+  searchExcludes?: string[]
   fromDate: string
   toDate: string
   statusSelect: string
@@ -26,28 +25,27 @@ interface UseBookedHistoryFilterProps {
   isWhatsAppSent?: (tracking: string, id?: string) => boolean
 }
 
-// Reusable scope predicates
-function matchesSearchCriteria(item: BookedParcel, query?: string, scope: SearchScopeType | string = 'all', exclude: boolean = false): boolean {
-  if (!query || !query.trim()) return true
-  const q = query.toLowerCase().trim()
+// Check single term match against item and field scope
+export function checkItemMatchesTerm(item: BookedParcel, term: string, scope: SearchScopeType | string = 'all'): boolean {
+  if (!term || !term.trim()) return false
+  const q = term.toLowerCase().trim()
   const cleanDigits = q.replace(/\D/g, '')
   const s = (scope || 'all').toLowerCase().trim()
 
-  let isMatch = false
   if (s === 'name' || s === 'customername' || s === 'customer') {
-    isMatch = (item.name || '').toLowerCase().includes(q)
+    return (item.name || '').toLowerCase().includes(q)
   } else if (s === 'phone' || s === 'customerphone') {
     const itemDigits = (item.phone || '').replace(/\D/g, '')
     const matchesRaw = (item.phone || '').toLowerCase().includes(q)
     const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
-    isMatch = matchesRaw || matchesDigits
+    return matchesRaw || matchesDigits
   } else if (s === 'reference' || s === 'orderref' || s === 'order#' || s === 'id') {
-    isMatch = (item.id || '').toLowerCase().includes(q)
+    return (item.id || '').toLowerCase().includes(q)
   } else if (s === 'tracking' || s === 'trackingnumber' || s === 'cn') {
-    isMatch = (item.tracking || '').toLowerCase().includes(q)
+    return (item.tracking || '').toLowerCase().includes(q)
   } else {
     // 'all': match order id, tracking, customer name, phone, or destination city
-    isMatch = (
+    return (
       (item.id || '').toLowerCase().includes(q) ||
       (item.tracking || '').toLowerCase().includes(q) ||
       (item.name || '').toLowerCase().includes(q) ||
@@ -55,8 +53,52 @@ function matchesSearchCriteria(item: BookedParcel, query?: string, scope: Search
       (item.city || '').toLowerCase().includes(q)
     )
   }
+}
 
-  return exclude ? !isMatch : isMatch
+// Reusable multi-criteria search predicate (includes + excludes + live query)
+export function matchesSearchCriteria(
+  item: BookedParcel,
+  query?: string,
+  scope: SearchScopeType | string = 'all',
+  exclude: boolean = false,
+  includes: string[] = [],
+  excludes: string[] = []
+): boolean {
+  // 1. Strict Exclude Check: If item matches ANY pinned exclude, reject immediately
+  if (excludes && excludes.length > 0) {
+    for (const ex of excludes) {
+      if (checkItemMatchesTerm(item, ex, scope)) {
+        return false
+      }
+    }
+  }
+
+  // 2. Active Query Exclude Mode: If searchExclude toggle is ON with active typed query
+  const q = (query || '').trim()
+  if (exclude && q) {
+    if (checkItemMatchesTerm(item, q, scope)) {
+      return false
+    }
+  }
+
+  // 3. Includes Check
+  const hasIncludes = Boolean(includes && includes.length > 0)
+  const hasLiveQuery = Boolean(!exclude && q)
+
+  if (hasIncludes) {
+    // Match ANY of the pinned includes OR the currently typed query
+    const matchesAnyInclude = includes.some(inc => checkItemMatchesTerm(item, inc, scope))
+    if (matchesAnyInclude) return true
+    if (hasLiveQuery && checkItemMatchesTerm(item, q, scope)) return true
+    return false
+  }
+
+  // 4. If no pinned includes, check active live query if present
+  if (hasLiveQuery) {
+    return checkItemMatchesTerm(item, q, scope)
+  }
+
+  return true
 }
 
 function matchesDateRange(bookingDate?: string, fromDate?: string, toDate?: string): boolean {
@@ -110,6 +152,8 @@ export function useBookedHistoryFilter({
   searchQuery,
   searchScope = 'all',
   searchExclude = false,
+  searchIncludes = [],
+  searchExcludes = [],
   fromDate,
   toDate,
   statusSelect,
@@ -123,7 +167,7 @@ export function useBookedHistoryFilter({
     // 1. Status Tabs Scope: Filtered by date range, search query/scope, city, source, and WhatsApp
     const statusScopedHistory = history.filter(h => {
       if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
-      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes)) return false
       if (!matchesCity(h.city, pickupFilter)) return false
       if (!matchesSource(h.source, sourceFilter)) return false
       if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
@@ -164,7 +208,7 @@ export function useBookedHistoryFilter({
     // 2. Source Counts Scope: Filtered by date range, search query/scope, city, status, and WhatsApp
     const sourceScopedHistory = history.filter(h => {
       if (!matchesDateRange(h.bookingDate, fromDate, toDate)) return false
-      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude)) return false
+      if (!matchesSearchCriteria(h, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes)) return false
       if (!matchesCity(h.city, pickupFilter)) return false
       if (!matchesWhatsApp(h, whatsappFilter, isWhatsAppSent)) return false
 
@@ -207,7 +251,7 @@ export function useBookedHistoryFilter({
         portal: srcPortal
       }
     }
-  }, [history, fromDate, toDate, searchQuery, searchScope, searchExclude, pickupFilter, sourceFilter, statusFilter, statusSelect, whatsappFilter, isWhatsAppSent])
+  }, [history, fromDate, toDate, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes, pickupFilter, sourceFilter, statusFilter, statusSelect, whatsappFilter, isWhatsAppSent])
 
   // Filter and sort logic for displayed parcels manifest
   const filteredParcels = useMemo(() => {
@@ -221,8 +265,8 @@ export function useBookedHistoryFilter({
         if (cat !== statusFilter) return false
       }
 
-      // 3. Search Query with Field Scope (all | name | phone | reference | tracking) & Exclude mode
-      if (!matchesSearchCriteria(item, searchQuery, searchScope, searchExclude)) return false
+      // 3. Search Query with Field Scope (all | name | phone | reference | tracking) & Multi-include/exclude modes
+      if (!matchesSearchCriteria(item, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes)) return false
 
       // 4. Date Range Filter
       if (!matchesDateRange(item.bookingDate, fromDate, toDate)) return false
@@ -238,7 +282,7 @@ export function useBookedHistoryFilter({
 
       return true
     }).sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
-  }, [history, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
+  }, [history, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes, fromDate, toDate, statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent])
 
   return { counts, sourceCounts, filteredParcels }
 }

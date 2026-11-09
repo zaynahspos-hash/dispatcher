@@ -19,7 +19,7 @@ import {
 } from './history/types'
 import { CustomerEntry } from './admin/types'
 import { useBookedHistoryOperations } from '../hooks/useBookedHistoryOperations'
-import { useBookedHistoryFilter } from '../hooks/useBookedHistoryFilter'
+import { useBookedHistoryFilter, matchesSearchCriteria } from '../hooks/useBookedHistoryFilter'
 import { usePostExRangeSync } from '../hooks/usePostExRangeSync'
 import { readExternalParcels, writeExternalParcels, clearExternalParcels, loadExternalParcelsAsync } from '../utils/portalParcelStore'
 import { idbSaveCustomers, idbGetCustomers } from '../utils/indexedDbStore'
@@ -60,6 +60,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const [searchExclude, setSearchExclude] = useState<boolean>(() => {
     return typeof window !== 'undefined' && localStorage.getItem('zaynah_history_search_exclude') === 'true'
   })
+  const [searchIncludes, setSearchIncludes] = useState<string[]>([])
+  const [searchExcludes, setSearchExcludes] = useState<string[]>([])
 
   const handleToggleSearchExclude = (val: boolean) => {
     setSearchExclude(val)
@@ -214,7 +216,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
                 updated_at: new Date().toISOString()
               }
             })
-            .filter(Boolean)
+            .filter((r): r is NonNullable<typeof r> => Boolean(r))
 
           if (upsertRows.length > 0) {
             void (async () => {
@@ -249,6 +251,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
   const handleClearFilters = () => {
     const today = getLocalTodayDate()
     setSearchQuery('')
+    setSearchIncludes([])
+    setSearchExcludes([])
     setSearchScope('all')
     setFromDate(today)
     setToDate(today)
@@ -261,7 +265,9 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
 
   // Filter and dynamic counts hook
   const { counts, sourceCounts, filteredParcels } = useBookedHistoryFilter({
-    history: combinedHistory, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude, fromDate, toDate,
+    history: combinedHistory, statusFilter, sourceFilter, searchQuery, searchScope, searchExclude,
+    searchIncludes, searchExcludes,
+    fromDate, toDate,
     statusSelect, pickupFilter, whatsappFilter, isWhatsAppSent: waTracker.isSent
   })
 
@@ -274,7 +280,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
     adviceStatusId, setAdviceStatusId, adviceRemarks, setAdviceRemarks,
     isSubmittingAdvice, adviceError, setAdviceError, handlePrintSelected,
     handleGenerateLoadSheet, handleCancelSelected, handleCancelSingle,
-    handleSyncStatus, handleSyncSelected, handleSyncTracking, handleSubmitAdvice
+    handleSyncStatus, handleSyncSelected, handleSubmitAdvice
   } = useBookedHistoryOperations({
     settings,
     history: combinedHistory,
@@ -324,36 +330,11 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       const itemDate = getParcelDateStr(h.bookingDate)
       if (fromDate && (!itemDate || itemDate < fromDate)) return false
       if (toDate && (!itemDate || itemDate > toDate)) return false
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase().trim()
-        const s = (searchScope || 'all').toLowerCase().trim()
-        if (s === 'name' || s === 'customername' || s === 'customer') {
-          if (!h.name.toLowerCase().includes(q)) return false
-        } else if (s === 'phone' || s === 'customerphone') {
-          const itemDigits = h.phone.replace(/\D/g, '')
-          const cleanDigits = q.replace(/\D/g, '')
-          const matchesRaw = h.phone.toLowerCase().includes(q)
-          const matchesDigits = cleanDigits.length > 0 && itemDigits.includes(cleanDigits)
-          if (!matchesRaw && !matchesDigits) return false
-        } else if (s === 'reference' || s === 'orderref' || s === 'order#' || s === 'id') {
-          if (!h.id.toLowerCase().includes(q)) return false
-        } else if (s === 'tracking' || s === 'trackingnumber' || s === 'cn') {
-          if (!h.tracking.toLowerCase().includes(q)) return false
-        } else {
-          if (
-            !h.id.toLowerCase().includes(q) &&
-            !h.tracking.toLowerCase().includes(q) &&
-            !h.name.toLowerCase().includes(q) &&
-            !h.phone.toLowerCase().includes(q) &&
-            !h.city.toLowerCase().includes(q)
-          ) return false
-        }
-      }
-      return true
+      return matchesSearchCriteria(h, searchScope, searchQuery, searchExclude, searchIncludes, searchExcludes)
     })
     const citiesSet = new Set(baseList.map(item => item.city?.toUpperCase().trim()).filter(Boolean))
     return Array.from(citiesSet).sort()
-  }, [combinedHistory, fromDate, toDate, searchQuery, searchScope])
+  }, [combinedHistory, fromDate, toDate, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes])
 
   const pendingLoadsheetParcels = useMemo(() => {
     return filteredParcels.filter(p => getStatusCategory(p.status, p.tracking, p.hasLoadSheet) === 'pending_loadsheet')
@@ -370,54 +351,6 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       .filter(p => selectedIds.includes(p.tracking))
       .reduce((sum, p) => sum + parseCODAmount(p.total), 0)
   }, [combinedHistory, selectedIds])
-
-  // Active filter indicators for sticky header when operator scrolls down
-  const today = getLocalTodayDate()
-  const activeFilterPills = useMemo(() => {
-    const pills: { label: string; onClear: () => void }[] = []
-    
-    if (statusFilter !== 'all') {
-      const labelMap: Record<string, string> = {
-        pending_loadsheet: 'Pending Sheet',
-        booked: 'Booked',
-        intransit: 'In Transit',
-        out_for_delivery: 'Out for Delivery',
-        action_required: 'Action Required',
-        delivered: 'Delivered',
-        returned: 'Returned',
-        cancelled: 'Cancelled'
-      }
-      pills.push({ label: labelMap[statusFilter] || statusFilter, onClear: () => setStatusFilter('all') })
-    }
-
-    if (pickupFilter && pickupFilter !== 'all') {
-      pills.push({ label: `City: ${pickupFilter}`, onClear: () => setPickupFilter('all') })
-    }
-
-    if (sourceFilter && sourceFilter !== 'all') {
-      pills.push({ label: sourceFilter === 'postex_portal' ? 'Portal' : 'App', onClear: () => setSourceFilter('all') })
-    }
-
-    if (whatsappFilter && whatsappFilter !== 'all') {
-      pills.push({ label: whatsappFilter === 'sent' ? 'WA Sent' : 'WA Pending', onClear: () => setWhatsappFilter('all') })
-    }
-
-    if (searchScope && searchScope !== 'all') {
-      const scopeLabel = 
-        searchScope === 'name' ? 'Name Only' :
-        searchScope === 'phone' ? 'Phone Only' :
-        searchScope === 'reference' ? 'Ref # Only' :
-        searchScope === 'tracking' ? 'CN Only' : 'All'
-      pills.push({ label: `Field: ${scopeLabel}`, onClear: () => setSearchScope('all') })
-    }
-
-    if (searchQuery) {
-      const prefix = searchExclude ? 'Exclude: ' : ''
-      pills.push({ label: `${prefix}"${searchQuery.length > 12 ? searchQuery.slice(0, 12) + '…' : searchQuery}"`, onClear: () => setSearchQuery('') })
-    }
-
-    return pills
-  }, [statusFilter, pickupFilter, sourceFilter, whatsappFilter, searchScope, searchQuery, searchExclude, setStatusFilter, setPickupFilter, setSourceFilter, setWhatsappFilter, setSearchScope, setSearchQuery])
 
   const handleLoadSheetClick = () => {
     if (selectedIds.length > 0) {
@@ -513,6 +446,8 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         searchScope={searchScope} setSearchScope={setSearchScope}
         searchExclude={searchExclude} setSearchExclude={handleToggleSearchExclude}
+        searchIncludes={searchIncludes} setSearchIncludes={setSearchIncludes}
+        searchExcludes={searchExcludes} setSearchExcludes={setSearchExcludes}
         fromDate={fromDate} setFromDate={setFromDate} toDate={toDate} setToDate={setToDate}
         statusSelect={statusSelect} setStatusSelect={setStatusSelect}
         pickupFilter={pickupFilter} setPickupFilter={setPickupFilter}
@@ -789,7 +724,9 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
             statusFilter,
             cityFilter: 'all',
             sourceFilter,
-            searchQuery
+            searchQuery,
+            searchIncludes,
+            searchExcludes
           }}
           storeName={settings.store_name || 'Zaynahs POS'}
           onClose={() => setIsReportModalOpen(false)}

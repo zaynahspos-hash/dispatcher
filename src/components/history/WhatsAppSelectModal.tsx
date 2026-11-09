@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { 
   CloseIcon, 
   WhatsAppIcon, 
-  ClockIcon,
-  CheckCircleIcon
+  ClockIcon
 } from '../Icons'
 import { 
   BookedParcel, 
@@ -14,7 +13,6 @@ import {
   isMobileDevice
 } from './types'
 import { 
-  getRespectfulGreeting, 
   formatWhatsAppMessage, 
   DEFAULT_WHATSAPP_VARIANTS, 
   WhatsAppTemplateCategory,
@@ -80,9 +78,6 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
     }
     return 'app'
   })
-
-  // Customer honorific detection (Sir / Ma'am / Mohtaram)
-  const greetingInfo = useMemo(() => getRespectfulGreeting(parcel.name), [parcel.name])
 
   // Milestone detection for Status alerts
   const realMilestone = detectParcelMilestone(parcel)
@@ -158,17 +153,6 @@ export const WhatsAppSelectModal: React.FC<WhatsAppSelectModalProps> = ({
       delete copy[selectedCategory]
       return copy
     })
-  }
-
-  // Format clean Pakistan phone digits
-  const getCleanPhone = (phone: string): string => {
-    let clean = (phone || '').replace(/\D/g, '')
-    if (clean.startsWith('0')) {
-      clean = '92' + clean.substring(1)
-    } else if (!clean.startsWith('92') && clean.length === 10) {
-      clean = '92' + clean
-    }
-    return clean
   }
 
   // Unified Single Primary Dispatch Handler

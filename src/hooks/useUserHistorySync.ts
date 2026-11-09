@@ -6,8 +6,6 @@ import { getCached, setCached, getTTL } from '../utils/cacheWithExpiry'
 import { isFakeOrDemoPhone } from '../components/history/types'
 import { initAppBookedRegistry, syncAppBookedCnsFromHistory } from '../utils/appBookedRegistry'
 
-const MAX_CACHED_HISTORY_PARCELS = 1500
-
 function cleanHistoryList(list: BookedParcel[]): BookedParcel[] {
   return (list || []).filter(p => !isFakeOrDemoPhone(p.phone, p.name))
 }

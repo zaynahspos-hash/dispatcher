@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { UserProfile, LogEntry } from './types'
 import { UserAvatar } from '../common/UserAvatar'
-import { SharedPagination } from '../common/SharedPagination'
-import { usePagination } from '../../hooks/usePagination'
 import { supabase } from '../../utils/supabaseClient'
 import { AdminDeleteMerchantModal } from './AdminDeleteMerchantModal'
 
@@ -17,7 +15,7 @@ interface AdminMerchantsTabProps {
 
 export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
   users,
-  logs,
+  logs: _logs,
   selectedUser,
   setSelectedUser,
   onSelectUser,
@@ -107,12 +105,6 @@ export const AdminMerchantsTab: React.FC<AdminMerchantsTabProps> = ({
   const filteredUsers = users.filter(u => 
     u.email.toLowerCase().includes(filterEmail.toLowerCase())
   )
-
-  const selectedUserLogs = selectedUser ? logs.filter(l => l.user_id === selectedUser.id) : []
-  const {
-    currentPage: logsPage, setCurrentPage: setLogsPage, pageSize: logsPageSize, setPageSize: setLogsPageSize,
-    totalItems: totalLogs, paginatedItems: pagedLogs
-  } = usePagination({ items: selectedUserLogs, initialPageSize: 10, storageKey: 'admin_logs' })
 
   const isUserBlocked = selectedUser
     ? !!(selectedUser.is_blocked || selectedUser.status === 'suspended' || (selectedUser.settings as any)?.settings?.is_blocked)

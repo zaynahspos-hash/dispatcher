@@ -8,12 +8,12 @@ import { ResultsFilterBar, ResultsStatusFilter } from './results/ResultsFilterBa
 import { ResultsSelectionBar } from './results/ResultsSelectionBar'
 import { ResultsDesktopGrid } from './results/ResultsDesktopGrid'
 import { ResultsMobileCardList } from './results/ResultsMobileCardList'
-import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
-import { BookedParcel, DEFAULT_MILESTONE_TEMPLATES, isCorruptText, getWhatsAppLink as getUnifiedWhatsAppLink } from './history/types'
-import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
+import { BookedParcel, getWhatsAppLink as getUnifiedWhatsAppLink } from './history/types'
 import { SharedPagination } from './common/SharedPagination'
 import { usePagination } from '../hooks/usePagination'
 import { useToast } from './common/Toast'
+import { useWhatsAppSentTracker } from '../hooks/useWhatsAppSentTracker'
+import { measureMaxContentLengths, triggerTableAutoFit, triggerTableReset } from '../hooks/useResizableColumns'
 
 export interface BookingResult {
   id: string
@@ -254,7 +254,7 @@ export default function BookingResults({
     }
 
     // Desktop view: Horizontal column width auto-fit
-    const lengths = measureMaxContentLengths(
+    const lengths = measureMaxContentLengths<BookingResult>(
       {
         refId: 'REF ID', customer: 'CUSTOMER', phone: 'PHONE', city: 'CITY',
         address: 'DELIVERY ADDRESS', cod: 'COD (RS.)', items: 'ITEMS', orderType: 'ORDER TYPE',

@@ -58,6 +58,7 @@ export interface Settings {
   mistral_model?: string
   whatsapp_template?: string
   whatsapp_note?: string
+  store_name?: string
   avatar_url?: string
   return_address_code?: string
   ai_model?: string

@@ -111,8 +111,16 @@ export function printExecutiveReportHTML(
           <span class="filter-val">${filters.sourceFilter === 'postex_portal' ? 'Portal / External' : filters.sourceFilter === 'app' ? 'In-App' : 'All Sources'}</span>
         </div>
         <div class="filter-item">
-          <span class="filter-label">Search Keyword</span>
-          <span class="filter-val">${filters.searchQuery ? `"${filters.searchQuery}"` : 'None (Full Set)'}</span>
+          <span class="filter-label">Search Criteria</span>
+          <span class="filter-val">${
+            (() => {
+              const parts = []
+              if (filters.searchIncludes?.length) parts.push(`+ [${filters.searchIncludes.join(', ')}]`)
+              if (filters.searchExcludes?.length) parts.push(`- [${filters.searchExcludes.join(', ')}]`)
+              if (filters.searchQuery) parts.push(`"${filters.searchQuery}"`)
+              return parts.length ? parts.join(' • ') : 'None (Full Set)'
+            })()
+          }</span>
         </div>
       </div>
 

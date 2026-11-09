@@ -27,7 +27,13 @@ export function exportExecutiveReportToExcel(
     ['Status Filter', filters.statusFilter || 'All Statuses'],
     ['City Filter', filters.cityFilter || 'All Cities'],
     ['Source Filter', filters.sourceFilter || 'All Sources'],
-    ['Search Query', filters.searchQuery || 'None'],
+    ['Search Criteria', (() => {
+      const parts = []
+      if (filters.searchIncludes?.length) parts.push(`Includes: [${filters.searchIncludes.join(', ')}]`)
+      if (filters.searchExcludes?.length) parts.push(`Excludes: [${filters.searchExcludes.join(', ')}]`)
+      if (filters.searchQuery) parts.push(`Query: "${filters.searchQuery}"`)
+      return parts.length ? parts.join(' | ') : 'None'
+    })()],
     [],
     ['--- HIGH-LEVEL LOGISTICS KPIS ---'],
     ['Total Filtered Parcels', analytics.totalParcels],

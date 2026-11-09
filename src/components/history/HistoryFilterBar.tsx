@@ -11,6 +11,10 @@ interface HistoryFilterBarProps {
   setSearchScope?: (scope: SearchScopeType) => void
   searchExclude?: boolean
   setSearchExclude?: (val: boolean) => void
+  searchIncludes?: string[]
+  setSearchIncludes?: React.Dispatch<React.SetStateAction<string[]>>
+  searchExcludes?: string[]
+  setSearchExcludes?: React.Dispatch<React.SetStateAction<string[]>>
   fromDate: string
   setFromDate: (val: string) => void
   toDate: string
@@ -60,6 +64,10 @@ export function HistoryFilterBar({
   setSearchScope,
   searchExclude = false,
   setSearchExclude,
+  searchIncludes = [],
+  setSearchIncludes,
+  searchExcludes = [],
+  setSearchExcludes,
   fromDate,
   setFromDate,
   toDate,
@@ -96,8 +104,79 @@ export function HistoryFilterBar({
     (statusFilter && statusFilter !== 'all') ||
     (searchScope && searchScope !== 'all') ||
     (searchQuery && searchExclude) ||
-    searchQuery
+    searchQuery ||
+    (searchIncludes && searchIncludes.length > 0) ||
+    (searchExcludes && searchExcludes.length > 0)
   )
+
+  const handleAddPin = (forcedMode?: 'include' | 'exclude') => {
+    const raw = searchQuery.trim()
+    if (!raw) return
+
+    // Allow splitting by comma or semicolon for bulk entry (e.g. "wa, tv, 0300")
+    const tokens = raw.split(/[,;]+/).map(t => t.trim()).filter(Boolean)
+    if (tokens.length === 0) return
+
+    tokens.forEach(token => {
+      let mode: 'include' | 'exclude' = forcedMode || 'include'
+      let cleanToken = token
+
+      // If token starts with '-' or '!', automatically treat as exclude
+      if (cleanToken.startsWith('-') || cleanToken.startsWith('!')) {
+        mode = 'exclude'
+        cleanToken = cleanToken.slice(1).trim()
+      } else if (cleanToken.startsWith('+')) {
+        mode = 'include'
+        cleanToken = cleanToken.slice(1).trim()
+      }
+
+      if (!cleanToken) return
+
+      if (mode === 'exclude') {
+        if (setSearchExcludes) {
+          setSearchExcludes(prev => {
+            const lower = cleanToken.toLowerCase()
+            if (prev.some(p => p.toLowerCase() === lower)) return prev
+            return [...prev, cleanToken]
+          })
+        }
+      } else {
+        if (setSearchIncludes) {
+          setSearchIncludes(prev => {
+            const lower = cleanToken.toLowerCase()
+            if (prev.some(p => p.toLowerCase() === lower)) return prev
+            return [...prev, cleanToken]
+          })
+        }
+      }
+    })
+
+    setSearchQuery('')
+  }
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddPin()
+    } else if (e.key === ',' || e.key === ';') {
+      e.preventDefault()
+      handleAddPin()
+    }
+  }
+
+  const removePin = (mode: 'include' | 'exclude', val: string) => {
+    const lower = val.toLowerCase()
+    if (mode === 'include' && setSearchIncludes) {
+      setSearchIncludes(prev => prev.filter(p => p.toLowerCase() !== lower))
+    } else if (mode === 'exclude' && setSearchExcludes) {
+      setSearchExcludes(prev => prev.filter(p => p.toLowerCase() !== lower))
+    }
+  }
+
+  const clearAllPins = () => {
+    if (setSearchIncludes) setSearchIncludes([])
+    if (setSearchExcludes) setSearchExcludes([])
+  }
 
   const presetsInfo = getDatePresetsInfo()
   const activePreset = presetsInfo.detectPreset(fromDate, toDate)
@@ -139,7 +218,7 @@ export function HistoryFilterBar({
         </div>
       )}
 
-      {/* Tier 1: Search scope dropdown, search input, exclude, and reset */}
+      {/* Tier 1: Search scope dropdown, search input, include/exclude pin buttons, and reset */}
       <div className="tb justify-between gap-2.5">
         <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
           {setSearchScope && (
@@ -157,20 +236,21 @@ export function HistoryFilterBar({
               <option value="phone">Phone</option>
             </select>
           )}
-          <div className="sw">
+          <div className="sw flex-1">
             <SearchIcon className="w-4 h-4 shrink-0 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search order #, tracking, customer, phone"
+              placeholder="Search or press Enter to pin (+inc, -exc)..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="sw-clear"
-                title="Clear search"
+                title="Clear search input"
               >
                 <CloseIcon className="w-3.5 h-3.5" />
               </button>
@@ -178,13 +258,45 @@ export function HistoryFilterBar({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {/* Quick Pin Buttons: + Inc and - Exc */}
+          {setSearchIncludes && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => handleAddPin('include')}
+              disabled={!searchQuery.trim()}
+              title="Pin keyword as an INCLUDE filter (or press Enter)"
+              style={{
+                borderColor: searchQuery.trim() ? '#10b981' : undefined,
+                color: searchQuery.trim() ? '#10b981' : undefined
+              }}
+            >
+              <span className="font-bold mr-0.5">+</span> Inc
+            </button>
+          )}
+          {setSearchExcludes && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => handleAddPin('exclude')}
+              disabled={!searchQuery.trim()}
+              title="Pin keyword as an EXCLUDE filter (or prefix with -)"
+              style={{
+                borderColor: searchQuery.trim() ? '#f43f5e' : undefined,
+                color: searchQuery.trim() ? '#f43f5e' : undefined
+              }}
+            >
+              <span className="font-bold mr-0.5">-</span> Exc
+            </button>
+          )}
+
           {setSearchExclude && (
             <button
               type="button"
               className={`btn sm ${searchExclude ? 'p' : ''}`}
               onClick={() => setSearchExclude(!searchExclude)}
-              title="Exclude matching results from display"
+              title="Exclude matching typed results from display"
             >
               Exclude
             </button>
@@ -201,6 +313,63 @@ export function HistoryFilterBar({
           )}
         </div>
       </div>
+
+      {/* Pinned Multi-Search Tags Strip */}
+      {((searchIncludes && searchIncludes.length > 0) || (searchExcludes && searchExcludes.length > 0)) && (
+        <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 rounded-xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 mb-2.5">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 mr-1">
+            Pins:
+          </span>
+
+          {/* Green Include Pins */}
+          {searchIncludes?.map((tag, idx) => (
+            <span
+              key={`inc-${idx}-${tag}`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-xs"
+            >
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+</span>
+              <span className="truncate max-w-[130px] sm:max-w-[200px]">{tag}</span>
+              <button
+                type="button"
+                onClick={() => removePin('include', tag)}
+                className="ml-0.5 hover:text-emerald-900 dark:hover:text-emerald-100 p-0.5 rounded-full hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                title={`Remove "${tag}" from includes`}
+              >
+                <CloseIcon className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+
+          {/* Red Exclude Pins */}
+          {searchExcludes?.map((tag, idx) => (
+            <span
+              key={`exc-${idx}-${tag}`}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-xs"
+            >
+              <span className="font-mono font-bold text-rose-600 dark:text-rose-400">-</span>
+              <span className="truncate max-w-[130px] sm:max-w-[200px]">{tag}</span>
+              <button
+                type="button"
+                onClick={() => removePin('exclude', tag)}
+                className="ml-0.5 hover:text-rose-900 dark:hover:text-rose-100 p-0.5 rounded-full hover:bg-rose-500/20 transition-colors cursor-pointer"
+                title={`Remove "${tag}" from excludes`}
+              >
+                <CloseIcon className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+
+          {/* Clear all pins shortcut */}
+          <button
+            type="button"
+            onClick={clearAllPins}
+            className="text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 px-2 py-0.5 rounded transition-colors ml-auto cursor-pointer"
+            title="Clear all search pins"
+          >
+            Clear pins
+          </button>
+        </div>
+      )}
 
       {/* Tier 2: Date presets, custom date range, status select, city select */}
       <div className="tb justify-between gap-2.5">
@@ -353,8 +522,8 @@ export function HistoryFilterBar({
                 </button>
                 <button
                   type="button"
-                  className={sourceFilter === 'portal' ? 'on' : ''}
-                  onClick={() => setSourceFilter('portal')}
+                  className={sourceFilter === 'postex_portal' ? 'on' : ''}
+                  onClick={() => setSourceFilter('postex_portal')}
                 >
                   External / portal {sourceCounts?.portal ?? 0}
                 </button>

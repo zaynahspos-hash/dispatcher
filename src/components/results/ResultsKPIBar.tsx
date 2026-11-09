@@ -1,5 +1,5 @@
 import React from 'react'
-import { PlusIcon, UploadIcon, FolderIcon, TrashIcon, PrintIcon, AutoFitIcon } from '../Icons'
+import { PlusIcon, UploadIcon, FolderIcon } from '../Icons'
 
 interface ResultsKPIBarProps {
   totalResults: number
@@ -10,8 +10,8 @@ interface ResultsKPIBarProps {
   onAddNewResult: () => void
   onExportExcel: () => void
   onOpenVault: () => void
-  onClearAll: () => void
-  onPrintAll: () => void
+  onClearAll?: () => void
+  onPrintAll?: () => void
   loadingLabels?: boolean
   expandDefaults?: boolean
   onToggleExpandDefaults?: () => void
@@ -26,13 +26,7 @@ export const ResultsKPIBar: React.FC<ResultsKPIBarProps> = ({
   failedCount,
   onAddNewResult,
   onExportExcel,
-  onOpenVault,
-  onClearAll,
-  onPrintAll,
-  loadingLabels,
-  expandDefaults,
-  onToggleExpandDefaults,
-  onAutoFitColumns
+  onOpenVault
 }) => {
   return (
     <div className="space-y-4">
