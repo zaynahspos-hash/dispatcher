@@ -219,12 +219,12 @@ export function HistoryFilterBar({
       )}
 
       {/* Tier 1: Search scope dropdown, search input, include/exclude pin buttons, and reset */}
-      <div className="tb justify-between gap-2.5">
-        <div className="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
+      <div className="p-3 border-b border-[var(--bd)] bg-[var(--s1)] space-y-2">
+        {/* Main Search Row: 100% width on mobile */}
+        <div className="flex items-center gap-2 w-full">
           {setSearchScope && (
             <select
-              className="in shrink-0 text-xs sm:text-sm"
-              style={{ width: '120px' }}
+              className="in shrink-0 text-xs sm:text-sm !h-[38px] px-2 rounded-xl w-[92px] sm:w-[120px]"
               value={searchScope}
               onChange={e => setSearchScope(e.target.value as SearchScopeType)}
               title="Search field filter: All, Order #, Tracking, Customer, Phone"
@@ -236,11 +236,12 @@ export function HistoryFilterBar({
               <option value="phone">Phone</option>
             </select>
           )}
-          <div className="sw flex-1">
-            <SearchIcon className="w-4 h-4 shrink-0 pointer-events-none" />
+
+          <div className="sw flex-1 min-w-0">
+            <SearchIcon className="w-4 h-4 shrink-0 pointer-events-none text-[var(--t3)]" />
             <input
               type="text"
-              placeholder="Search or press Enter to pin (+inc, -exc)..."
+              placeholder="Search or press Enter to pin..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -256,55 +257,112 @@ export function HistoryFilterBar({
               </button>
             )}
           </div>
+
+          {/* Desktop inline action buttons */}
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            {setSearchIncludes && (
+              <button
+                type="button"
+                className="btn sm !h-[38px] !px-3"
+                onClick={() => handleAddPin('include')}
+                disabled={!searchQuery.trim()}
+                title="Pin keyword as an INCLUDE filter (or press Enter)"
+                style={{
+                  borderColor: searchQuery.trim() ? '#10b981' : undefined,
+                  color: searchQuery.trim() ? '#10b981' : undefined
+                }}
+              >
+                <span className="font-bold mr-0.5">+</span> Inc
+              </button>
+            )}
+            {setSearchExcludes && (
+              <button
+                type="button"
+                className="btn sm !h-[38px] !px-3"
+                onClick={() => handleAddPin('exclude')}
+                disabled={!searchQuery.trim()}
+                title="Pin keyword as an EXCLUDE filter (or prefix with -)"
+                style={{
+                  borderColor: searchQuery.trim() ? '#f43f5e' : undefined,
+                  color: searchQuery.trim() ? '#f43f5e' : undefined
+                }}
+              >
+                <span className="font-bold mr-0.5">-</span> Exc
+              </button>
+            )}
+
+            {setSearchExclude && (
+              <button
+                type="button"
+                className={`btn sm !h-[38px] !px-3 ${searchExclude ? 'p' : ''}`}
+                onClick={() => setSearchExclude(!searchExclude)}
+                title="Exclude matching typed results from display"
+              >
+                Exclude
+              </button>
+            )}
+            {isCustomFilterActive && (
+              <button
+                type="button"
+                className="btn sm !h-[38px] !px-3"
+                onClick={handleClearFilters}
+                title="Reset all filters"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-          {/* Quick Pin Buttons: + Inc and - Exc */}
-          {setSearchIncludes && (
-            <button
-              type="button"
-              className="btn sm"
-              onClick={() => handleAddPin('include')}
-              disabled={!searchQuery.trim()}
-              title="Pin keyword as an INCLUDE filter (or press Enter)"
-              style={{
-                borderColor: searchQuery.trim() ? '#10b981' : undefined,
-                color: searchQuery.trim() ? '#10b981' : undefined
-              }}
-            >
-              <span className="font-bold mr-0.5">+</span> Inc
-            </button>
-          )}
-          {setSearchExcludes && (
-            <button
-              type="button"
-              className="btn sm"
-              onClick={() => handleAddPin('exclude')}
-              disabled={!searchQuery.trim()}
-              title="Pin keyword as an EXCLUDE filter (or prefix with -)"
-              style={{
-                borderColor: searchQuery.trim() ? '#f43f5e' : undefined,
-                color: searchQuery.trim() ? '#f43f5e' : undefined
-              }}
-            >
-              <span className="font-bold mr-0.5">-</span> Exc
-            </button>
-          )}
+        {/* Mobile secondary action bar: shown when typing or custom filter active */}
+        <div className="flex sm:hidden items-center justify-between gap-1.5 pt-0.5">
+          <div className="flex items-center gap-1.5">
+            {setSearchIncludes && (
+              <button
+                type="button"
+                className="btn sm text-xs !h-7.5 !px-2.5"
+                onClick={() => handleAddPin('include')}
+                disabled={!searchQuery.trim()}
+                title="Pin keyword as INCLUDE"
+                style={{
+                  borderColor: searchQuery.trim() ? '#10b981' : undefined,
+                  color: searchQuery.trim() ? '#10b981' : undefined
+                }}
+              >
+                <span className="font-bold mr-0.5">+</span> Inc
+              </button>
+            )}
+            {setSearchExcludes && (
+              <button
+                type="button"
+                className="btn sm text-xs !h-7.5 !px-2.5"
+                onClick={() => handleAddPin('exclude')}
+                disabled={!searchQuery.trim()}
+                title="Pin keyword as EXCLUDE"
+                style={{
+                  borderColor: searchQuery.trim() ? '#f43f5e' : undefined,
+                  color: searchQuery.trim() ? '#f43f5e' : undefined
+                }}
+              >
+                <span className="font-bold mr-0.5">-</span> Exc
+              </button>
+            )}
+            {setSearchExclude && (
+              <button
+                type="button"
+                className={`btn sm text-xs !h-7.5 !px-2.5 ${searchExclude ? 'p' : ''}`}
+                onClick={() => setSearchExclude(!searchExclude)}
+                title="Exclude typed results"
+              >
+                Exclude
+              </button>
+            )}
+          </div>
 
-          {setSearchExclude && (
-            <button
-              type="button"
-              className={`btn sm ${searchExclude ? 'p' : ''}`}
-              onClick={() => setSearchExclude(!searchExclude)}
-              title="Exclude matching typed results from display"
-            >
-              Exclude
-            </button>
-          )}
           {isCustomFilterActive && (
             <button
               type="button"
-              className="btn sm"
+              className="btn sm text-xs !h-7.5 !px-2.5 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-800"
               onClick={handleClearFilters}
               title="Reset all filters"
             >
@@ -312,177 +370,177 @@ export function HistoryFilterBar({
             </button>
           )}
         </div>
+
+        {/* Pinned Multi-Search Tags Strip */}
+        {((searchIncludes && searchIncludes.length > 0) || (searchExcludes && searchExcludes.length > 0)) && (
+          <div className="flex items-center gap-1.5 flex-wrap px-2.5 py-1.5 rounded-xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 pt-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 mr-1">
+              Pins:
+            </span>
+
+            {/* Green Include Pins */}
+            {searchIncludes?.map((tag, idx) => (
+              <span
+                key={`inc-${idx}-${tag}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-xs"
+              >
+                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+</span>
+                <span className="truncate max-w-[120px] sm:max-w-[200px]">{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => removePin('include', tag)}
+                  className="ml-0.5 hover:text-emerald-900 dark:hover:text-emerald-100 p-0.5 rounded-full hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  title={`Remove "${tag}"`}
+                >
+                  <CloseIcon className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+
+            {/* Red Exclude Pins */}
+            {searchExcludes?.map((tag, idx) => (
+              <span
+                key={`exc-${idx}-${tag}`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-xs"
+              >
+                <span className="font-mono font-bold text-rose-600 dark:text-rose-400">-</span>
+                <span className="truncate max-w-[120px] sm:max-w-[200px]">{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => removePin('exclude', tag)}
+                  className="ml-0.5 hover:text-rose-900 dark:hover:text-rose-100 p-0.5 rounded-full hover:bg-rose-500/20 transition-colors cursor-pointer"
+                  title={`Remove "${tag}"`}
+                >
+                  <CloseIcon className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+
+            {/* Clear all pins shortcut */}
+            <button
+              type="button"
+              onClick={clearAllPins}
+              className="text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 px-1.5 py-0.5 rounded transition-colors ml-auto cursor-pointer"
+              title="Clear all search pins"
+            >
+              Clear pins
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Pinned Multi-Search Tags Strip */}
-      {((searchIncludes && searchIncludes.length > 0) || (searchExcludes && searchExcludes.length > 0)) && (
-        <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 rounded-xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 mb-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 mr-1">
-            Pins:
-          </span>
-
-          {/* Green Include Pins */}
-          {searchIncludes?.map((tag, idx) => (
-            <span
-              key={`inc-${idx}-${tag}`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-xs"
+      {/* Tier 2A: Quick Date Presets Strip (Smooth horizontal touch scroll, zero blowout) */}
+      <div className="px-3 py-2 border-b border-[var(--bd)] bg-[var(--s1)]">
+        <ScrollableChipsBar ariaLabel="Quick Date Presets">
+          <div className="seg-bar inline-flex">
+            <button
+              type="button"
+              className={activePreset === 'today' ? 'on' : ''}
+              onClick={() => handleQuickDate('today')}
             >
-              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+</span>
-              <span className="truncate max-w-[130px] sm:max-w-[200px]">{tag}</span>
-              <button
-                type="button"
-                onClick={() => removePin('include', tag)}
-                className="ml-0.5 hover:text-emerald-900 dark:hover:text-emerald-100 p-0.5 rounded-full hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                title={`Remove "${tag}" from includes`}
-              >
-                <CloseIcon className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-
-          {/* Red Exclude Pins */}
-          {searchExcludes?.map((tag, idx) => (
-            <span
-              key={`exc-${idx}-${tag}`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-xs"
+              Today
+            </button>
+            <button
+              type="button"
+              className={activePreset === 'yesterday' ? 'on' : ''}
+              onClick={() => handleQuickDate('yesterday')}
             >
-              <span className="font-mono font-bold text-rose-600 dark:text-rose-400">-</span>
-              <span className="truncate max-w-[130px] sm:max-w-[200px]">{tag}</span>
-              <button
-                type="button"
-                onClick={() => removePin('exclude', tag)}
-                className="ml-0.5 hover:text-rose-900 dark:hover:text-rose-100 p-0.5 rounded-full hover:bg-rose-500/20 transition-colors cursor-pointer"
-                title={`Remove "${tag}" from excludes`}
-              >
-                <CloseIcon className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
+              Yesterday
+            </button>
+            <button
+              type="button"
+              className={activePreset === 'last7' ? 'on' : ''}
+              onClick={() => handleQuickDate('last7')}
+            >
+              Last 7 days
+            </button>
+            <button
+              type="button"
+              className={activePreset === 'last30' ? 'on' : ''}
+              onClick={() => handleQuickDate('last30')}
+            >
+              Last 30 days
+            </button>
+            <button
+              type="button"
+              className={activePreset === 'thisMonth' ? 'on' : ''}
+              onClick={() => handleQuickDate('thisMonth')}
+            >
+              This month
+            </button>
+            <button
+              type="button"
+              className={activePreset === 'last3Months' ? 'on' : ''}
+              onClick={() => handleQuickDate('last3Months')}
+            >
+              Last 3 months
+            </button>
+          </div>
+        </ScrollableChipsBar>
+      </div>
 
-          {/* Clear all pins shortcut */}
-          <button
-            type="button"
-            onClick={clearAllPins}
-            className="text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 px-2 py-0.5 rounded transition-colors ml-auto cursor-pointer"
-            title="Clear all search pins"
-          >
-            Clear pins
-          </button>
-        </div>
-      )}
-
-      {/* Tier 2: Date presets, custom date range, status select, city select */}
-      <div className="tb justify-between gap-2.5">
-        {/* Date presets with smooth horizontal scroll */}
-        <div className="seg-bar">
-          <button
-            type="button"
-            className={activePreset === 'today' ? 'on' : ''}
-            onClick={() => handleQuickDate('today')}
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            className={activePreset === 'yesterday' ? 'on' : ''}
-            onClick={() => handleQuickDate('yesterday')}
-          >
-            Yesterday
-          </button>
-          <button
-            type="button"
-            className={activePreset === 'last7' ? 'on' : ''}
-            onClick={() => handleQuickDate('last7')}
-          >
-            Last 7 days
-          </button>
-          <button
-            type="button"
-            className={activePreset === 'last30' ? 'on' : ''}
-            onClick={() => handleQuickDate('last30')}
-          >
-            Last 30 days
-          </button>
-          <button
-            type="button"
-            className={activePreset === 'thisMonth' ? 'on' : ''}
-            onClick={() => handleQuickDate('thisMonth')}
-          >
-            This month
-          </button>
-          <button
-            type="button"
-            className={activePreset === 'last3Months' ? 'on' : ''}
-            onClick={() => handleQuickDate('last3Months')}
-          >
-            Last 3 months
-          </button>
+      {/* Tier 2B: Custom Date Range & Dropdowns (Clean, aligned 50/50 grid on mobile) */}
+      <div className="p-3 border-b border-[var(--bd)] bg-[var(--s1)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        {/* Custom Date Range atomic group */}
+        <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-slate-50/80 dark:bg-slate-900/40 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800/60 w-full sm:w-auto">
+          <input
+            type="date"
+            className="in flex-1 sm:flex-none text-xs !h-8 !px-2 rounded-lg"
+            style={{ minWidth: 0, maxWidth: '140px' }}
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
+            title="From date"
+          />
+          <span className="text-[var(--t3)] text-xs font-semibold px-1">to</span>
+          <input
+            type="date"
+            className="in flex-1 sm:flex-none text-xs !h-8 !px-2 rounded-lg"
+            style={{ minWidth: 0, maxWidth: '140px' }}
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
+            title="To date"
+          />
+          {daysText && (
+            <span className="text-[var(--t3)] text-[11px] font-mono font-semibold px-1 whitespace-nowrap">{daysText}</span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* Custom Date Range atomic group (never splits across lines) */}
-          <div className="inline-flex items-center gap-1.5 shrink-0 bg-slate-50/50 dark:bg-slate-900/40 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
-            <input
-              type="date"
-              className="in text-xs sm:text-sm !h-8 !px-2"
-              style={{ width: '130px' }}
-              value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-              title="From date"
-            />
-            <span className="t3 text-xs font-semibold px-0.5">to</span>
-            <input
-              type="date"
-              className="in text-xs sm:text-sm !h-8 !px-2"
-              style={{ width: '130px' }}
-              value={toDate}
-              onChange={e => setToDate(e.target.value)}
-              title="To date"
-            />
-            {daysText && (
-              <span className="t3 text-[11px] mono hidden sm:inline px-1 font-semibold">{daysText}</span>
-            )}
-          </div>
-
-          {/* Status & City Selectors */}
-          <div className="inline-flex items-center gap-1.5 shrink-0">
-            <select
-              className="in text-xs sm:text-sm !h-8 !px-2"
-              style={{ minWidth: '120px' }}
-              value={statusSelect}
-              onChange={e => setStatusSelect(e.target.value)}
-              title="All statuses"
-            >
-              <option value="all">All statuses</option>
-              <option value="pending_loadsheet">Pending loadsheet</option>
-              <option value="booked">Booked</option>
-              <option value="intransit">In Transit</option>
-              <option value="out_for_delivery">Out for Delivery</option>
-              <option value="action_required">Action Required</option>
-              <option value="delivered">Delivered</option>
-              <option value="returned">Returned</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <select
-              className="in text-xs sm:text-sm !h-8 !px-2"
-              style={{ minWidth: '125px' }}
-              value={pickupFilter}
-              onChange={e => setPickupFilter(e.target.value)}
-              title="All cities"
-            >
-              <option value="all">All cities ({uniqueCities.length})</option>
-              {uniqueCities.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+        {/* Status & City Selectors: Aligned 50/50 2-column grid on mobile */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          <select
+            className="in text-xs !h-8 !px-2 rounded-lg w-full sm:w-[130px]"
+            value={statusSelect}
+            onChange={e => setStatusSelect(e.target.value)}
+            title="All statuses"
+          >
+            <option value="all">All statuses</option>
+            <option value="pending_loadsheet">Pending loadsheet</option>
+            <option value="booked">Booked</option>
+            <option value="intransit">In Transit</option>
+            <option value="out_for_delivery">Out for Delivery</option>
+            <option value="action_required">Action Required</option>
+            <option value="delivered">Delivered</option>
+            <option value="returned">Returned</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select
+            className="in text-xs !h-8 !px-2 rounded-lg w-full sm:w-[130px]"
+            value={pickupFilter}
+            onChange={e => setPickupFilter(e.target.value)}
+            title="All cities"
+          >
+            <option value="all">All cities ({uniqueCities.length})</option>
+            {uniqueCities.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Tier 3: Status filter tabs wrapped in ScrollableChipsBar */}
       <div className="border-b border-[var(--bd)] px-3 py-2 bg-[var(--s1)]">
         <ScrollableChipsBar
-          containerClassName="flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
+          containerClassName="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 scroll-smooth touch-pan-x"
           ariaLabel="Status filter tabs"
         >
           {tabs.map(tab => (
@@ -499,13 +557,13 @@ export function HistoryFilterBar({
         </ScrollableChipsBar>
       </div>
 
-      {/* Tier 4: Source, WhatsApp, Auto-fit, and Expand all */}
-      <div className="tb justify-between gap-2.5" style={{ borderBottom: '1px solid var(--bd)' }}>
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Tier 4: Source, WhatsApp, and Expand all (Compact single touch track on mobile) */}
+      <div className="px-3 py-2 border-b border-[var(--bd)] bg-[var(--s1)] flex items-center justify-between gap-3 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x">
+        <div className="flex items-center gap-3 shrink-0">
           {setSourceFilter && (
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="t3 text-[11px] font-bold tracking-wider">SOURCE</span>
-              <div className="seg-bar">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Source</span>
+              <div className="seg-bar text-xs">
                 <button
                   type="button"
                   className={sourceFilter === 'all' ? 'on' : ''}
@@ -518,14 +576,14 @@ export function HistoryFilterBar({
                   className={sourceFilter === 'app' ? 'on' : ''}
                   onClick={() => setSourceFilter('app')}
                 >
-                  Booked in app {sourceCounts?.app ?? 0}
+                  App {sourceCounts?.app ?? 0}
                 </button>
                 <button
                   type="button"
                   className={sourceFilter === 'postex_portal' ? 'on' : ''}
                   onClick={() => setSourceFilter('postex_portal')}
                 >
-                  External / portal {sourceCounts?.portal ?? 0}
+                  Portal {sourceCounts?.portal ?? 0}
                 </button>
               </div>
             </div>
@@ -533,8 +591,8 @@ export function HistoryFilterBar({
 
           {setWhatsappFilter && (
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="t3 text-[11px] font-bold tracking-wider">WHATSAPP</span>
-              <div className="seg-bar">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">WA</span>
+              <div className="seg-bar text-xs">
                 <button
                   type="button"
                   className={whatsappFilter === 'all' ? 'on' : ''}
@@ -565,7 +623,7 @@ export function HistoryFilterBar({
           {onAutoFitColumns && (
             <button
               type="button"
-              className="btn sm"
+              className="hidden min-[860px]:inline-flex btn sm"
               onClick={onAutoFitColumns}
               title="Auto-fit table column widths"
             >
@@ -576,7 +634,7 @@ export function HistoryFilterBar({
           {onToggleAutoExpandLines && (
             <button
               type="button"
-              className="btn sm"
+              className="btn sm text-xs !h-7 !px-2.5"
               onClick={onToggleAutoExpandLines}
               title="Toggle multi-line expansion on addresses and notes"
             >
