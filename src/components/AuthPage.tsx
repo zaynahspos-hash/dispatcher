@@ -482,7 +482,7 @@ const handleOpenWhatsAppAdmin = () => {
 }
 
 return (
-  <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-[#090d16] font-sans relative overflow-hidden select-none dark [color-scheme:dark]">
+  <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-[#090d16] font-sans relative overflow-hidden dark [color-scheme:dark]">
 
     {/* Background radial gradient accent */}
     <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />

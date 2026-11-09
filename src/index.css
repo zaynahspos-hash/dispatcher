@@ -54,6 +54,17 @@ body {
   }
 }
 
+/* Universal Data Selection: allow customer name, phone, tracking, addresses, amounts to be selected */
+table, tr, td, tbody {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+::selection {
+  background-color: rgba(16, 185, 129, 0.28);
+  color: inherit;
+}
+
 /* Table input focus states */
 input:focus, select:focus, textarea:focus {
   outline: none;

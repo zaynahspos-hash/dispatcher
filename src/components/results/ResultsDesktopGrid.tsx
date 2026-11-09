@@ -129,7 +129,7 @@ export function ResultsDesktopGrid({
     <div className="hidden min-[860px]:block w-full max-w-full min-w-0">
       <div ref={scrollContainerRef} className="overflow-x-auto min-h-[380px] pb-12 max-w-full min-w-0">
         <table
-          className="text-xs border-collapse table-fixed select-none w-full"
+          className="text-xs border-collapse table-fixed w-full"
           style={{ minWidth: `${totalTableWidth}px` }}
         >
           <colgroup>

@@ -34,7 +34,7 @@ export const MobileMoreScreen: React.FC<MobileMoreScreenProps> = ({
   onNavigate
 }) => {
   return (
-    <div className="min-[860px]:hidden space-y-4 px-3 pb-8 select-none">
+    <div className="min-[860px]:hidden space-y-4 px-3 pb-8">
       {/* 1. Merchant Identity Card */}
       <div className="ios-grp">
         <div className="ios-row tap">

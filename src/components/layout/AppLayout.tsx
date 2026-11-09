@@ -271,7 +271,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </main>
 
         {/* Desktop Portal Footer Status Bar (>= 860px) */}
-        <footer className="hidden min-[860px]:flex h-8 px-6 lg:px-8 bg-[var(--s1)] border-t border-[var(--bd)] items-center justify-between text-[11px] text-[var(--t2)] select-none shrink-0 z-20">
+        <footer className="hidden min-[860px]:flex h-8 px-6 lg:px-8 bg-[var(--s1)] border-t border-[var(--bd)] items-center justify-between text-[11px] text-[var(--t2)] shrink-0 z-20">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--ac)]"></span>
