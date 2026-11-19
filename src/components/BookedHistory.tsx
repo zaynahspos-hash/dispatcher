@@ -330,7 +330,7 @@ export function BookedHistory({ settings, history, onUpdateHistory, userId }: Bo
       const itemDate = getParcelDateStr(h.bookingDate)
       if (fromDate && (!itemDate || itemDate < fromDate)) return false
       if (toDate && (!itemDate || itemDate > toDate)) return false
-      return matchesSearchCriteria(h, searchScope, searchQuery, searchExclude, searchIncludes, searchExcludes)
+      return matchesSearchCriteria(h, searchQuery, searchScope, searchExclude, searchIncludes, searchExcludes)
     })
     const citiesSet = new Set(baseList.map(item => item.city?.toUpperCase().trim()).filter(Boolean))
     return Array.from(citiesSet).sort()

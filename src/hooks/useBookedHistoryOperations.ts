@@ -381,27 +381,68 @@ export function useBookedHistoryOperations({
     }
     setIsSubmittingAdvice(true)
     setAdviceError(null)
+    const submittedTracking = adviceParcel.tracking
+    const submittedStatusId = adviceStatusId
     try {
       const res = await saveShipperAdvice(
         settings.postex_token,
-        adviceParcel.tracking,
-        adviceStatusId,
+        submittedTracking,
+        submittedStatusId,
         adviceRemarks
       )
       if (res.statusCode === 200 || res.statusCode === '200' || res.statusCode === '0200' || res.statusMessage === 'SUCCESSFULLY OPERATED' || res.statusMessage === 'Success') {
-        const updatedHistory = history.map(item => {
-          if (item.tracking === adviceParcel.tracking) {
-            return { ...item, status: adviceStatusId === 2 ? 'Retry Requested' : 'Return Requested' }
+        // Step 1: Optimistically set interim status (Retry/Return Requested)
+        const interimStatus = submittedStatusId === 2 ? 'Retry Requested' : 'Return Requested'
+        let updatedHistory = history.map(item => {
+          if (item.tracking === submittedTracking) {
+            return { ...item, status: interimStatus }
           }
           return item
         })
         onUpdateHistory(updatedHistory)
-        setActionStatus({
-          type: 'success',
-          message: `Shipper advice successfully submitted for CN ${adviceParcel.tracking}!`
-        })
         setAdviceParcel(null)
         setAdviceRemarks('')
+
+        // Step 2: Immediately auto-sync real status from PostEx so the row reflects the
+        // actual milestone PostEx applied (e.g. Returned, Return to Sender, etc.)
+        try {
+          const trackRes = await trackOrder(settings.postex_token, submittedTracking)
+          if (trackRes.statusCode === 200 || trackRes.statusCode === '200' || trackRes.statusCode === '0200') {
+            const rawStatus = getLatestPostExStatus(trackRes.dist)
+            if (rawStatus) {
+              const rawLower = rawStatus.toLowerCase().trim()
+              const hasExplicitManifest = Boolean(
+                trackRes.dist?.isManifested ||
+                trackRes.dist?.manifestNumber ||
+                rawLower.includes('manifest') ||
+                rawLower.includes('picked by postex') ||
+                rawLower.includes('in transit') ||
+                rawLower.includes('out for delivery') ||
+                rawLower.includes('delivered')
+              )
+              updatedHistory = updatedHistory.map(item => {
+                if (item.tracking === submittedTracking) {
+                  const effectiveHasLoadSheet = Boolean(item.hasLoadSheet || item.loadsheet_generated || hasExplicitManifest)
+                  return {
+                    ...item,
+                    status: determineNewStatus(interimStatus, rawStatus),
+                    hasLoadSheet: effectiveHasLoadSheet,
+                    loadsheet_generated: effectiveHasLoadSheet
+                  }
+                }
+                return item
+              })
+              onUpdateHistory(updatedHistory)
+            }
+          }
+        } catch {
+          // Auto-sync failed silently — interim status already set, merchant can manually refresh
+        }
+
+        setActionStatus({
+          type: 'success',
+          message: `Shipper advice submitted for CN ${submittedTracking}! Status synced from PostEx.`
+        })
       } else {
         setAdviceError(res.statusMessage || 'Failed to submit shipper advice.')
       }
