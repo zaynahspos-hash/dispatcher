@@ -1,4 +1,4 @@
-const BUILD_VERSION = 'v20261015-refresh'
+const BUILD_VERSION = 'v20261119-search-fix'
 const CACHE_PREFIX = 'courier-manager'
 const CACHE_STATIC = `${CACHE_PREFIX}-static-${BUILD_VERSION}`
 const CACHE_HTML = `${CACHE_PREFIX}-html-${BUILD_VERSION}`
